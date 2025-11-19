@@ -1,3 +1,4 @@
+
 import { ILootTable } from "../utils/types";
 
 export const CHEST_LOOT_TABLE: ILootTable = {
@@ -7,7 +8,7 @@ export const CHEST_LOOT_TABLE: ILootTable = {
         { type: 'MEDIUM', count: [1, 3] },
     ],
     upgrades: {
-        chance: 0.15, // 15% chance for a free upgrade
+        chance: 1.0, // 100% chance to attempt an upgrade (or fallback to gold)
         count: 1
     }
 };

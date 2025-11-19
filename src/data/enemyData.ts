@@ -1,7 +1,11 @@
+
 import { IEnemyData } from "../utils/types";
 
 export const ENEMY_DATA: { [key: string]: IEnemyData } = {
     SLIME: {
+        nameKey: 'enemy.slime.name',
+        descriptionKey: 'enemy.slime.desc',
+        icon: '🟢',
         hp: 30,
         speed: 100,
         damage: 10,
@@ -23,6 +27,9 @@ export const ENEMY_DATA: { [key: string]: IEnemyData } = {
         }
     },
     BAT: {
+        nameKey: 'enemy.bat.name',
+        descriptionKey: 'enemy.bat.desc',
+        icon: '🦇',
         hp: 20,
         speed: 150,
         damage: 5,
@@ -45,6 +52,9 @@ export const ENEMY_DATA: { [key: string]: IEnemyData } = {
         }
     },
     GHOST: {
+        nameKey: 'enemy.ghost.name',
+        descriptionKey: 'enemy.ghost.desc',
+        icon: '👻',
         hp: 15,
         speed: 220,
         damage: 4,
@@ -67,6 +77,9 @@ export const ENEMY_DATA: { [key: string]: IEnemyData } = {
         }
     },
     GOLEM: {
+        nameKey: 'enemy.golem.name',
+        descriptionKey: 'enemy.golem.desc',
+        icon: '🗿',
         hp: 150,
         speed: 50,
         damage: 25,
@@ -90,6 +103,9 @@ export const ENEMY_DATA: { [key: string]: IEnemyData } = {
         }
     },
     SKELETON: {
+        nameKey: 'enemy.skeleton.name',
+        descriptionKey: 'enemy.skeleton.desc',
+        icon: '💀',
         hp: 40,
         speed: 80,
         damage: 15,

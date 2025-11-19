@@ -74,6 +74,9 @@ export interface ISkillData {
 
 
 export interface IEnemyData {
+    nameKey: string;
+    descriptionKey: string;
+    icon: string;
     hp: number;
     speed: number;
     damage: number;

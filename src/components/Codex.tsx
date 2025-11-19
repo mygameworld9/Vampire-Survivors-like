@@ -1,13 +1,15 @@
+
 import React, { useState } from 'react';
 import { i18nManager } from '../core/i18n';
 import { WEAPON_DATA } from '../data/weaponData';
 import { SKILL_DATA } from '../data/skillData';
+import { ENEMY_DATA } from '../data/enemyData';
 
 interface CodexProps {
     onClose: () => void;
 }
 
-type CodexTab = 'weapons' | 'skills';
+type CodexTab = 'weapons' | 'skills' | 'enemies';
 
 export const Codex: React.FC<CodexProps> = ({ onClose }) => {
     const [activeTab, setActiveTab] = useState<CodexTab>('weapons');
@@ -56,6 +58,27 @@ export const Codex: React.FC<CodexProps> = ({ onClose }) => {
         ));
     };
 
+    const renderEnemyStats = () => {
+        return Object.values(ENEMY_DATA).map(e => (
+            <div key={e.nameKey} className="weapon-card">
+                <div className="weapon-card-header">
+                    <div className="codex-title-group">
+                        <span className="codex-icon">{e.icon}</span>
+                        <h3>{i18nManager.t(e.nameKey)}</h3>
+                    </div>
+                </div>
+                <div className="weapon-card-stats">
+                     <span>{i18nManager.t('ui.panel.hp', { value: e.hp })}</span>
+                     <span>{i18nManager.t('ui.panel.damage', { value: e.damage })}</span>
+                     <span>{i18nManager.t('ui.panel.speed', { value: e.speed })}</span>
+                </div>
+                <div className="weapon-card-upgrade">
+                    {i18nManager.t(e.descriptionKey)}
+                </div>
+            </div>
+        ));
+    };
+
 
     return (
         <div className="info-panel-backdrop codex-backdrop">
@@ -77,10 +100,19 @@ export const Codex: React.FC<CodexProps> = ({ onClose }) => {
                     >
                         {i18nManager.t('ui.codex.skills')}
                     </button>
+                     <button 
+                        className={`codex-tab ${activeTab === 'enemies' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('enemies')}
+                        aria-pressed={activeTab === 'enemies'}
+                    >
+                        {i18nManager.t('ui.codex.enemies')}
+                    </button>
                 </div>
 
                 <div className="weapon-cards-container codex-content">
-                   {activeTab === 'weapons' ? renderWeaponStats() : renderSkillStats()}
+                   {activeTab === 'weapons' && renderWeaponStats()}
+                   {activeTab === 'skills' && renderSkillStats()}
+                   {activeTab === 'enemies' && renderEnemyStats()}
                 </div>
 
                 <button className="close-button" onClick={onClose} aria-label="Close Codex">{i18nManager.t('ui.panel.close')}</button>

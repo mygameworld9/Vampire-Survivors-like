@@ -505,7 +505,7 @@ export class Game {
         // Grant Upgrades
         if (Math.random() < CHEST_LOOT_TABLE.upgrades.chance) {
             for (let i = 0; i < CHEST_LOOT_TABLE.upgrades.count; i++) {
-                this._grantRandomUpgrade();
+                this._grantChestUpgrade();
             }
         }
     }
@@ -515,35 +515,36 @@ export class Game {
         this.animatingEntities = this.animatingEntities.filter(e => e !== chest);
     }
 
-    private _grantRandomUpgrade() {
+    private _grantChestUpgrade() {
         const player = this.player;
 
+        // Only existing items that are NOT max level
         const availableWeaponUpgrades = player.weapons
             .filter(w => !w.isMaxLevel())
             .map(w => ({ type: 'upgrade', weapon: w } as UpgradeOption));
 
-        const ownedWeaponIds = new Set(player.weapons.map(w => w.id));
-        const availableNewWeapons = Object.values(WEAPON_DATA)
-            .filter(wd => !ownedWeaponIds.has(wd.id))
-            .map(wd => ({ type: 'new', weaponData: wd } as UpgradeOption));
-        
         const availableSkillUpgrades = player.skills
             .filter(s => !s.isMaxLevel())
             .map(s => ({ type: 'upgrade', skill: s } as UpgradeOption));
-
-        const ownedSkillIds = new Set(player.skills.map(s => s.id));
-        const availableNewSkills = Object.values(SKILL_DATA)
-             .filter(sd => !ownedSkillIds.has(sd.id))
-             .map(sd => ({ type: 'new', skillData: sd } as UpgradeOption));
         
         const optionsPool = [
             ...availableWeaponUpgrades,
-            ...availableNewWeapons,
-            ...availableSkillUpgrades,
-            ...availableNewSkills
+            ...availableSkillUpgrades
         ];
 
-        if (optionsPool.length === 0) return;
+        // Fallback: Limit Break (Extra Gold) if everything is maxed
+        if (optionsPool.length === 0) {
+            const limitBreakGold = 100;
+            player.gainGold(limitBreakGold);
+            this.floatingTexts.push(new FloatingText(
+                player.pos.x, 
+                player.pos.y - 40, 
+                i18nManager.t('ui.chest.limitBreak', { amount: Math.ceil(limitBreakGold * player.goldMultiplier) }), 
+                '#e040fb', 
+                2.5
+            ));
+            return;
+        }
 
         const chosenOption = optionsPool[Math.floor(Math.random() * optionsPool.length)];
 
@@ -555,14 +556,6 @@ export class Game {
             } else { // skill
                 upgradeText = `${chosenOption.skill.name} Lvl ${chosenOption.skill.level + 1}!`;
                 chosenOption.skill.levelUp(player);
-            }
-        } else if (chosenOption.type === 'new') {
-            if ('weaponData' in chosenOption) {
-                upgradeText = `New: ${i18nManager.t(chosenOption.weaponData.nameKey)}!`;
-                player.addWeapon(chosenOption.weaponData.id);
-            } else { // skillData
-                upgradeText = `New: ${i18nManager.t(chosenOption.skillData.nameKey)}!`;
-                player.addSkill(chosenOption.skillData.id);
             }
         }
         
