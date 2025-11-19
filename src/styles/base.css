@@ -1,0 +1,34 @@
+:root {
+  --hud-bg-color: rgba(0, 0, 0, 0.3);
+  --bar-bg-color: #333;
+  --hp-color: #e53935;
+  --xp-color: #42a5f5;
+  --text-color: #fff;
+  --border-color: #555;
+  --menu-bg-color: rgba(0, 0, 0, 0.85);
+  --panel-bg-color: #37474f;
+  --panel-border-color: #555;
+  --interactive-color: #546e7a;
+  --interactive-hover-color: #607d8b;
+  --accent-color: #42a5f5;
+}
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #1a1a1a;
+  color: var(--text-color);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  overflow: hidden;
+}
+#root {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+}
+canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  /* background-color is now set by Game.ts */
+  display: block;
+}

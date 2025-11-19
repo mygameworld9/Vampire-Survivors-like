@@ -1,0 +1,95 @@
+
+@keyframes flash-red {
+    0%, 100% {
+        background-color: var(--hp-color);
+        filter: brightness(1);
+    }
+    50% {
+        background-color: #ff5252; /* Brighter red */
+        filter: brightness(1.5);
+    }
+}
+
+@keyframes flash-red-border {
+    0%, 100% {
+        border-color: var(--border-color);
+        box-shadow: 0 0 0 rgba(255, 82, 82, 0);
+    }
+    50% {
+        border-color: #ff5252;
+        box-shadow: 0 0 8px rgba(255, 82, 82, 0.7);
+    }
+}
+
+@keyframes shake {
+  10%, 90% { transform: scale(3) translateX(-1px); }
+  20%, 80% { transform: scale(3) translateX(2px); }
+  30%, 50%, 70% { transform: scale(3) translateX(-4px); }
+  40%, 60% { transform: scale(3) translateX(4px); }
+}
+
+@keyframes fly-out {
+  0% {
+    transform: translate(0, 0) scale(0);
+    opacity: 1;
+  }
+  50% {
+     opacity: 1;
+     transform: scale(1.2); /* Pop out effect */
+  }
+  100% {
+    transform: translate(var(--end-x), var(--end-y)) scale(0) rotateZ(var(--rotate-z));
+    opacity: 0;
+  }
+}
+
+@keyframes sprite-walk-down {
+  from { background-position-x: 0; }
+  to { background-position-x: -128px; } /* 4 frames * 32px width */
+}
+
+/* --- Start Screen Animations --- */
+
+@keyframes floatBackground {
+    0% { transform: translate(0, 0) rotate(0deg); }
+    50% { transform: translate(20px, 20px) rotate(10deg); }
+    100% { transform: translate(0, 0) rotate(0deg); }
+}
+
+@keyframes bounceTitle {
+    0%, 100% { transform: translateY(0) rotate(-5deg); }
+    50% { transform: translateY(-15px) rotate(-5deg); }
+}
+
+@keyframes breatheMascot {
+    0%, 100% { transform: scale(1) translateY(0); }
+    50% { transform: scale(1.05) translateY(-20px); }
+}
+
+@keyframes slideUpFade {
+    from { opacity: 0; transform: translateY(50px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes floatCloud {
+    from { transform: translateX(0); }
+    to { transform: translateX(200px); }
+}
+
+@keyframes twinkle {
+    0%, 100% { transform: scale(1); opacity: 0.8; }
+    50% { transform: scale(1.5) rotate(180deg); opacity: 1; }
+}
+
+/* --- Game Over Animations --- */
+
+@keyframes dropIn {
+    0% { transform: translateY(-500px) rotate(-10deg); opacity: 0; }
+    70% { transform: translateY(20px) rotate(5deg); opacity: 1; }
+    100% { transform: translateY(0) rotate(0deg); opacity: 1; }
+}
+
+@keyframes sadFloat {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(10px) rotate(-5deg); }
+}

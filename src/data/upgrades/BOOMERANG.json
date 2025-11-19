@@ -1,0 +1,7 @@
+[
+  { "description": "Increase damage by 10", "effects": { "damage": { "op": "add", "value": 10 } } },
+  { "description": "Reduce cooldown by 15%", "effects": { "cooldown": { "op": "multiply", "value": 0.85 } } },
+  { "description": "Increase size/range", "effects": { "range": { "op": "multiply", "value": 1.2 } } },
+  { "description": "Increase damage by 15", "effects": { "damage": { "op": "add", "value": 15 } } },
+  { "description": "Reduce cooldown by 20%", "effects": { "cooldown": { "op": "multiply", "value": 0.80 } } }
+]

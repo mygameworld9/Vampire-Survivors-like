@@ -1,0 +1,5 @@
+[
+  { "description": "Increase damage by 5", "effects": { "damage": { "op": "add", "value": 5 } } },
+  { "description": "Increase laser width", "effects": { "width": { "op": "add", "value": 4 } } },
+  { "description": "Reduce cooldown by 10%", "effects": { "cooldown": { "op": "multiply", "value": 0.9 } } }
+]

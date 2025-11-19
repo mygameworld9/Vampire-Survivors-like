@@ -1,0 +1,8 @@
+[
+  { "description": "Increase damage by 5", "effects": { "damage": { "op": "add", "value": 5 } } },
+  { "description": "Increase radius by 15%", "effects": { "range": { "op": "multiply", "value": 1.15 } } },
+  { "description": "Deal damage 10% faster", "effects": { "cooldown": { "op": "multiply", "value": 0.9 } } },
+  { "description": "Increase damage by 10", "effects": { "damage": { "op": "add", "value": 10 } } },
+  { "description": "Increase radius by 20%", "effects": { "range": { "op": "multiply", "value": 1.20 } } },
+  { "description": "Deal damage 15% faster", "effects": { "cooldown": { "op": "multiply", "value": 0.85 } } }
+]

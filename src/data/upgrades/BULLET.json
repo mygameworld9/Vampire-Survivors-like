@@ -1,0 +1,9 @@
+[
+  { "description": "Increase penetration", "effects": { "penetration": { "op": "add", "value": 1 } } },
+  { "description": "Increase damage by 5", "effects": { "damage": { "op": "add", "value": 5 } } },
+  { "description": "Reduce cooldown by 10%", "effects": { "cooldown": { "op": "multiply", "value": 0.9 } } },
+  { "description": "Increase damage by 10", "effects": { "damage": { "op": "add", "value": 10 } } },
+  { "description": "Increase penetration", "effects": { "penetration": { "op": "add", "value": 1 } } },
+  { "description": "Reduce cooldown by 15%", "effects": { "cooldown": { "op": "multiply", "value": 0.85 } } },
+  { "description": "Increase damage by 15", "effects": { "damage": { "op": "add", "value": 15 } } }
+]

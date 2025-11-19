@@ -1,0 +1,101 @@
+# Guide: Changing Character & Enemy Graphics
+
+This guide explains how to replace the placeholder graphics with your own animated sprites. The process is centered around using **spritesheets**, which is the most efficient way to handle 2D animations in games. This system is designed to be fully **data-driven**, meaning you can change animations and sprites by editing configuration files, not core game logic.
+
+## Core Principle: Spritesheets
+
+The visual representation of an entity (the "View") is handled in its `draw(ctx)` method. The new system is designed to render a single frame from a larger spritesheet image.
+
+A **spritesheet** is a single image file (e.g., `player_spritesheet.png`) containing all frames of animation in a grid. Each row typically represents a different animation (e.g., walking down, walking up), and each column is a single frame.
+
+---
+
+### 1. Changing the Player Character's Animation
+
+Changing the player's animation is a two-step process: replacing the asset file and updating the data configuration.
+
+#### Step 1: Replace the Spritesheet Asset
+
+1.  Create your player spritesheet as a `.png` file with a transparent background.
+2.  Place this file inside the `/public` directory at the root of the project.
+3.  Let's assume you name it `my_player.png`.
+
+#### Step 2: Update the Player Data File
+
+1.  **File to Modify:** `src/data/playerData.ts`
+
+2.  **Update the configuration** to match your new file and its layout.
+    *   `spriteSheet`: Change the path to point to your new file.
+    *   `spriteWidth`: Set this to the width of a *single frame* in your spritesheet.
+    *   `spriteHeight`: Set this to the height of a *single frame* in your spritesheet.
+    *   `animations`: This is the most important part. You must map your animations to the correct row (`frameY`) on your spritesheet. The row index starts at `0`.
+        *   `walkDown`, `walkUp`, `walkLeft`, `walkRight` are the keys the game engine uses.
+        *   `frameY`: The row number for that animation.
+        *   `maxFrames`: The number of frames in that animation sequence.
+
+    **Example `playerData.ts` modification:**
+
+    ```typescript
+    // In src/data/playerData.ts
+    import { IPlayerData } from "../utils/types";
+
+    export const PLAYER_DATA: IPlayerData = {
+        hp: 100,
+        speed: 200,
+        size: 48, // Maybe your new sprite is bigger? Adjust here.
+        revives: 1,
+        // --- Animation System Data ---
+        spriteSheet: '/my_player.png',  // Path to your new spritesheet in /public
+        spriteWidth: 48,  // The width of one frame
+        spriteHeight: 48, // The height of one frame
+        animations: {
+            // My spritesheet has a different layout:
+            walkDown:  { frameY: 0, maxFrames: 6 }, // Walk down is on row 0, has 6 frames
+            walkUp:    { frameY: 1, maxFrames: 6 }, // Walk up is on row 1
+            walkLeft:  { frameY: 2, maxFrames: 6 }, // etc.
+            walkRight: { frameY: 3, maxFrames: 6 },
+        }
+    };
+    ```
+
+3.  **Done!** The game will now automatically load your spritesheet and use your defined animation sequences. No changes to `Player.ts` or any other logic files are needed.
+
+---
+
+### 2. Changing an Enemy's Graphics
+
+You can apply the exact same data-driven approach to enemies.
+
+1.  **Modify Data File:** `src/data/enemyData.ts` and `src/utils/types.ts`
+    *   First, update the `IEnemyData` interface in `src/utils/types.ts` to include optional animation properties.
+        ```typescript
+        export interface IEnemyData {
+            // ... existing properties
+            color: string;
+            // Add these optional properties
+            spriteSheet?: string;
+            spriteWidth?: number;
+            spriteHeight?: number;
+        }
+        ```
+    *   Next, in `src/data/enemyData.ts`, add this information to the enemy you want to change.
+        ```typescript
+        // in src/data/enemyData.ts
+        SLIME: {
+            hp: 30,
+            speed: 100,
+            damage: 10,
+            size: 24,
+            xp: 5,
+            color: '#4caf50',
+            // Add sprite info
+            spriteSheet: '/slime_monster.png',
+            spriteWidth: 24,
+            spriteHeight: 24,
+        },
+        ```
+
+2.  **File to Modify:** `src/entities/Enemy.ts`
+    *   Update the `Enemy` class to load and draw the sprite if the data is provided in its configuration. This is very similar to how the `Player` class was upgraded. You would add properties for the image and animation state, load the image in the constructor, and switch the `draw` method to use `drawImage`.
+
+This data-driven architecture ensures that art and design changes are cleanly separated from programming, making the project much easier to manage and scale.

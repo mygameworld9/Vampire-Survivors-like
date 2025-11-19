@@ -1,0 +1,237 @@
+
+/* Debug Button */
+.debug-button {
+    position: absolute;
+    top: 70px;
+    right: 1rem;
+    z-index: 100;
+    pointer-events: all;
+    background-color: #ab47bc; /* Epic purple */
+    border: 2px solid #ce93d8;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    opacity: 0.8;
+}
+
+.debug-button:hover {
+    background-color: #9c27b0;
+    opacity: 1;
+}
+
+/* Chest Opening / Treasure Sequence */
+.chest-opening-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.4); /* Lighter initial backdrop */
+  z-index: 150; 
+  pointer-events: all;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.treasure-sequence-container {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 160;
+    width: 100%;
+    height: 100%;
+    transition: background-color 0.1s;
+}
+
+.treasure-sequence-container.dim-bg {
+    background-color: rgba(0, 0, 0, 0.7); /* Flash dim on explode */
+}
+
+.chest-anchor {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    transition: opacity 0.3s, transform 0.3s;
+}
+
+.treasure-sequence-container.dim-bg .chest-anchor {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.5); /* Fade out growing */
+}
+
+.chest-visual-container {
+    transform: scale(2.5);
+    filter: drop-shadow(0 10px 10px rgba(0,0,0,0.5));
+    transition: opacity 0.2s;
+}
+
+/* 1. The Squeeze */
+.chest-squeeze {
+    animation: squeeze-effect 0.15s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+@keyframes squeeze-effect {
+    0% { transform: scale(2.5); filter: brightness(1); }
+    100% { transform: scale(3.0, 1.5); filter: brightness(10); } /* Squash width, stretch height */
+}
+
+/* 2. The Shockwave */
+.sonic-shockwave {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,255,255,0) 0%, rgba(255,255,255,0.8) 40%, rgba(255,255,255,0) 70%);
+    transform: translate(-50%, -50%) scale(0);
+    animation: shockwave-expand 0.4s ease-out forwards;
+    z-index: 155;
+    pointer-events: none;
+}
+
+@keyframes shockwave-expand {
+    0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(20); opacity: 0; }
+}
+
+/* Loot Particles Layout */
+.loot-scatter-container {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    z-index: 180;
+}
+
+.loot-particle {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 2rem;
+    /* Start at center */
+    transform: translate(-50%, -50%) scale(0); 
+}
+
+.loot-content {
+    filter: drop-shadow(0 0 5px rgba(255,255,255,0.5));
+}
+
+.loot-particle.main-loot {
+    font-size: 5rem;
+    z-index: 200;
+}
+
+.loot-label {
+    position: absolute;
+    bottom: -30px;
+    font-family: Impact, sans-serif;
+    font-size: 1.2rem;
+    color: gold;
+    text-shadow: 0 0 5px black;
+    white-space: nowrap;
+    animation: fade-in-up 0.3s ease-out forwards;
+}
+
+/* Phase 1: Explode & Scatter */
+.loot-particle.explode {
+    animation: scatter-out 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    animation-delay: var(--delay);
+}
+
+@keyframes scatter-out {
+    0% {
+        transform: translate(-50%, -50%) scale(0);
+    }
+    100% {
+        transform: translate(calc(var(--tx) - 50%), calc(var(--ty) - 50%)) scale(1);
+    }
+}
+
+/* Phase 2: Hover */
+.loot-particle.hover {
+    /* Maintain the scatter position */
+    transform: translate(calc(var(--tx) - 50%), calc(var(--ty) - 50%)) scale(1);
+    /* Add a bobbing effect inside */
+}
+
+.loot-particle.hover .loot-content {
+    animation: loot-bob 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes loot-bob {
+    from { transform: translateY(0); }
+    to { transform: translateY(-10px); }
+}
+
+/* Phase 3: Collect (Fly to HUD) */
+.loot-particle.collect {
+    /* Start from scattered position */
+    transform: translate(calc(var(--tx) - 50%), calc(var(--ty) - 50%)) scale(1);
+    animation: fly-to-hud 0.6s ease-in forwards;
+    /* Stagger collection slightly */
+    animation-delay: calc(var(--delay) * 0.5); 
+}
+
+/* 
+   Target coordinates approximate the HUD locations:
+   XP (Blue/Green/Star) -> Top Left (XP Bar is roughly at 20%, 50px)
+   Gold (Yellow Coin) -> Top Left (Gold counter roughly at 250px, 30px)
+   Main/Potion -> Bottom Center or Inventory
+*/
+
+.loot-particle.collect.type-coin {
+    animation-name: fly-to-gold;
+}
+
+.loot-particle.collect.type-xp_small, 
+.loot-particle.collect.type-xp_medium, 
+.loot-particle.collect.type-xp_large {
+    animation-name: fly-to-xp;
+}
+
+.loot-particle.collect.type-main {
+    animation-name: fly-to-inventory;
+}
+
+@keyframes fly-to-gold {
+    to {
+        top: calc(-50vh + 40px); /* Top of screen relative to center */
+        left: calc(-50vw + 300px); /* Left of screen relative to center */
+        transform: scale(0.5);
+        opacity: 0;
+    }
+}
+
+@keyframes fly-to-xp {
+    to {
+        top: calc(-50vh + 60px); 
+        left: calc(-50vw + 100px);
+        transform: scale(0.5);
+        opacity: 0;
+    }
+}
+
+@keyframes fly-to-inventory {
+    to {
+        top: calc(50vh - 50px); /* Bottom of screen */
+        left: 0;
+        transform: scale(0.2);
+        opacity: 0;
+    }
+}
+
+@keyframes fade-in-up {
+    from { transform: translateY(10px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
