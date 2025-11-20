@@ -6,6 +6,7 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue)
 ![React](https://img.shields.io/badge/React-19.0-61dafb)
 ![Vite](https://img.shields.io/badge/Vite-6.0+-purple)
+[![Twitter](https://img.shields.io/twitter/follow/icebeardsg?style=social)](https://twitter.com/icebeardsg)
 
 **一款使用 React 和 HTML5 Canvas 构建的高性能、数据驱动的类吸血鬼幸存者 Roguelike 游戏。**
 
@@ -28,6 +29,18 @@
 *   **Roguelike 元素**: 随机升级、多样的构筑 (Build) 和程序化的敌人波次。
 *   **可爱画风**: 程序化生成的“卡哇伊”风格图形（默认不需要外部素材）。
 *   **多语言支持**: 内置 i18n 支持（英语和中文）。
+
+---
+
+## 🎮 玩法介绍
+
+**在无尽的呆萌怪物潮中生存下来！**
+
+1.  **自动战斗**: 角色会根据装备的武器自动攻击。你的主要任务是**走位**和**躲避**。
+2.  **收集经验**: 击败敌人会掉落宝石。收集它们来填充你的经验条。
+3.  **升级构筑**: 升级时，从3个随机选项中选择。通过组合不同的武器（攻击）和技能（被动/辅助），打造强力的流派。
+4.  **宝箱奖励**: 精英怪物和随机掉落会提供宝箱，开启可获得大量金币或强力升级。
+5.  **永久成长**: 即使失败，你也能保留获得的金币！在主菜单访问 **军械库 (Armory)**，购买永久属性提升，如伤害、速度和复活次数。
 
 ---
 

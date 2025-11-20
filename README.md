@@ -6,6 +6,7 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue)
 ![React](https://img.shields.io/badge/React-19.0-61dafb)
 ![Vite](https://img.shields.io/badge/Vite-6.0+-purple)
+[![Twitter](https://img.shields.io/twitter/follow/icebeardsg?style=social)](https://twitter.com/icebeardsg)
 
 **A high-performance, data-driven Vampire Survivors-like roguelite game built with React and HTML5 Canvas.**
 
@@ -28,6 +29,18 @@ The project demonstrates a strict **Data-Logic-View (DLV)** architecture, making
 *   **Roguelite Elements**: Random level-ups, varied builds, and procedural enemy waves.
 *   **Cute Aesthetic**: Procedurally drawn "Kawaii" style graphics (no external assets required by default).
 *   **Localization**: Built-in i18n support (English & Chinese).
+
+---
+
+## 🎮 Gameplay Guide
+
+**Survive against endless waves of cute but deadly monsters!**
+
+1.  **Auto-Combat**: Your character attacks automatically based on your equipped weapons. Your primary job is to **move** and **dodge**.
+2.  **Gather XP**: Defeated enemies drop gems. Collect them to fill your XP bar.
+3.  **Level Up & Build**: When you level up, pick from 3 random upgrades. Synergize your weapons (offensive) and skills (passive/active) to create broken builds.
+4.  **Treasure Chests**: Elite monsters and random drops provide chests containing Gold and major upgrades.
+5.  **Meta-Progression**: Even if you die, you keep your Gold! Visit the **Armory** in the main menu to purchase permanent stat boosts like Damage, Speed, and Revival.
 
 ---
 
