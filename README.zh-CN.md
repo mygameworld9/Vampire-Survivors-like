@@ -54,7 +54,7 @@
 
 1.  **克隆仓库**
     ```bash
-    git clone https://github.com/your-username/sparkle-survivors.git
+    git clone https://github.com/mygameworld9/Vampire-Survivors-like.git
     cd sparkle-survivors
     ```
 
