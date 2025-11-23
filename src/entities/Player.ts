@@ -218,16 +218,24 @@ export class Player {
         this.soundManager.playSound('PLAYER_HURT');
         this.hp = Math.max(0, this.hp - amount);
         if (this.hp === 0) {
-            if (this.revives > 0) {
-                this.revives--;
-                this.hp = this.maxHp / 2;
-                this.setInvincible(2000);
-            } else {
-                this.soundManager.playSound('GAME_OVER');
-                this.state = 'Dead';
-            }
+             // Logic for death/revive is now handled in GameComponent update loop
+             // based on hp === 0 state.
+             if (this.revives <= 0) {
+                 this.soundManager.playSound('GAME_OVER');
+                 this.state = 'Dead';
+             }
         } else {
             this.setInvincible(500);
+        }
+    }
+
+    // Manual revive triggered by UI
+    revive() {
+        if (this.revives > 0) {
+            this.revives--;
+            this.hp = this.maxHp / 2;
+            this.setInvincible(2000);
+            this.state = 'Idle'; // Reset state from potential death
         }
     }
 

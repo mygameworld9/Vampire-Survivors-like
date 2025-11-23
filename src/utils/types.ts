@@ -5,7 +5,7 @@ import { Skill } from "../entities/Skill";
 export type UpgradeOperation = 'add' | 'multiply' | 'set';
 
 export interface NumericUpgradeEffect {
-    op: 'add' | 'multiply';
+    op: 'add' | 'multiply' | 'set';
     value: number;
 }
 
@@ -221,4 +221,9 @@ export interface IMetaUpgradeData {
 export interface ISaveData {
     totalGold: number;
     upgrades: { [key: string]: number }; // upgradeId -> level
+}
+
+export interface CreativeLoadout {
+    weapons: { id: string, level: number }[];
+    skills: { id: string, level: number }[];
 }

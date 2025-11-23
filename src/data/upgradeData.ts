@@ -23,7 +23,10 @@ export const UPGRADE_DATA: { [key: string]: UpgradeLevel[] } = {
       { "descriptionKey": "upgrade.sunfire.3", "effects": { "cooldown": { "op": "multiply", "value": 0.9 } } },
       { "descriptionKey": "upgrade.sunfire.4", "effects": { "damage": { "op": "add", "value": 10 } } },
       { "descriptionKey": "upgrade.sunfire.5", "effects": { "range": { "op": "multiply", "value": 1.20 } } },
-      { "descriptionKey": "upgrade.sunfire.6", "effects": { "cooldown": { "op": "multiply", "value": 0.85 } } }
+      { "descriptionKey": "upgrade.sunfire.6", "effects": { "cooldown": { "op": "multiply", "value": 0.85 } } },
+      { "descriptionKey": "upgrade.sunfire.7", "effects": { "range": { "op": "multiply", "value": 1.20 } } },
+      { "descriptionKey": "upgrade.sunfire.8", "effects": { "damage": { "op": "add", "value": 15 } } },
+      { "descriptionKey": "upgrade.sunfire.9", "effects": { "cooldown": { "op": "set", "value": 0 } } }
     ],
     ICE_SHARD: [
       { "descriptionKey": "upgrade.iceshard.1", "effects": { "firePattern": { "op": "set", "value": "forward_backward" } } },

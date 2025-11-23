@@ -54,7 +54,7 @@ The project demonstrates a strict **Data-Logic-View (DLV)** architecture, making
 
 1.  **Clone the repository**
     ```bash
-    git clone https://github.com/mygameworld9/Vampire-Survivors-like.git
+    git clone https://github.com/your-username/sparkle-survivors.git
     cd sparkle-survivors
     ```
 

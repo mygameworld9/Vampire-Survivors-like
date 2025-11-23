@@ -2,7 +2,7 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Game } from './core/Game';
 import { XP_LEVELS } from './data/gameConfig';
-import { IPlayerState, UpgradeOption } from './utils/types';
+import { IPlayerState, UpgradeOption, CreativeLoadout } from './utils/types';
 import { Weapon } from './entities/Weapon';
 import { HUD } from './components/HUD';
 import { LevelUpModal } from './components/LevelUpModal';
@@ -22,8 +22,10 @@ import { Chest } from './entities/Chest';
 import { TreasureSequence } from './components/TreasureSequence';
 import { Armory } from './components/Armory';
 import { progressionManager } from './core/ProgressionManager';
+import { CreativeSetup } from './components/CreativeSetup';
+import { ReviveModal } from './components/ReviveModal';
 
-type GameState = 'start' | 'characterSelect' | 'mapSelect' | 'playing' | 'levelUp' | 'gameOver' | 'paused' | 'chestOpening' | 'armory';
+type GameState = 'start' | 'characterSelect' | 'creativeSetup' | 'mapSelect' | 'playing' | 'levelUp' | 'gameOver' | 'paused' | 'chestOpening' | 'armory' | 'revive';
 type InfoPanelState = 'none' | 'weapons' | 'skills';
 
 // Fisher-Yates shuffle
@@ -54,6 +56,10 @@ export const GameComponent: React.FC = () => {
     const [showCodex, setShowCodex] = useState(false);
     const [selectedCharacter, setSelectedCharacter] = useState<string | null>(null);
     const [selectedMap, setSelectedMap] = useState<string | null>(null);
+    
+    // Creative Mode State
+    const [isCreativeMode, setIsCreativeMode] = useState(false);
+    const [creativeLoadout, setCreativeLoadout] = useState<CreativeLoadout | undefined>(undefined);
 
 
     useEffect(() => {
@@ -126,7 +132,7 @@ export const GameComponent: React.FC = () => {
         setGameState('playing');
     }, [openingChest]);
     
-    const startGame = useCallback((characterId: string, mapId: string) => {
+    const startGame = useCallback((characterId: string, mapId: string, loadout?: CreativeLoadout) => {
         stopGameLoop();
         if (!canvasRef.current) return;
 
@@ -146,7 +152,16 @@ export const GameComponent: React.FC = () => {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
         
-        const game = new Game(canvas.width, canvas.height, generateUpgradeOptions, handleChestOpenStart, soundManagerRef.current, characterId, mapId);
+        const game = new Game(
+            canvas.width, 
+            canvas.height, 
+            generateUpgradeOptions, 
+            handleChestOpenStart, 
+            soundManagerRef.current, 
+            characterId, 
+            mapId, 
+            loadout
+        );
         gameRef.current = game;
         
         let lastTime = performance.now();
@@ -156,12 +171,17 @@ export const GameComponent: React.FC = () => {
             const dt = (timestamp - lastTime) / 1000;
             lastTime = timestamp;
             
-            if (game.player.state === 'Dead') {
-                // SAVE GOLD ON GAME OVER
-                progressionManager.addGold(game.player.gold);
-                setGameState('gameOver');
-                stopGameLoop();
-                return;
+            // Handle Death / Revive Logic
+            if (game.player.hp <= 0 && gameStateRef.current !== 'revive' && gameStateRef.current !== 'gameOver') {
+                if (game.player.revives > 0) {
+                    setGameState('revive');
+                    // Loop continues but update is paused by check below
+                } else {
+                    progressionManager.addGold(game.player.gold);
+                    setGameState('gameOver');
+                    stopGameLoop();
+                    return;
+                }
             }
 
             if (gameStateRef.current === 'playing') {
@@ -212,6 +232,21 @@ export const GameComponent: React.FC = () => {
         }
         setGameState('playing');
     }
+    
+    const handleRevive = () => {
+        if (gameRef.current) {
+            gameRef.current.player.revive();
+            setGameState('playing');
+        }
+    };
+
+    const handleGiveUp = () => {
+        if (gameRef.current) {
+            progressionManager.addGold(gameRef.current.player.gold);
+        }
+        setGameState('gameOver');
+        stopGameLoop();
+    };
 
     const handleMainMenu = () => {
         if (gameRef.current && gameStateRef.current !== 'gameOver' && gameStateRef.current !== 'start') {
@@ -227,12 +262,14 @@ export const GameComponent: React.FC = () => {
         setGameTime(0);
         setPlayerState({ hp: 0, maxHp: 1, xp: 0, xpToNext: 1, level: 1, gold: 0 });
         setGameState('start');
+        setIsCreativeMode(false);
+        setCreativeLoadout(undefined);
     };
 
     const handleRestart = () => {
         if (selectedCharacter && selectedMap) {
             setGameState('playing');
-            startGame(selectedCharacter, selectedMap);
+            startGame(selectedCharacter, selectedMap, creativeLoadout);
         } else {
             // Fallback to main menu if selections are lost for some reason
             handleMainMenu();
@@ -241,6 +278,15 @@ export const GameComponent: React.FC = () => {
 
     const handleCharacterSelect = (characterId: string) => {
         setSelectedCharacter(characterId);
+        if (isCreativeMode) {
+            setGameState('creativeSetup');
+        } else {
+            setGameState('mapSelect');
+        }
+    };
+
+    const handleCreativeLoadoutConfirm = (loadout: CreativeLoadout) => {
+        setCreativeLoadout(loadout);
         setGameState('mapSelect');
     };
 
@@ -248,7 +294,7 @@ export const GameComponent: React.FC = () => {
         if (!selectedCharacter) return; // Should not happen
         setSelectedMap(mapId);
         setGameState('playing');
-        startGame(selectedCharacter, mapId);
+        startGame(selectedCharacter, mapId, creativeLoadout);
     };
 
     const handleLanguageChange = async (lang: string) => {
@@ -279,7 +325,7 @@ export const GameComponent: React.FC = () => {
 
     return (
         <div>
-            <canvas ref={canvasRef} style={{ display: gameState !== 'start' && gameState !== 'characterSelect' && gameState !== 'mapSelect' && gameState !== 'gameOver' && gameState !== 'armory' ? 'block' : 'none' }} />
+            <canvas ref={canvasRef} style={{ display: gameState !== 'start' && gameState !== 'characterSelect' && gameState !== 'mapSelect' && gameState !== 'gameOver' && gameState !== 'armory' && gameState !== 'creativeSetup' ? 'block' : 'none' }} />
             
             {gameState === 'start' && (
                 <div className="start-screen-container pop-theme">
@@ -303,10 +349,13 @@ export const GameComponent: React.FC = () => {
                                 <h1 className="pop-sub-title">Survivors</h1>
                             </div>
                             <div className="action-group">
-                                <button className="jelly-btn primary" onClick={() => setGameState('characterSelect')}>
+                                <button className="jelly-btn primary" onClick={() => { setIsCreativeMode(false); setGameState('characterSelect'); }}>
                                      <span className="btn-icon">▶</span> {i18nManager.t('ui.start.button')}
                                 </button>
-                                <button className="jelly-btn primary" onClick={() => setGameState('armory')}>
+                                <button className="jelly-btn secondary" onClick={() => { setIsCreativeMode(true); setGameState('characterSelect'); }}>
+                                     <span className="btn-icon">🧪</span> {i18nManager.t('ui.start.creative')}
+                                </button>
+                                <button className="jelly-btn secondary" onClick={() => setGameState('armory')}>
                                      <span className="btn-icon">🛠️</span> {i18nManager.t('ui.armory.title')}
                                 </button>
                                  <button className="jelly-btn secondary" onClick={() => setShowCodex(true)}>
@@ -323,10 +372,15 @@ export const GameComponent: React.FC = () => {
             )}
 
              {gameState === 'characterSelect' && (
-                <CharacterSelect onSelect={handleCharacterSelect} onBack={() => setGameState('start')} />
+                <CharacterSelect onSelect={handleCharacterSelect} onBack={() => { setIsCreativeMode(false); setGameState('start'); }} />
              )}
+             
+             {gameState === 'creativeSetup' && (
+                 <CreativeSetup onStart={handleCreativeLoadoutConfirm} onBack={() => setGameState('characterSelect')} />
+             )}
+
               {gameState === 'mapSelect' && (
-                <MapSelect onSelect={handleMapSelect} onBack={() => setGameState('characterSelect')} />
+                <MapSelect onSelect={handleMapSelect} onBack={() => setGameState(isCreativeMode ? 'creativeSetup' : 'characterSelect')} />
              )}
              {gameState === 'armory' && (
                  <Armory onBack={() => setGameState('start')} />
@@ -369,7 +423,7 @@ export const GameComponent: React.FC = () => {
                 </div>
             )}
 
-            {(gameState === 'playing' || gameState === 'paused' || gameState === 'levelUp' || gameState === 'chestOpening') && (
+            {(gameState === 'playing' || gameState === 'paused' || gameState === 'levelUp' || gameState === 'chestOpening' || gameState === 'revive') && (
               <>
                 <HUD 
                   playerState={playerState}
@@ -391,6 +445,14 @@ export const GameComponent: React.FC = () => {
             {gameState === 'levelUp' && (
                 <LevelUpModal options={upgradeOptions} onSelect={handleSelectUpgrade} />
             )}
+            
+            {gameState === 'revive' && gameRef.current && (
+                <ReviveModal 
+                    revivesLeft={gameRef.current.player.revives} 
+                    onRevive={handleRevive} 
+                    onGiveUp={handleGiveUp} 
+                />
+            )}
 
             {gameState === 'paused' && selectedCharacter && selectedMap && (
                 <>
@@ -399,7 +461,7 @@ export const GameComponent: React.FC = () => {
                         onWeapons={() => setInfoPanel('weapons')}
                         onSkills={() => setInfoPanel('skills')}
                         onCodex={() => setShowCodex(true)}
-                        onRestart={() => startGame(selectedCharacter, selectedMap)}
+                        onRestart={() => startGame(selectedCharacter, selectedMap, creativeLoadout)}
                         onMainMenu={handleMainMenu}
                     />
                     {renderInfoPanel()}

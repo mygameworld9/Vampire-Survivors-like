@@ -163,15 +163,17 @@ export class Weapon {
                     case 'damage':
                         if (effect.op === 'add') this.baseDamage += effect.value;
                         if (effect.op === 'multiply') this.baseDamage *= effect.value;
+                        if (effect.op === 'set') this.baseDamage = effect.value as unknown as number;
                         break;
                     case 'cooldown':
                     case 'speed':
                     case 'penetration':
                     case 'range':
                     case 'width':
-                        if (this[key] !== undefined && (effect.op === 'add' || effect.op === 'multiply')) {
+                        if (this[key] !== undefined) {
                              if (effect.op === 'add') (this as any)[key] += effect.value;
                              if (effect.op === 'multiply') (this as any)[key] *= effect.value;
+                             if (effect.op === 'set') (this as any)[key] = effect.value;
                         }
                         break;
                     case 'firePattern':
