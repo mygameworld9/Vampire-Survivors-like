@@ -1,0 +1,110 @@
+/* GAME OVER SCREEN (Cute) */
+.game-over-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.5); 
+    backdrop-filter: blur(8px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 200;
+    pointer-events: all;
+}
+
+.game-over-card {
+    background: #fff;
+    border: 6px solid #b0bec5;
+    border-radius: 40px;
+    padding: 3rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    box-shadow: 0 20px 0 #cfd8dc, 0 30px 50px rgba(0, 0, 0, 0.2);
+    animation: dropIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    max-width: 450px;
+    width: 90%;
+    position: relative;
+}
+
+.game-over-mascot {
+    font-size: 6rem;
+    margin-top: -5rem;
+    animation: sadFloat 3s infinite ease-in-out;
+    filter: drop-shadow(0 10px 0 rgba(0,0,0,0.1));
+}
+
+.game-over-title {
+    font-family: 'Comic Sans MS', sans-serif;
+    font-size: 3.5rem;
+    color: #546e7a;
+    text-transform: uppercase;
+    margin: 0;
+    line-height: 1;
+    text-shadow: 3px 3px 0 #cfd8dc;
+}
+
+.game-over-stats {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    background: #eceff1;
+    padding: 1.5rem;
+    border-radius: 20px;
+    border: 3px solid #cfd8dc;
+}
+
+.stat-row {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
+
+.stat-row.dual {
+    display: flex;
+    gap: 2rem;
+    justify-content: center;
+}
+
+.stat-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.stat-icon {
+    font-size: 1.8rem;
+}
+
+.stat-label {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #455a64;
+}
+
+.game-over-actions {
+    display: flex;
+    gap: 1rem;
+    width: 100%;
+    margin-top: 1rem;
+}
+
+.game-over-actions .pill-button {
+    flex: 1;
+    font-size: 1.2rem;
+    padding: 1rem;
+}
+
+.game-over-actions .pill-button.primary {
+    background: linear-gradient(to bottom, #66bb6a, #43a047); /* Green */
+    border-color: #fff;
+    box-shadow: 0 6px 0 #2e7d32;
+}
+
+.game-over-actions .pill-button.primary:hover {
+    box-shadow: 0 10px 0 #2e7d32;
+}

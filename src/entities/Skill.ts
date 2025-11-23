@@ -70,7 +70,7 @@ export class Skill {
                     // FIX: Type guard to ensure effect is compatible with `applyPassiveEffect` which expects a numeric operation.
                     // This resolves the error where `AnyUpgradeEffect` (which can be string-based) is not assignable to `UpgradeEffect`.
                     if (effect.op === 'add' || effect.op === 'multiply') {
-                        player.applyPassiveEffect({[key]: effect});
+                        player.applyPassiveEffect({[key]: effect as UpgradeEffect});
                     }
                 } else {
                      // For active skills, update the skill's own properties

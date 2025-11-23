@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Game } from './core/Game';
 import { XP_LEVELS } from './data/gameConfig';
@@ -24,6 +23,8 @@ import { Armory } from './components/Armory';
 import { progressionManager } from './core/ProgressionManager';
 import { CreativeSetup } from './components/CreativeSetup';
 import { ReviveModal } from './components/ReviveModal';
+import { StartScreen } from './components/StartScreen';
+import { GameOverScreen } from './components/GameOverScreen';
 
 type GameState = 'start' | 'characterSelect' | 'creativeSetup' | 'mapSelect' | 'playing' | 'levelUp' | 'gameOver' | 'paused' | 'chestOpening' | 'armory' | 'revive';
 type InfoPanelState = 'none' | 'weapons' | 'skills';
@@ -302,12 +303,6 @@ export const GameComponent: React.FC = () => {
         setLanguage(lang);
     };
 
-    const formatTime = (seconds: number) => {
-        const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
-        const secs = Math.floor(seconds % 60).toString().padStart(2, '0');
-        return `${mins}:${secs}`;
-    };
-
     const renderInfoPanel = () => {
         switch (infoPanel) {
             case 'weapons':
@@ -328,47 +323,14 @@ export const GameComponent: React.FC = () => {
             <canvas ref={canvasRef} style={{ display: gameState !== 'start' && gameState !== 'characterSelect' && gameState !== 'mapSelect' && gameState !== 'gameOver' && gameState !== 'armory' && gameState !== 'creativeSetup' ? 'block' : 'none' }} />
             
             {gameState === 'start' && (
-                <div className="start-screen-container pop-theme">
-                    {/* Animated Background Elements */}
-                    <div className="bg-stripe-overlay"></div>
-                    <div className="cloud cloud-1">☁️</div>
-                    <div className="cloud cloud-2">☁️</div>
-                    <div className="sparkle sparkle-1">✨</div>
-                    <div className="sparkle sparkle-2">✨</div>
-
-                    {/* Minimal Language Switcher Top-Right */}
-                    <div className="language-switcher-corner">
-                        <span className={`lang-opt ${language === 'en' ? 'active' : ''}`} onClick={() => handleLanguageChange('en')}>EN</span>
-                        <span className={`lang-opt ${language === 'zh-CN' ? 'active' : ''}`} onClick={() => handleLanguageChange('zh-CN')}>中文</span>
-                    </div>
-
-                    <div className="start-content-layout">
-                        <div className="start-left-panel">
-                            <div className="title-group">
-                                <h1 className="pop-main-title">Sparkle</h1>
-                                <h1 className="pop-sub-title">Survivors</h1>
-                            </div>
-                            <div className="action-group">
-                                <button className="jelly-btn primary" onClick={() => { setIsCreativeMode(false); setGameState('characterSelect'); }}>
-                                     <span className="btn-icon">▶</span> {i18nManager.t('ui.start.button')}
-                                </button>
-                                <button className="jelly-btn secondary" onClick={() => { setIsCreativeMode(true); setGameState('characterSelect'); }}>
-                                     <span className="btn-icon">🧪</span> {i18nManager.t('ui.start.creative')}
-                                </button>
-                                <button className="jelly-btn secondary" onClick={() => setGameState('armory')}>
-                                     <span className="btn-icon">🛠️</span> {i18nManager.t('ui.armory.title')}
-                                </button>
-                                 <button className="jelly-btn secondary" onClick={() => setShowCodex(true)}>
-                                    <span className="btn-icon">📘</span> {i18nManager.t('ui.start.codex')}
-                                </button>
-                            </div>
-                        </div>
-
-                        <div className="start-right-panel">
-                             <div className="hero-mascot">🛡️</div>
-                        </div>
-                    </div>
-                </div>
+                <StartScreen 
+                    onStart={() => { setIsCreativeMode(false); setGameState('characterSelect'); }}
+                    onCreative={() => { setIsCreativeMode(true); setGameState('characterSelect'); }}
+                    onArmory={() => setGameState('armory')}
+                    onCodex={() => setShowCodex(true)}
+                    currentLanguage={language}
+                    onLanguageChange={handleLanguageChange}
+                />
             )}
 
              {gameState === 'characterSelect' && (
@@ -387,40 +349,13 @@ export const GameComponent: React.FC = () => {
              )}
              
              {gameState === 'gameOver' && (
-                <div className="game-over-container">
-                    <div className="game-over-card">
-                        <div className="game-over-mascot">👻</div>
-                        <h1 className="game-over-title">{i18nManager.t('ui.gameover.title')}</h1>
-                        
-                        <div className="game-over-stats">
-                            <div className="stat-row">
-                                <div className="stat-item">
-                                    <span className="stat-icon">⏱️</span>
-                                    <span className="stat-label">{i18nManager.t('ui.gameover.survived', { time: formatTime(gameTime) })}</span>
-                                </div>
-                            </div>
-                            <div className="stat-row dual">
-                                <div className="stat-item">
-                                    <span className="stat-icon">⭐</span>
-                                    <span className="stat-label">{i18nManager.t('ui.hud.level', { level: playerState.level })}</span>
-                                </div>
-                                <div className="stat-item">
-                                    <span className="stat-icon">💰</span>
-                                    <span className="stat-label">{playerState.gold}</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="game-over-actions">
-                            <button className="pill-button primary" onClick={handleRestart}>
-                                <span className="btn-icon">↺</span> {i18nManager.t('ui.gameover.restart')}
-                            </button>
-                            <button className="pill-button secondary" onClick={handleMainMenu}>
-                                <span className="btn-icon">🏠</span> {i18nManager.t('ui.gameover.mainMenu')}
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <GameOverScreen 
+                    gameTime={gameTime}
+                    playerLevel={playerState.level}
+                    gold={playerState.gold}
+                    onRestart={handleRestart}
+                    onMainMenu={handleMainMenu}
+                />
             )}
 
             {(gameState === 'playing' || gameState === 'paused' || gameState === 'levelUp' || gameState === 'chestOpening' || gameState === 'revive') && (

@@ -1,0 +1,86 @@
+/* Jelly Buttons */
+.jelly-btn {
+    border: none;
+    border-radius: 50px;
+    padding: 1rem 2.5rem;
+    font-size: 1.8rem;
+    font-weight: 900;
+    cursor: pointer;
+    transition: all 0.1s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    color: white;
+    text-transform: uppercase;
+    font-family: 'Comic Sans MS', sans-serif;
+    position: relative;
+    overflow: hidden;
+}
+
+.jelly-btn.primary {
+    background: linear-gradient(to bottom, #ff80ab, #ff4081);
+    border-bottom: 8px solid #c60055;
+    box-shadow: 0 10px 20px rgba(233, 30, 99, 0.3);
+    text-shadow: 1px 1px 0 #c60055;
+}
+
+.jelly-btn.secondary {
+    background: #fff;
+    color: #ff4081;
+    border: 4px solid #ff4081;
+    border-bottom-width: 8px;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+}
+
+.jelly-btn:hover {
+    transform: scale(1.05);
+    filter: brightness(1.1);
+}
+
+.jelly-btn:active {
+    transform: scale(0.95) translateY(4px);
+    border-bottom-width: 4px; /* Squish effect */
+}
+
+.btn-icon {
+    font-size: 1.4rem;
+}
+
+/* Pill Buttons (Used in Game Over / Armory) */
+.pill-button {
+    border: none;
+    border-radius: 50px;
+    padding: 1.2rem 2rem;
+    font-size: 1.6rem;
+    font-weight: 900;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    color: white;
+    text-transform: uppercase;
+    font-family: 'Comic Sans MS', sans-serif;
+}
+.pill-button.primary {
+    background: linear-gradient(to bottom, #ff80ab, #ff4081);
+    border: 4px solid #fff;
+    box-shadow: 0 8px 0 #c60055;
+    color: #fff;
+    text-shadow: 1px 1px 0 #c60055;
+}
+.pill-button.secondary {
+    background: #fff;
+    border: 4px solid #ff4081;
+    color: #ff4081;
+    box-shadow: 0 6px 0 #f8bbd0;
+}
+.pill-button:hover {
+    transform: translateY(-5px);
+}
+.pill-button:active {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 #c60055;
+}
