@@ -1,7 +1,10 @@
+
 import { Vector2D } from "../utils/Vector2D";
 import { IEnemyData, IStatusEffect, IWeaponStatusEffect, StatusEffectType } from "../utils/types";
 
 export class Enemy {
+    static _idCounter = 0;
+    id: number;
     pos: Vector2D;
     hp: number;
     speed: number;
@@ -27,14 +30,39 @@ export class Enemy {
     private maxFrames = 1;
     private frameTimer = 0;
     private frameInterval = 150; // ms per frame
-    private elitePulseTimer = Math.random() * Math.PI * 2; // Random start for pulse
-    private globalTime = Math.random() * 1000; // Random start for animations
+    private elitePulseTimer = 0;
+    private globalTime = 0;
 
     constructor(x: number, y: number, data: IEnemyData, type: string, isElite: boolean = false) {
+        this.id = ++Enemy._idCounter;
         this.data = data;
         this.pos = new Vector2D(x, y);
+        this.type = type;
         this.isElite = isElite;
+        this.hp = data.hp;
+        this.speed = data.speed;
+        this.damage = data.damage;
+        this.size = data.size;
+        this.xpOrbType = data.xpOrbType;
+        this.color = data.color;
+        this.chestDropChance = 0;
+        this.originalSpeed = data.speed;
+        this.spriteWidth = data.spriteWidth || data.size;
+        this.spriteHeight = data.spriteHeight || data.size;
+        
+        // Initialize logic
+        this.reset(x, y, data, type, isElite);
+    }
 
+    reset(x: number, y: number, data: IEnemyData, type: string, isElite: boolean) {
+        this.id = ++Enemy._idCounter;
+        this.pos.x = x;
+        this.pos.y = y;
+        this.data = data;
+        this.type = type;
+        this.isElite = isElite;
+        this.shouldBeRemoved = false;
+        
         // Default stats
         this.hp = data.hp;
         this.speed = data.speed;
@@ -59,25 +87,37 @@ export class Enemy {
         }
 
         this.originalSpeed = this.speed;
-        this.type = type;
+        this.activeStatusEffects.clear();
 
         this.spriteWidth = data.spriteWidth || this.size;
         this.spriteHeight = data.spriteHeight || this.size;
-
+        
+        // Re-use image if possible, or load new
         if (data.spriteSheet) {
-            this.image = new Image();
-            this.image.src = data.spriteSheet;
+            if (!this.image || this.image.src.indexOf(data.spriteSheet) === -1) {
+                this.image = new Image();
+                this.image.src = data.spriteSheet;
+            }
+        } else {
+            this.image = null;
         }
 
         if (data.animation) {
             this.maxFrames = data.animation.maxFrames;
+        } else {
+            this.maxFrames = 1;
         }
+        
+        this.frameX = 0;
+        this.frameTimer = 0;
+        this.elitePulseTimer = Math.random() * Math.PI * 2;
+        this.globalTime = Math.random() * 1000;
     }
     
     update(dt: number, playerPos: Vector2D) {
         this.globalTime += dt;
         if (this.isElite) {
-            this.elitePulseTimer += dt * 4; // Controls pulse speed
+            this.elitePulseTimer += dt * 4;
         }
         this.handleStatusEffects(dt);
         this.updateAnimation(dt);
@@ -234,6 +274,33 @@ export class Enemy {
                 ctx.fill();
                 break;
 
+            case 'SPIDER':
+                // Legs
+                ctx.strokeStyle = '#37474F';
+                ctx.lineWidth = 2;
+                const legWiggle = Math.sin(this.globalTime * 20) * 3;
+                for(let i=0; i<4; i++) {
+                    // Left legs
+                    ctx.beginPath();
+                    ctx.moveTo(x - 5, y);
+                    ctx.quadraticCurveTo(x - 15, y - 10 + (i*5) + legWiggle, x - 20, y - 5 + (i*6));
+                    ctx.stroke();
+                    // Right legs
+                    ctx.beginPath();
+                    ctx.moveTo(x + 5, y);
+                    ctx.quadraticCurveTo(x + 15, y - 10 + (i*5) - legWiggle, x + 20, y - 5 + (i*6));
+                    ctx.stroke();
+                }
+                // Body
+                ctx.fillStyle = '#37474F'; // Blue Grey
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.fill();
+                // Eyes (Many)
+                drawEyes(0, -2, 'white', 2);
+                drawEyes(0, -6, 'white', 1.5);
+                break;
+
             case 'BAT':
                 const flap = Math.sin(this.globalTime * 15) * 8;
                 ctx.fillStyle = '#B39DDB'; // Pastel Purple
@@ -274,6 +341,29 @@ export class Enemy {
                 ctx.lineTo(x + 2, y + 5);
                 ctx.lineTo(x + 3, y + 2);
                 ctx.fill();
+                break;
+            
+            case 'MUSHROOM':
+                const mushroomBounce = Math.abs(Math.sin(this.globalTime * 6)) * 2;
+                // Stalk
+                ctx.fillStyle = '#FFE0B2';
+                ctx.beginPath();
+                ctx.roundRect(x - 6, y, 12, 14, 4);
+                ctx.fill();
+                // Cap
+                ctx.fillStyle = '#E53935';
+                ctx.beginPath();
+                ctx.arc(x, y - 2 - mushroomBounce, radius, Math.PI, 0); // Top half circle
+                ctx.fill();
+                // Dots
+                ctx.fillStyle = 'white';
+                ctx.beginPath();
+                ctx.arc(x - 6, y - 8 - mushroomBounce, 3, 0, Math.PI*2);
+                ctx.arc(x + 6, y - 6 - mushroomBounce, 2.5, 0, Math.PI*2);
+                ctx.arc(x, y - 12 - mushroomBounce, 2, 0, Math.PI*2);
+                ctx.fill();
+                // Face on Stalk
+                drawEyes(0, 4, '#3E2723', 1.5);
                 break;
 
             case 'GHOST':

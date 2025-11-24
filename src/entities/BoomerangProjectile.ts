@@ -13,7 +13,7 @@ export class BoomerangProjectile {
     range: number;
     size = 32;
     shouldBeRemoved = false;
-    hitEnemies: Set<Enemy> = new Set();
+    hitEnemies: Set<number> = new Set();
     statusEffect?: IWeaponStatusEffect;
     
     private owner: Player;
@@ -21,21 +21,27 @@ export class BoomerangProjectile {
     private distanceTraveled = 0;
     private direction: Vector2D;
     private rotationAngle = 0;
+    private catchCooldown = 0.2; // Seconds before player can catch it
 
     constructor(x: number, y: number, owner: Player, weapon: Weapon) {
         this.pos = new Vector2D(x, y);
         this.owner = owner;
-        this.direction = new Vector2D(owner.facingDirection.x, owner.facingDirection.y);
+        // Ensure valid direction
+        if (Math.abs(owner.facingDirection.x) < 0.01 && Math.abs(owner.facingDirection.y) < 0.01) {
+            this.direction = new Vector2D(1, 0);
+        } else {
+            this.direction = new Vector2D(owner.facingDirection.x, owner.facingDirection.y);
+        }
         this.damage = weapon.damage;
         this.speed = weapon.speed;
-        this.penetration = weapon.penetration; // Used as a counter for hits
+        this.penetration = weapon.penetration;
         this.range = weapon.range;
         this.statusEffect = weapon.statusEffect;
     }
 
     update(dt: number) {
-        // Rotate continuously
         this.rotationAngle += 15 * dt;
+        if (this.catchCooldown > 0) this.catchCooldown -= dt;
 
         if (this.state === 'outward') {
             const moveDist = this.speed * dt;
@@ -45,7 +51,8 @@ export class BoomerangProjectile {
 
             if (this.distanceTraveled >= this.range) {
                 this.state = 'returning';
-                this.hitEnemies.clear(); // Allow hitting enemies again on return
+                this.hitEnemies.clear(); 
+                this.penetration = 999; // Reset penetration for return trip
             }
         } else { // returning
             const returnDirection = new Vector2D(this.owner.pos.x - this.pos.x, this.owner.pos.y - this.pos.y).normalize();
@@ -54,7 +61,7 @@ export class BoomerangProjectile {
             this.pos.y += returnDirection.y * returnSpeed * dt;
 
             const distToPlayer = Math.hypot(this.pos.x - this.owner.pos.x, this.pos.y - this.owner.pos.y);
-            if (distToPlayer < this.owner.size / 2) {
+            if (distToPlayer < this.owner.size && this.catchCooldown <= 0) {
                 this.shouldBeRemoved = true;
             }
         }
@@ -63,29 +70,51 @@ export class BoomerangProjectile {
     draw(ctx: CanvasRenderingContext2D) {
         ctx.save();
         ctx.translate(this.pos.x, this.pos.y);
+        
+        // Glow Effect
+        const isReturning = this.state === 'returning';
+        ctx.shadowBlur = isReturning ? 20 : 10;
+        ctx.shadowColor = '#F48FB1'; // Pink Glow
+
+        // Motion blur trail
         ctx.rotate(this.rotationAngle);
+        
+        ctx.globalAlpha = 0.3;
+        ctx.fillStyle = '#F8BBD0';
+        ctx.beginPath();
+        ctx.arc(0, 0, this.size * 0.8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1.0;
 
         const s = this.size / 2;
 
-        // Draw Cartoon Boomerang Shape
-        ctx.fillStyle = '#4FC3F7'; // Pastel Cyan/Blue
-        ctx.strokeStyle = '#0288D1'; // Darker Blue Outline
-        ctx.lineWidth = 2;
+        // Cute Rounded Boomerang Body
+        ctx.fillStyle = '#F06292'; // Darker Pink
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.lineWidth = 12;
+        ctx.strokeStyle = '#F48FB1'; // Light Pink Stroke
         
         ctx.beginPath();
-        // V Shape logic
-        ctx.moveTo(0, -s); 
-        ctx.quadraticCurveTo(s, -s/2, s, s); // Right tip
-        ctx.quadraticCurveTo(0, s/2, -s, s); // Left tip
-        ctx.quadraticCurveTo(-s, -s/2, 0, -s); // Back to top
+        // Draw a soft curve V shape
+        ctx.moveTo(-s, -s/2);
+        ctx.quadraticCurveTo(0, 0, s, -s/2); // Top curve
+        ctx.quadraticCurveTo(0, s, -s, -s/2); // Bottom curve
         ctx.fill();
         ctx.stroke();
 
-        // White Stripes
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+        // White Highlight / Stripe
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.lineWidth = 4;
         ctx.beginPath();
-        ctx.arc(s * 0.7, s * 0.7, 3, 0, Math.PI * 2); // Dot on right tip
-        ctx.arc(-s * 0.7, s * 0.7, 3, 0, Math.PI * 2); // Dot on left tip
+        ctx.moveTo(-s * 0.5, -s/4);
+        ctx.quadraticCurveTo(0, 0, s * 0.5, -s/4);
+        ctx.stroke();
+        
+        // Center Gem
+        ctx.fillStyle = '#BA68C8'; // Purple
+        ctx.beginPath();
+        ctx.arc(0, 0, 5, 0, Math.PI*2);
         ctx.fill();
 
         ctx.restore();

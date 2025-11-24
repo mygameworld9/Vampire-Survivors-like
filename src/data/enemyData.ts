@@ -26,6 +26,31 @@ export const ENEMY_DATA: { [key: string]: IEnemyData } = {
             goldDrop: [5, 10]
         }
     },
+    SPIDER: {
+        nameKey: 'enemy.spider.name',
+        descriptionKey: 'enemy.spider.desc',
+        icon: '🕷️',
+        hp: 15,
+        speed: 180,
+        damage: 8,
+        size: 22,
+        xpOrbType: 'SMALL',
+        color: '#37474F',
+        goldDrop: [1, 3],
+        spriteSheet: '/enemies/spider.png',
+        spriteWidth: 22,
+        spriteHeight: 22,
+        animation: { maxFrames: 4 },
+        elite: {
+            hpMultiplier: 2.5,
+            damageMultiplier: 1.5,
+            speedMultiplier: 1.2,
+            sizeMultiplier: 1.2,
+            color: '#263238',
+            xpOrbType: 'MEDIUM',
+            goldDrop: [4, 8]
+        }
+    },
     BAT: {
         nameKey: 'enemy.bat.name',
         descriptionKey: 'enemy.bat.desc',
@@ -49,6 +74,30 @@ export const ENEMY_DATA: { [key: string]: IEnemyData } = {
             color: '#d500f9',
             goldDrop: [3, 6],
             xpOrbType: 'SMALL'
+        }
+    },
+    MUSHROOM: {
+        nameKey: 'enemy.mushroom.name',
+        descriptionKey: 'enemy.mushroom.desc',
+        icon: '🍄',
+        hp: 60,
+        speed: 60,
+        damage: 12,
+        size: 28,
+        xpOrbType: 'MEDIUM',
+        color: '#E53935',
+        goldDrop: [2, 5],
+        spriteSheet: '/enemies/mushroom.png',
+        spriteWidth: 28,
+        spriteHeight: 28,
+        animation: { maxFrames: 2 },
+        elite: {
+            hpMultiplier: 3.0,
+            damageMultiplier: 2.0,
+            sizeMultiplier: 1.3,
+            color: '#C62828',
+            xpOrbType: 'LARGE',
+            goldDrop: [10, 20]
         }
     },
     GHOST: {

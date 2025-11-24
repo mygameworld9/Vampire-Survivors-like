@@ -1,3 +1,4 @@
+
 export const SOUND_DATA: { [key: string]: string } = {
     // Player
     PLAYER_HURT: '/sounds/player_hurt.wav',
@@ -8,6 +9,8 @@ export const SOUND_DATA: { [key: string]: string } = {
     WEAPON_BOOMERANG: '/sounds/weapon_boomerang.wav',
     WEAPON_AURA: '/sounds/weapon_aura.wav',
     WEAPON_LASER: '/sounds/weapon_laser.wav',
+    WEAPON_LIGHTNING: '/sounds/weapon_lightning.wav',
+    WEAPON_SLASH: '/sounds/weapon_slash.wav',
 
     // Enemies
     ENEMY_HIT: '/sounds/enemy_hit.wav',

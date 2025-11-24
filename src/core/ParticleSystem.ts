@@ -1,7 +1,14 @@
+
 import { Particle } from "../entities/Particle";
+import { ObjectPool } from "../utils/ObjectPool";
 
 export class ParticleSystem {
     private particles: Particle[] = [];
+    private pool: ObjectPool<Particle>;
+
+    constructor(pool: ObjectPool<Particle>) {
+        this.pool = pool;
+    }
 
     /**
      * Spawns a number of particles at a given location.
@@ -12,7 +19,9 @@ export class ParticleSystem {
      */
     emit(x: number, y: number, count: number, color: string) {
         for (let i = 0; i < count; i++) {
-            this.particles.push(new Particle(x, y, color));
+            const p = this.pool.get();
+            p.reset(x, y, color);
+            this.particles.push(p);
         }
     }
 
@@ -21,10 +30,19 @@ export class ParticleSystem {
      * @param dt Delta time since the last frame.
      */
     update(dt: number) {
-        for (const p of this.particles) {
+        let i = 0;
+        while (i < this.particles.length) {
+            const p = this.particles[i];
             p.update(dt);
+            if (p.shouldBeRemoved) {
+                this.pool.release(p);
+                // Swap remove
+                this.particles[i] = this.particles[this.particles.length - 1];
+                this.particles.pop();
+            } else {
+                i++;
+            }
         }
-        this.particles = this.particles.filter(p => !p.shouldBeRemoved);
     }
 
     /**

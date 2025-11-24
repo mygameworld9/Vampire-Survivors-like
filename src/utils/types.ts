@@ -42,7 +42,7 @@ export interface IWeaponData {
     id: string;
     nameKey: string;
     icon: string;
-    type?: 'PROJECTILE' | 'BOOMERANG' | 'AURA' | 'LASER' | 'HOMING_PROJECTILE';
+    type?: 'PROJECTILE' | 'BOOMERANG' | 'AURA' | 'LASER' | 'HOMING_PROJECTILE' | 'LIGHTNING' | 'MELEE';
     damage: number;
     cooldown: number;
     speed: number;

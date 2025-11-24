@@ -196,6 +196,7 @@ export const GameComponent: React.FC = () => {
                     // Loop continues but update is paused by check below
                 } else {
                     progressionManager.addGold(game.player.gold);
+                    soundManagerRef.current?.stopBGM();
                     setGameState('gameOver');
                     stopGameLoop();
                     return;
@@ -266,6 +267,7 @@ export const GameComponent: React.FC = () => {
         if (gameRef.current) {
             progressionManager.addGold(gameRef.current.player.gold);
         }
+        soundManagerRef.current?.stopBGM();
         setGameState('gameOver');
         stopGameLoop();
     };
@@ -275,6 +277,7 @@ export const GameComponent: React.FC = () => {
              // In case user quits mid-game (from pause menu), save their gold
              progressionManager.addGold(gameRef.current.player.gold);
         }
+        soundManagerRef.current?.stopBGM();
         stopGameLoop();
         gameRef.current = null;
         

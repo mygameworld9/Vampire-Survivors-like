@@ -1,3 +1,4 @@
+
 import { Vector2D } from "../utils/Vector2D";
 
 export class Particle {
@@ -10,14 +11,27 @@ export class Particle {
     shouldBeRemoved = false;
 
     constructor(x: number, y: number, color: string) {
-        this.pos = new Vector2D(x, y);
+        this.pos = new Vector2D(0, 0);
+        this.velocity = new Vector2D(0, 0);
+        this.size = 0;
+        this.color = '';
+        this.lifeTimer = 0;
+        this.initialLife = 0;
+        this.reset(x, y, color);
+    }
+
+    reset(x: number, y: number, color: string) {
+        this.pos.x = x;
+        this.pos.y = y;
         const angle = Math.random() * Math.PI * 2;
         const speed = Math.random() * 80 + 20; // Random speed between 20 and 100
-        this.velocity = new Vector2D(Math.cos(angle) * speed, Math.sin(angle) * speed);
+        this.velocity.x = Math.cos(angle) * speed;
+        this.velocity.y = Math.sin(angle) * speed;
         this.size = Math.random() * 3 + 1; // Random size between 1 and 4
         this.color = color;
         this.initialLife = Math.random() * 0.4 + 0.2; // Lifetime between 0.2 and 0.6 seconds
         this.lifeTimer = this.initialLife;
+        this.shouldBeRemoved = false;
     }
 
     update(dt: number) {

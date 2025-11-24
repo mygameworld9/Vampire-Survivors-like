@@ -75,5 +75,29 @@ export const WEAPON_DATA: { [key: string]: IWeaponData } = {
         penetration: 1,
         range: 5000, // Failsafe range
         fireSound: 'WEAPON_LASER', // Reusing sound for now
+    },
+    THUNDER_STAFF: {
+        id: 'THUNDER_STAFF',
+        nameKey: 'weapon.thunderstaff.name',
+        icon: '⚡',
+        type: 'LIGHTNING',
+        damage: 50,
+        cooldown: 3000,
+        speed: 0, // Instant
+        penetration: 1, // Number of targets
+        range: 100, // Explosion Radius
+        fireSound: 'WEAPON_LIGHTNING',
+    },
+    KATANA: {
+        id: 'KATANA',
+        nameKey: 'weapon.katana.name',
+        icon: '🗡️',
+        type: 'MELEE',
+        damage: 45,
+        cooldown: 1500,
+        speed: 0, 
+        penetration: 999,
+        range: 80, // Slash radius
+        fireSound: 'WEAPON_SLASH',
     }
 };

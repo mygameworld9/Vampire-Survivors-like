@@ -14,7 +14,7 @@ export class LaserProjectile {
     statusEffect?: IWeaponStatusEffect;
     
     shouldBeRemoved = false;
-    hitEnemies: Set<Enemy> = new Set();
+    hitEnemies: Set<number> = new Set();
     
     private lifetime = 0.15; // seconds
     private lifeTimer = 0;

@@ -55,6 +55,18 @@ export const CreativeSetup: React.FC<CreativeSetupProps> = ({ onStart, onBack })
         }
     };
 
+    const setMaxLevel = (id: string, type: 'weapon' | 'skill') => {
+        const setMap = type === 'weapon' ? setWeaponLevels : setSkillLevels;
+        const count = type === 'weapon' ? getWeaponCount() : getSkillCount();
+        const currentMap = type === 'weapon' ? weaponLevels : skillLevels;
+        const isSelected = !!currentMap[id];
+
+        if (!isSelected && count >= LIMIT) return;
+
+        const max = getMaxLevel(id, type);
+        setMap(prev => ({ ...prev, [id]: max }));
+    };
+
     const renderCard = (id: string, icon: string, nameKey: string, currentLevel: number, type: 'weapon' | 'skill') => {
         const isSelected = currentLevel > 0;
         const count = type === 'weapon' ? getWeaponCount() : getSkillCount();
@@ -88,6 +100,16 @@ export const CreativeSetup: React.FC<CreativeSetupProps> = ({ onStart, onBack })
                         <span>+ ADD</span>
                     </div>
                 )}
+                
+                {/* Max Button for Quick Testing */}
+                <button 
+                    className="max-btn"
+                    onClick={(e) => { e.stopPropagation(); setMaxLevel(id, type); }}
+                    disabled={currentLevel >= maxLevel || (disabled)}
+                    title="Set to Max Level"
+                >
+                    MAX
+                </button>
             </div>
         );
     };
@@ -165,12 +187,12 @@ export const CreativeSetup: React.FC<CreativeSetupProps> = ({ onStart, onBack })
                 .creative-card {
                     width: auto;
                     padding: 10px;
-                    height: 120px;
+                    height: 140px;
                     border-width: 2px;
                     display: flex;
                     flex-direction: column;
                     align-items: center;
-                    justify-content: space-between; /* Space out icon/text and controls */
+                    justify-content: space-between; 
                     position: relative;
                     transition: all 0.2s;
                 }
@@ -208,6 +230,7 @@ export const CreativeSetup: React.FC<CreativeSetupProps> = ({ onStart, onBack })
                     font-weight: bold;
                     color: #4a148c;
                     font-size: 1.2rem;
+                    z-index: 5;
                 }
                 .creative-card:not(.selected):not(.disabled):hover .add-overlay {
                     opacity: 1;
@@ -222,6 +245,7 @@ export const CreativeSetup: React.FC<CreativeSetupProps> = ({ onStart, onBack })
                     width: 100%;
                     justify-content: space-between;
                     box-sizing: border-box;
+                    z-index: 10;
                 }
                 .level-controls span {
                     font-size: 0.8rem;
@@ -246,6 +270,26 @@ export const CreativeSetup: React.FC<CreativeSetupProps> = ({ onStart, onBack })
                 }
                 .level-controls button:disabled {
                     opacity: 0.3;
+                    cursor: default;
+                }
+                .max-btn {
+                    width: 100%;
+                    border: none;
+                    background: #ab47bc;
+                    color: white;
+                    font-size: 0.7rem;
+                    padding: 2px;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    margin-top: 2px;
+                    font-weight: bold;
+                    z-index: 10;
+                }
+                .max-btn:hover:not(:disabled) {
+                    background: #8e24aa;
+                }
+                .max-btn:disabled {
+                    background: #ccc;
                     cursor: default;
                 }
                 .action-row {

@@ -16,8 +16,10 @@ import { CHARACTER_DATA } from "../data/characterData";
 import { HomingProjectile } from "./HomingProjectile";
 import { Enemy } from "./Enemy";
 import { progressionManager } from "../core/ProgressionManager";
+import { LightningProjectile } from "./LightningProjectile";
+import { SlashProjectile } from "./SlashProjectile";
 
-type AnyProjectile = Projectile | BoomerangProjectile | LaserProjectile | HomingProjectile;
+type AnyProjectile = Projectile | BoomerangProjectile | LaserProjectile | HomingProjectile | LightningProjectile | SlashProjectile;
 
 export class Player {
     pos: Vector2D;

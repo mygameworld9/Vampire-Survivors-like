@@ -14,7 +14,7 @@ export class HomingProjectile {
     distanceTraveled = 0;
     size = 16;
     shouldBeRemoved = false;
-    hitEnemies: Set<Enemy> = new Set();
+    hitEnemies: Set<number> = new Set();
     statusEffect?: IWeaponStatusEffect;
 
     private target: Enemy;
@@ -35,9 +35,9 @@ export class HomingProjectile {
         this.rotation += dt * 10; // Spin
 
         // If the target is still valid, home in on it.
+        // Check target.id as extra safety although ref checks work if instance is alive
         if (this.target && !this.target.shouldBeRemoved) {
             const newDirection = new Vector2D(this.target.pos.x - this.pos.x, this.target.pos.y - this.pos.y).normalize();
-            // Smooth steering could go here, but instant turn is fine for this style
             this.direction = newDirection;
         }
         

@@ -10,14 +10,17 @@ import { i18nManager } from "../core/i18n";
 import { Vector2D } from "../utils/Vector2D";
 import { Enemy } from "./Enemy";
 import { HomingProjectile } from "./HomingProjectile";
+import { LightningProjectile } from "./LightningProjectile";
+import { SlashProjectile } from "./SlashProjectile";
+import { ObjectPool } from "../utils/ObjectPool";
 
-type AnyProjectile = Projectile | BoomerangProjectile | LaserProjectile | HomingProjectile;
+type AnyProjectile = Projectile | BoomerangProjectile | LaserProjectile | HomingProjectile | LightningProjectile | SlashProjectile;
 
 export class Weapon {
     id: string;
     nameKey: string;
     icon: string;
-    type: 'PROJECTILE' | 'BOOMERANG' | 'AURA' | 'LASER' | 'HOMING_PROJECTILE';
+    type: 'PROJECTILE' | 'BOOMERANG' | 'AURA' | 'LASER' | 'HOMING_PROJECTILE' | 'LIGHTNING' | 'MELEE';
     baseDamage: number; // Store base damage separately
     cooldown: number;
     speed: number;
@@ -55,49 +58,42 @@ export class Weapon {
         return i18nManager.t(this.nameKey);
     }
 
-    // Getter to calculate final damage dynamically based on player stats
-    // We need to pass the player to a method or use a temporary property during update
-    // But typically update() calls fire(), which uses current state.
-    // Let's adjust damage right before firing, but we need to be careful not to permanently mutate baseDamage
-    // Actually, we should expose a `getDamage(player)` method, or update `this.damage` only on level up, 
-    // but here we want real-time player stat updates.
-    // A cleaner way: pass the multiplier to `fire`.
-
     get damage(): number {
         return this.baseDamage;
     }
 
-    update(dt: number, player: Player, enemies: Enemy[]): AnyProjectile[] | null {
+    update(dt: number, player: Player, enemies: Enemy[], projectilePool?: ObjectPool<Projectile>): AnyProjectile[] | null {
         this.cooldownTimer -= dt * 1000;
         if (this.cooldownTimer <= 0) {
             this.cooldownTimer = this.cooldown;
             
             if (this.fireSound) {
-                this.soundManager.playSound(this.fireSound);
+                // For Aura, if it is max level (persistent), do not play the sound every tick (100ms)
+                // Otherwise it spams "whoosh" sounds constantly.
+                const shouldPlaySound = !(this.type === 'AURA' && this.isMaxLevel());
+                if (shouldPlaySound) {
+                    this.soundManager.playSound(this.fireSound);
+                }
             }
 
             if (this.type === 'AURA') {
-                // Aura damage is applied in Game.ts, we should probably pass a modified weapon object 
-                // or handle calculation there. Since Game.ts calls applyAuraDamage(weapon),
-                // we can just update the weapon damage temporarily or let Game.ts handle it.
-                // Let's make a proxy weapon for the callback to avoid mutating state
-                // FIX: Use spread syntax to create a plain object. This avoids the "Cannot set property damage... which has only a getter" error
-                // by creating a new object with a direct 'damage' property, rather than inheriting the getter.
-                const boostedWeapon = { ...this, damage: this.baseDamage * player.damageMultiplier } as any as Weapon;
+                const boostedWeapon = { 
+                    ...this, 
+                    damage: this.baseDamage * player.damageMultiplier,
+                    isMaxLevel: this.isMaxLevel.bind(this)
+                } as any as Weapon;
                 this.onFireAura?.(boostedWeapon);
                 return null;
             }
-            return this.fire(player, enemies);
+            return this.fire(player, enemies, projectilePool);
         }
         return null;
     }
 
-    fire(player: Player, enemies: Enemy[]): AnyProjectile[] {
+    fire(player: Player, enemies: Enemy[], projectilePool?: ObjectPool<Projectile>): AnyProjectile[] {
         const projectiles: AnyProjectile[] = [];
         const effectiveDamage = this.baseDamage * player.damageMultiplier;
         
-        // Create a proxy/clone of this weapon with the effective damage for the projectile
-        // FIX: Use spread syntax to create a plain object with the correct damage value.
         const firingState = { ...this, damage: effectiveDamage } as any as Weapon;
 
         if (this.type === 'HOMING_PROJECTILE') {
@@ -115,6 +111,23 @@ export class Weapon {
                 const initialDirection = new Vector2D(nearestEnemy.pos.x - player.pos.x, nearestEnemy.pos.y - player.pos.y).normalize();
                 projectiles.push(new HomingProjectile(player.pos.x, player.pos.y, initialDirection, firingState, nearestEnemy));
             }
+        } else if (this.type === 'LIGHTNING') {
+            // Find random enemies to strike
+            const targets: Enemy[] = [];
+            const available = [...enemies];
+            // Use penetration as target count
+            const count = this.penetration || 1;
+            for(let i=0; i<count; i++) {
+                if (available.length === 0) break;
+                const idx = Math.floor(Math.random() * available.length);
+                targets.push(available[idx]);
+                available.splice(idx, 1);
+            }
+            targets.forEach(t => projectiles.push(new LightningProjectile(t.pos.x, t.pos.y, firingState)));
+
+        } else if (this.type === 'MELEE') {
+            projectiles.push(new SlashProjectile(player, firingState, this.firePattern === 'all_8'));
+
         } else if (this.type === 'LASER') {
             const directions: Vector2D[] = [];
             switch (this.firePattern) {
@@ -144,7 +157,13 @@ export class Weapon {
         } else if (this.type === 'BOOMERANG') {
             projectiles.push(new BoomerangProjectile(player.pos.x, player.pos.y, player, firingState));
         } else { // PROJECTILE
-            projectiles.push(new Projectile(player.pos.x, player.pos.y, player.facingDirection, firingState));
+            if (projectilePool) {
+                const p = projectilePool.get();
+                p.reset(player.pos.x, player.pos.y, player.facingDirection, firingState);
+                projectiles.push(p);
+            } else {
+                projectiles.push(new Projectile(player.pos.x, player.pos.y, player.facingDirection, firingState));
+            }
         }
 
         return projectiles;

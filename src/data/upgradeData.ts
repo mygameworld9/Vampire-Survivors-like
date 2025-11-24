@@ -1,3 +1,4 @@
+
 import { UpgradeLevel } from "../utils/types";
 
 export const UPGRADE_DATA: { [key: string]: UpgradeLevel[] } = {
@@ -26,7 +27,7 @@ export const UPGRADE_DATA: { [key: string]: UpgradeLevel[] } = {
       { "descriptionKey": "upgrade.sunfire.6", "effects": { "cooldown": { "op": "multiply", "value": 0.85 } } },
       { "descriptionKey": "upgrade.sunfire.7", "effects": { "range": { "op": "multiply", "value": 1.20 } } },
       { "descriptionKey": "upgrade.sunfire.8", "effects": { "damage": { "op": "add", "value": 15 } } },
-      { "descriptionKey": "upgrade.sunfire.9", "effects": { "cooldown": { "op": "set", "value": 0 } } }
+      { "descriptionKey": "upgrade.sunfire.9", "effects": { "cooldown": { "op": "set", "value": 100 } } }
     ],
     ICE_SHARD: [
       { "descriptionKey": "upgrade.iceshard.1", "effects": { "firePattern": { "op": "set", "value": "forward_backward" } } },
@@ -44,5 +45,23 @@ export const UPGRADE_DATA: { [key: string]: UpgradeLevel[] } = {
       { "descriptionKey": "upgrade.magicmissile.3", "effects": { "speed": { "op": "add", "value": 50 } } },
       { "descriptionKey": "upgrade.magicmissile.4", "effects": { "damage": { "op": "add", "value": 10 } } },
       { "descriptionKey": "upgrade.magicmissile.5", "effects": { "cooldown": { "op": "multiply", "value": 0.85 } } }
+    ],
+    THUNDER_STAFF: [
+        { "descriptionKey": "upgrade.thunderstaff.1", "effects": { "penetration": { "op": "add", "value": 1 } } }, // +1 target
+        { "descriptionKey": "upgrade.thunderstaff.2", "effects": { "damage": { "op": "add", "value": 15 } } },
+        { "descriptionKey": "upgrade.thunderstaff.3", "effects": { "range": { "op": "multiply", "value": 1.25 } } }, // Wider AOE
+        { "descriptionKey": "upgrade.thunderstaff.4", "effects": { "penetration": { "op": "add", "value": 1 } } },
+        { "descriptionKey": "upgrade.thunderstaff.5", "effects": { "cooldown": { "op": "multiply", "value": 0.8 } } },
+        { "descriptionKey": "upgrade.thunderstaff.6", "effects": { "damage": { "op": "add", "value": 20 } } },
+        { "descriptionKey": "upgrade.thunderstaff.7", "effects": { "penetration": { "op": "add", "value": 2 } } }
+    ],
+    KATANA: [
+        { "descriptionKey": "upgrade.katana.1", "effects": { "damage": { "op": "add", "value": 10 } } },
+        { "descriptionKey": "upgrade.katana.2", "effects": { "range": { "op": "multiply", "value": 1.2 } } },
+        { "descriptionKey": "upgrade.katana.3", "effects": { "cooldown": { "op": "multiply", "value": 0.9 } } },
+        { "descriptionKey": "upgrade.katana.4", "effects": { "damage": { "op": "add", "value": 15 } } },
+        { "descriptionKey": "upgrade.katana.5", "effects": { "range": { "op": "multiply", "value": 1.2 } } },
+        { "descriptionKey": "upgrade.katana.6", "effects": { "cooldown": { "op": "multiply", "value": 0.8 } } },
+        { "descriptionKey": "upgrade.katana.7", "effects": { "firePattern": { "op": "set", "value": "all_8" } } } // Special: All Around
     ]
 };

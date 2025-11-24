@@ -1,3 +1,4 @@
+
 import { Player } from '../entities/Player';
 import { Enemy } from '../entities/Enemy';
 import { Projectile } from '../entities/Projectile';
@@ -13,6 +14,8 @@ import { PulseEffect } from '../entities/PulseEffect';
 import { ParticleSystem } from './ParticleSystem';
 import { MAP_DATA } from '../data/mapData';
 import { HomingProjectile } from '../entities/HomingProjectile';
+import { LightningProjectile } from '../entities/LightningProjectile';
+import { SlashProjectile } from '../entities/SlashProjectile';
 import { Chest } from '../entities/Chest';
 import { FloatingText } from '../entities/FloatingText';
 import { CHEST_LOOT_TABLE } from '../data/lootData';
@@ -22,8 +25,11 @@ import { UpgradeOption, IMapData, CreativeLoadout } from '../utils/types';
 import { MapRenderer } from './systems/MapRenderer';
 import { SpawnSystem } from './systems/SpawnSystem';
 import { CollisionSystem } from './systems/CollisionSystem';
+import { ObjectPool } from '../utils/ObjectPool';
+import { Particle } from '../entities/Particle';
+import { Vector2D } from '../utils/Vector2D';
 
-type AnyProjectile = Projectile | BoomerangProjectile | LaserProjectile | HomingProjectile;
+type AnyProjectile = Projectile | BoomerangProjectile | LaserProjectile | HomingProjectile | LightningProjectile | SlashProjectile;
 type AnyEffect = AuraEffect | PulseEffect;
 
 export class Game {
@@ -53,6 +59,11 @@ export class Game {
     private spawnSystem: SpawnSystem;
     private collisionSystem: CollisionSystem;
 
+    // Pools
+    public enemyPool: ObjectPool<Enemy>;
+    public projectilePool: ObjectPool<Projectile>;
+    public particlePool: ObjectPool<Particle>;
+
     constructor(
         width: number, 
         height: number, 
@@ -68,10 +79,15 @@ export class Game {
         this.onLevelUp = onLevelUp;
         this.onChestOpenStart = onChestOpenStart;
         this.soundManager = soundManager;
+
+        // Initialize Object Pools
+        this.enemyPool = new ObjectPool(() => new Enemy(0, 0, {} as any, 'SLIME', false));
+        this.projectilePool = new ObjectPool(() => new Projectile(0, 0, new Vector2D(0, 0), {} as any));
+        this.particlePool = new ObjectPool(() => new Particle(0, 0, '#fff'));
         
         // Initialize Systems
         this.input = new InputHandler();
-        this.particleSystem = new ParticleSystem();
+        this.particleSystem = new ParticleSystem(this.particlePool);
         this.collisionSystem = new CollisionSystem(this);
         this.spawnSystem = new SpawnSystem(this);
         
@@ -89,6 +105,9 @@ export class Game {
         if (initialLoadout) {
             this.applyCreativeLoadout(initialLoadout);
         }
+
+        // Start BGM
+        this.soundManager.startBGM();
     }
 
     private applyCreativeLoadout(loadout: CreativeLoadout) {
@@ -118,6 +137,11 @@ export class Game {
     
     update(dt: number) {
         this.gameTime += dt;
+
+        // Update BGM Intensity based on time (0 to 1 over 300 seconds)
+        const intensity = Math.min(1.0, this.gameTime / 300);
+        this.soundManager.setBGMIntensity(intensity);
+
         this.spawnSystem.update(dt);
 
         const { projectiles, skillEffects } = this.player.update(dt, this.input, this.enemies);
@@ -126,28 +150,54 @@ export class Game {
         
         this.camera.update(this.player.pos);
         
-        // Update entities
-        this.enemies.forEach(e => {
+        // Update entities using zero-allocation loops
+        let i = 0;
+        while (i < this.enemies.length) {
+            const e = this.enemies[i];
             const wasAlive = e.hp > 0;
             e.update(dt, this.player.pos);
+            
             if (wasAlive && e.shouldBeRemoved) {
                 this.collisionSystem.onEnemyDefeated(e);
             }
             if (e.isBurning() && Math.random() < 0.5) {
-                 this.particleSystem.emit(e.pos.x + (Math.random() - 0.5) * e.size, e.pos.y + (Math.random() - 0.5) * e.size, 1, '#ff9800');
+                this.particleSystem.emit(e.pos.x + (Math.random() - 0.5) * e.size, e.pos.y + (Math.random() - 0.5) * e.size, 1, '#ff9800');
             }
-        });
 
-        this.projectiles.forEach(p => p.update(dt));
+            if (e.shouldBeRemoved) {
+                // Return to pool and swap with last element
+                this.enemyPool.release(e);
+                const last = this.enemies[this.enemies.length - 1];
+                this.enemies[i] = last;
+                this.enemies.pop();
+            } else {
+                i++;
+            }
+        }
+
+        let j = 0;
+        while (j < this.projectiles.length) {
+            const p = this.projectiles[j];
+            p.update(dt);
+            if (p.shouldBeRemoved) {
+                if (p instanceof Projectile) {
+                    this.projectilePool.release(p);
+                }
+                const last = this.projectiles[this.projectiles.length - 1];
+                this.projectiles[j] = last;
+                this.projectiles.pop();
+            } else {
+                j++;
+            }
+        }
+
         this.effects.forEach(e => e.update(dt));
         this.floatingTexts.forEach(t => t.update(dt));
         this.particleSystem.update(dt);
         
         this.collisionSystem.update(dt);
 
-        // Cleanup
-        this.enemies = this.enemies.filter(e => !e.shouldBeRemoved);
-        this.projectiles = this.projectiles.filter(p => !p.shouldBeRemoved);
+        // Cleanup other entities (less frequent, can use filter for simplicity or refactor later)
         this.xpOrbs = this.xpOrbs.filter(o => !o.shouldBeRemoved);
         this.effects = this.effects.filter(e => !e.shouldBeRemoved);
         this.items = this.items.filter(i => !i.shouldBeRemoved);

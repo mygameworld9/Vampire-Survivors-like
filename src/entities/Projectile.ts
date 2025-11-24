@@ -12,9 +12,9 @@ export class Projectile {
     penetration: number;
     range: number;
     distanceTraveled = 0;
-    size = 14; // Slightly larger for visibility
+    size = 14;
     shouldBeRemoved = false;
-    hitEnemies: Set<Enemy> = new Set();
+    hitEnemies: Set<number> = new Set(); // Store Enemy IDs
     statusEffect?: IWeaponStatusEffect;
 
     constructor(x: number, y: number, direction: Vector2D, weapon: Weapon) {
@@ -25,6 +25,22 @@ export class Projectile {
         this.penetration = weapon.penetration;
         this.range = weapon.range;
         this.statusEffect = weapon.statusEffect;
+    }
+
+    reset(x: number, y: number, direction: Vector2D, weapon: Weapon) {
+        this.pos.x = x;
+        this.pos.y = y;
+        this.direction.x = direction.x;
+        this.direction.y = direction.y;
+        this.speed = weapon.speed;
+        this.damage = weapon.damage;
+        this.penetration = weapon.penetration;
+        this.range = weapon.range;
+        this.statusEffect = weapon.statusEffect;
+        
+        this.distanceTraveled = 0;
+        this.shouldBeRemoved = false;
+        this.hitEnemies.clear();
     }
 
     update(dt: number) {

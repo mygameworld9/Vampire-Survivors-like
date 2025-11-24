@@ -1,3 +1,4 @@
+
 import { Game } from "../Game";
 import { SPAWN_SCHEDULE } from "../../data/gameConfig";
 import { ENEMY_DATA } from "../../data/enemyData";
@@ -56,7 +57,11 @@ export class SpawnSystem {
         const radius = Math.max(this.game.width, this.game.height) / 2 + 50;
         const x = this.game.player.pos.x + Math.cos(angle) * radius;
         const y = this.game.player.pos.y + Math.sin(angle) * radius;
-        this.game.enemies.push(new Enemy(x, y, data, type, isElite));
+        
+        // Use pooling
+        const enemy = this.game.enemyPool.get();
+        enemy.reset(x, y, data, type, isElite);
+        this.game.enemies.push(enemy);
     }
 
     spawnItem() {

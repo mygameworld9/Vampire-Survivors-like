@@ -1,3 +1,4 @@
+
 import { Game } from "../Game";
 import { LaserProjectile } from "../../entities/LaserProjectile";
 import { Vector2D } from "../../utils/Vector2D";
@@ -12,6 +13,8 @@ import { Player } from "../../entities/Player";
 import { Item } from "../../entities/Item";
 import { Weapon } from "../../entities/Weapon";
 import { Enemy } from "../../entities/Enemy";
+import { LightningProjectile } from "../../entities/LightningProjectile";
+import { SlashProjectile } from "../../entities/SlashProjectile";
 
 export class CollisionSystem {
     constructor(private game: Game) {}
@@ -27,7 +30,7 @@ export class CollisionSystem {
         for (const p of this.game.projectiles) {
             if (p instanceof LaserProjectile) {
                 for (const e of this.game.enemies) {
-                    if (p.hitEnemies.has(e)) continue;
+                    if (p.hitEnemies.has(e.id)) continue;
 
                     const V = new Vector2D(e.pos.x - p.p1.x, e.pos.y - p.p1.y);
                     const D = p.dir;
@@ -39,19 +42,30 @@ export class CollisionSystem {
                     if (dist < e.size / 2 + p.width / 2) {
                         this.applyDamageToEnemy(e, p.damage, p.statusEffect);
                         this.game.particleSystem.emit(closestX, closestY, 3, e.color);
-                        p.hitEnemies.add(e);
+                        p.hitEnemies.add(e.id);
+                    }
+                }
+            } else if (p instanceof LightningProjectile || p instanceof SlashProjectile) {
+                // AOE logic for Lightning and Slash
+                for (const e of this.game.enemies) {
+                    if (p.hitEnemies.has(e.id)) continue;
+                    const dist = Math.hypot(p.pos.x - e.pos.x, p.pos.y - e.pos.y);
+                    if (dist < p.range + e.size / 2) {
+                         this.applyDamageToEnemy(e, p.damage, p.statusEffect);
+                         this.game.particleSystem.emit(e.pos.x, e.pos.y, 4, '#fff');
+                         p.hitEnemies.add(e.id);
                     }
                 }
             } else { // Projectile, Boomerang, Homing
                 for (const e of this.game.enemies) {
-                    if (p.hitEnemies.has(e)) continue;
+                    if (p.hitEnemies.has(e.id)) continue;
                     const dist = Math.hypot(p.pos.x - e.pos.x, p.pos.y - e.pos.y);
                     if (dist < p.size / 2 + e.size / 2) {
                         this.applyDamageToEnemy(e, p.damage, p.statusEffect);
                         this.game.particleSystem.emit(p.pos.x, p.pos.y, 5, e.color);
                         
                         p.penetration--;
-                        p.hitEnemies.add(e);
+                        p.hitEnemies.add(e.id);
                         if (p.penetration <= 0) {
                             p.shouldBeRemoved = true;
                             break; 
@@ -161,12 +175,36 @@ export class CollisionSystem {
     }
 
     applyAuraDamage(weapon: Weapon) {
-        this.game.effects.push(new AuraEffect(this.game.player.pos, weapon.range));
+        const isMax = weapon.isMaxLevel();
+        
+        // --- Visual Logic ---
+        if (isMax) {
+            // Check if we already have a persistent aura active
+            const persistentAura = this.game.effects.find(e => e instanceof AuraEffect && e.isPersistent) as AuraEffect | undefined;
+            if (!persistentAura) {
+                // If not, create one that is persistent
+                this.game.effects.push(new AuraEffect(this.game.player, weapon.range, true));
+            } else {
+                // If yes, just ensure its range is up to date (in case of dynamic buffs)
+                persistentAura.maxRange = weapon.range;
+            }
+        } else {
+            // Base Level: Create a transient particle effect every tick
+            this.game.effects.push(new AuraEffect(this.game.player, weapon.range, false));
+        }
+
+        // --- Damage Logic ---
+        // Damage is applied every tick regardless of visual state
         for (const e of this.game.enemies) {
             const dist = Math.hypot(this.game.player.pos.x - e.pos.x, this.game.player.pos.y - e.pos.y);
             if (dist < weapon.range + e.size / 2) {
                 this.applyDamageToEnemy(e, weapon.damage, weapon.statusEffect);
-                this.game.particleSystem.emit(e.pos.x, e.pos.y, 2, e.color);
+                // Reduce particle spam on hit for max level as the ring is always there
+                if (!isMax) {
+                    this.game.particleSystem.emit(e.pos.x, e.pos.y, 2, e.color);
+                } else if (Math.random() > 0.7) {
+                     this.game.particleSystem.emit(e.pos.x, e.pos.y, 1, '#FFCC80');
+                }
             }
         }
     }
