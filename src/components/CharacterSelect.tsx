@@ -3,103 +3,97 @@ import React, { useState } from 'react';
 import { i18nManager } from '../core/i18n';
 import { CHARACTER_DATA } from '../data/characterData';
 import { WEAPON_DATA } from '../data/weaponData';
+import { CharacterCache } from '../core/CharacterCache';
 
 interface CharacterSelectProps {
     onSelect: (characterId: string) => void;
     onBack: () => void;
 }
 
-// Map character IDs to theme colors for the card UI
-const CHAR_THEMES: {[key: string]: { emoji: string, color: string }} = {
-    KNIGHT:   { emoji: '🛡️', color: '#B0BEC5' }, // Silver/Grey
-    ROGUE:    { emoji: '🥷', color: '#A5D6A7' }, // Pastel Green - Changed from 🗡️ to Ninja
-    MAGE:     { emoji: '🧙', color: '#90CAF9' }, // Pastel Blue
-    CLERIC:   { emoji: '🕯️', color: '#FFF59D' }, // Pastel Yellow - Changed from ✨ to Candle
-    HUNTRESS: { emoji: '🏹', color: '#FFCC80' }, // Pastel Orange
-    WARLOCK:  { emoji: '🧿', color: '#CE93D8' }, // Pastel Purple - Changed from 🔮 to Evil Eye
+// Visual themes mapping
+const CHAR_THEMES: {[key: string]: { color: string, secondary: string, bg: string }} = {
+    KNIGHT:   { color: '#546E7A', secondary: '#B0BEC5', bg: '#ECEFF1' }, // Steel
+    ROGUE:    { color: '#43A047', secondary: '#A5D6A7', bg: '#E8F5E9' }, // Forest Green
+    MAGE:     { color: '#1E88E5', secondary: '#90CAF9', bg: '#E3F2FD' }, // Arcane Blue
+    CLERIC:   { color: '#FDD835', secondary: '#FFF59D', bg: '#FFFDE7' }, // Holy Gold
+    HUNTRESS: { color: '#F4511E', secondary: '#FFAB91', bg: '#FBE9E7' }, // Hunter Orange
+    WARLOCK:  { color: '#8E24AA', secondary: '#CE93D8', bg: '#F3E5F5' }, // Void Purple
 };
 
 export const CharacterSelect: React.FC<CharacterSelectProps> = ({ onSelect, onBack }) => {
     const [hoveredChar, setHoveredChar] = useState<string | null>(null);
 
+    // Helper to calculate bar percentage (Max HP ~150, Max Speed ~300 for visualization context)
+    const getStatPercent = (val: number, max: number) => Math.min(100, Math.max(10, (val / max) * 100));
+
     return (
-        <div className="menu-screen">
-            <h2>{i18nManager.t('ui.select.character.title')}</h2>
-            <div className="selection-grid">
+        <div className="menu-screen character-select-screen">
+            <h2 className="screen-title">{i18nManager.t('ui.select.character.title')}</h2>
+            
+            <div className="hero-grid">
                 {Object.values(CHARACTER_DATA).map(char => {
-                    const theme = CHAR_THEMES[char.id] || { emoji: '👤', color: '#ECEFF1' };
+                    const theme = CHAR_THEMES[char.id] || CHAR_THEMES['KNIGHT'];
                     const isHovered = hoveredChar === char.id;
+                    const weapon = WEAPON_DATA[char.startingWeaponId];
+                    const avatarUrl = CharacterCache.getAvatarUrl(char.id);
 
-                    const cardStyle: React.CSSProperties = {
-                        backgroundColor: '#FFFFFF',
-                        border: `5px solid ${isHovered ? '#E91E63' : theme.color}`,
-                        borderRadius: '30px',
-                        padding: '1.5rem',
-                        width: '280px',
-                        textAlign: 'center',
-                        cursor: 'pointer',
-                        transition: 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)', // Bouncy transition
-                        transform: isHovered ? 'translateY(-15px) scale(1.05)' : 'none',
-                        boxShadow: isHovered ? `0 15px 0 #E91E63` : `0 10px 0 ${theme.color}`,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                    };
-
-                    const avatarStyle: React.CSSProperties = {
-                        width: '110px',
-                        height: '110px',
-                        borderRadius: '50%',
-                        backgroundColor: `${theme.color}40`, // 40 hex = 25% opacity
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '5rem',
-                        marginBottom: '1rem',
-                        border: `4px solid ${theme.color}`,
-                        transition: 'transform 0.3s ease',
-                        transform: isHovered ? 'rotate(10deg) scale(1.1)' : 'none'
-                    };
+                    // Default stats if not defined
+                    const hp = char.stats?.hp || 100;
+                    const speed = char.stats?.speed || 200;
 
                     return (
                         <div 
                             key={char.id} 
-                            style={cardStyle}
+                            className={`hero-card ${isHovered ? 'hovered' : ''}`}
                             onClick={() => onSelect(char.id)}
                             onMouseEnter={() => setHoveredChar(char.id)}
                             onMouseLeave={() => setHoveredChar(null)}
+                            style={{
+                                '--theme-color': theme.color,
+                                '--theme-bg': theme.bg,
+                                '--theme-sec': theme.secondary
+                            } as React.CSSProperties}
                         >
-                            <div style={avatarStyle}>
-                                {theme.emoji}
+                            {/* Header: Avatar & Name */}
+                            <div className="hero-header">
+                                <div className="hero-avatar-container">
+                                    <div className={`character-portrait ${isHovered ? 'animate' : ''}`} 
+                                         style={{ backgroundImage: `url(${avatarUrl})` }}>
+                                    </div>
+                                </div>
+                                <h3 className="hero-name">{i18nManager.t(char.nameKey)}</h3>
                             </div>
-                            <h3 style={{ 
-                                margin: '0 0 0.5rem 0', 
-                                color: '#546E7A', 
-                                fontFamily: "'Comic Sans MS', sans-serif",
-                                fontSize: '1.5rem'
-                            }}>
-                                {i18nManager.t(char.nameKey)}
-                            </h3>
-                            <p style={{ fontSize: '0.95rem', color: '#78909C', marginBottom: 'auto', lineHeight: '1.4' }}>
-                                {i18nManager.t(char.descriptionKey)}
-                            </p>
-                            <div style={{ 
-                                marginTop: '1rem', 
-                                padding: '0.5rem 1rem', 
-                                backgroundColor: '#ECEFF1', 
-                                borderRadius: '20px',
-                                fontSize: '0.9rem',
-                                color: '#455A64',
-                                fontWeight: 'bold',
-                                width: '100%',
-                                boxSizing: 'border-box'
-                            }}>
-                               {i18nManager.t('ui.select.character.starts')} <span style={{color: '#E91E63'}}>{i18nManager.t(WEAPON_DATA[char.startingWeaponId].nameKey)}</span>
+
+                            {/* Body: Stats */}
+                            <div className="hero-stats">
+                                <div className="stat-row">
+                                    <span className="stat-label">HP</span>
+                                    <div className="stat-track">
+                                        <div className="stat-fill" style={{ width: `${getStatPercent(hp, 150)}%`, background: '#ef5350' }}></div>
+                                    </div>
+                                </div>
+                                <div className="stat-row">
+                                    <span className="stat-label">SPD</span>
+                                    <div className="stat-track">
+                                        <div className="stat-fill" style={{ width: `${getStatPercent(speed, 300)}%`, background: '#42a5f5' }}></div>
+                                    </div>
+                                </div>
+                                <p className="hero-desc">{i18nManager.t(char.descriptionKey)}</p>
+                            </div>
+
+                            {/* Footer: Weapon Persona */}
+                            <div className="hero-weapon-badge">
+                                <span className="weapon-label">{i18nManager.t('ui.select.character.starts')}</span>
+                                <div className="weapon-info">
+                                    <span className="weapon-icon">{weapon.icon}</span>
+                                    <span className="weapon-name">{i18nManager.t(weapon.nameKey)}</span>
+                                </div>
                             </div>
                         </div>
                     );
                 })}
             </div>
+            
             <button className="back-button" onClick={onBack}>{i18nManager.t('ui.select.back')}</button>
         </div>
     );

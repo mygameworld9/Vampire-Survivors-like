@@ -1,3 +1,4 @@
+
 import { Camera } from "../Camera";
 import { IMapData } from "../../utils/types";
 
@@ -82,7 +83,10 @@ export class MapRenderer {
         // Keep chunks within N units of the center visible chunk
         const centerCx = Math.floor(camera.pos.x / this.CHUNK_SIZE);
         const centerCy = Math.floor(camera.pos.y / this.CHUNK_SIZE);
-        const keepDist = 2; // Keep 5x5 chunks around player
+        
+        // Increased to 4 to reduce churn when moving back and forth across boundaries.
+        // This prevents frequent canvas creation/deletion which causes GC stutter.
+        const keepDist = 4; 
 
         for (const key of this.tileCache.keys()) {
             const [cx, cy] = key.split(',').map(Number);

@@ -139,7 +139,7 @@ export class Enemy {
         const frame = EnemyCache.getFrame(this.type, this.isElite, this.color, this.size, this.globalTime);
         
         // The cache includes padding, so we need to center it based on its width/height
-        // frame.width is likely size * 2 + padding
+        // Removed Math.round to fix jitter relative to camera
         const drawX = this.pos.x - frame.width / 2;
         const drawY = this.pos.y - frame.height / 2;
 
@@ -148,12 +148,15 @@ export class Enemy {
         // Draw overlays for status effects (Simple primitives are fine to keep dynamic)
         if (this.activeStatusEffects.size > 0) {
             const radius = this.size / 2;
+            const cx = this.pos.x;
+            const cy = this.pos.y;
+
             if (this.activeStatusEffects.has('BURN')) {
                 ctx.fillStyle = '#FF7043';
                 for (let i = 0; i < 3; i++) {
                     const angle = this.globalTime * 5 + i * (Math.PI * 2 / 3);
-                    const fx = this.pos.x + Math.cos(angle) * radius;
-                    const fy = this.pos.y + Math.sin(angle) * radius;
+                    const fx = cx + Math.cos(angle) * radius;
+                    const fy = cy + Math.sin(angle) * radius;
                     ctx.beginPath();
                     ctx.arc(fx, fy, 3, 0, Math.PI * 2);
                     ctx.fill();
@@ -162,7 +165,7 @@ export class Enemy {
             if (this.activeStatusEffects.has('SLOW')) {
                 ctx.fillStyle = 'rgba(129, 212, 250, 0.4)';
                 ctx.beginPath();
-                ctx.arc(this.pos.x, this.pos.y, radius, 0, Math.PI*2);
+                ctx.arc(cx, cy, radius, 0, Math.PI*2);
                 ctx.fill();
             }
         }

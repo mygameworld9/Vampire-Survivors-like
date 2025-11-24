@@ -13,14 +13,24 @@ export class Camera {
         const speed = 10; 
         const factor = 1 - Math.exp(-speed * dt);
 
-        this.pos.x += (playerPos.x - this.pos.x) * factor;
-        this.pos.y += (playerPos.y - this.pos.y) * factor;
+        const distSq = (playerPos.x - this.pos.x) ** 2 + (playerPos.y - this.pos.y) ** 2;
+        
+        // Snap to target if very close to avoid sub-pixel jitter/shimmering when STOPPED
+        if (distSq < 0.5) {
+            this.pos.x = playerPos.x;
+            this.pos.y = playerPos.y;
+        } else {
+            this.pos.x += (playerPos.x - this.pos.x) * factor;
+            this.pos.y += (playerPos.y - this.pos.y) * factor;
+        }
     }
 
     applyTransform(ctx: CanvasRenderingContext2D) {
-        // Ensure we do NOT use Math.floor here.
-        // Using floating point coordinates allows for smooth sub-pixel rendering,
-        // which eliminates the "stutter" or jitter effect seen when moving slowly.
+        // Removed Math.round.
+        // While rounding helps align static pixel art, in a smooth-scrolling action game with 
+        // physics-based interpolation, forcing integer coordinates causes "jitter" or "vibration"
+        // because the camera snaps to the grid while the internal logic moves smoothly.
+        // Modern browsers handle sub-pixel rendering (anti-aliasing) well enough to look smooth.
         const tx = -this.pos.x + ctx.canvas.width / 2;
         const ty = -this.pos.y + ctx.canvas.height / 2;
         ctx.translate(tx, ty);

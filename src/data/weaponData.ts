@@ -17,7 +17,7 @@ export const WEAPON_DATA: { [key: string]: IWeaponData } = {
     BOOMERANG: {
         id: 'BOOMERANG',
         nameKey: 'weapon.boomerang.name',
-        icon: '🪃',
+        icon: '🐿️',
         type: 'BOOMERANG',
         damage: 75,
         cooldown: 3000,

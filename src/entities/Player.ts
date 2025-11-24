@@ -100,6 +100,9 @@ export class Player {
         this.revives += metaBonuses.revivesAdd;
         this.damageMultiplier += metaBonuses.damageMultiplier;
         this.goldMultiplier += metaBonuses.goldMultiplier;
+        
+        // Ensure speed is integer from start
+        this.speed = Math.round(this.speed);
 
         // Add starting weapon and skill
         this.addWeapon(charData.startingWeaponId);
@@ -143,6 +146,7 @@ export class Player {
         if (moveVector.x !== 0 || moveVector.y !== 0) {
             this.state = 'Moving';
             this.facingDirection = moveVector.normalize();
+            // Speed is integer, but position remains float for smooth physics
             this.pos.x += this.facingDirection.x * this.speed * dt;
             this.pos.y += this.facingDirection.y * this.speed * dt;
         } else {
@@ -280,6 +284,8 @@ export class Player {
                 case 'speed':
                      if (effect.op === 'multiply') this.speed *= effect.value;
                      if (effect.op === 'add') this.speed += effect.value;
+                     // Force integer speed logic update, but movement remains float
+                     this.speed = Math.round(this.speed);
                      break;
                 case 'hpRegen':
                      if (effect.op === 'multiply') this.hpRegen *= effect.value;
@@ -299,23 +305,28 @@ export class Player {
     draw(ctx: CanvasRenderingContext2D) {
         ctx.globalAlpha = this.isInvincible ? 0.5 : 1.0;
 
+        // Use float coordinates for drawing to match camera interpolation.
+        // Rounding here causes jitter against the background.
+        const drawX = this.pos.x;
+        const drawY = this.pos.y;
+
         // Draw Shadow (Cute round shadow)
         ctx.fillStyle = 'rgba(0,0,0,0.2)';
         ctx.beginPath();
-        ctx.ellipse(this.pos.x, this.pos.y + this.size / 2 - 4, this.size / 2, this.size / 5, 0, 0, Math.PI * 2);
+        ctx.ellipse(drawX, drawY + this.size / 2 - 4, this.size / 2, this.size / 5, 0, 0, Math.PI * 2);
         ctx.fill();
 
         // Use Procedural Cute Rendering exclusively for the requested design
-        this.drawCuteCharacter(ctx);
+        this.drawCuteCharacter(ctx, drawX, drawY);
         
         ctx.globalAlpha = 1.0;
     }
 
-    private drawCuteCharacter(ctx: CanvasRenderingContext2D) {
+    private drawCuteCharacter(ctx: CanvasRenderingContext2D, x: number, y: number) {
         // Cute bounce animation
         const bounce = this.state === 'Moving' ? Math.abs(Math.sin(this.globalTime * 12)) * 4 : 0;
-        const drawY = this.pos.y - bounce;
-        const drawX = this.pos.x;
+        const drawY = y - bounce;
+        const drawX = x;
         const radius = this.size / 2;
         const isLeft = this.facingDirection.x < 0;
         

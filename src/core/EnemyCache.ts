@@ -55,25 +55,12 @@ export class EnemyCache {
     private static drawEnemyFrame(ctx: CanvasRenderingContext2D, type: string, isElite: boolean, color: string, size: number, x: number, y: number, time: number) {
         const radius = size / 2;
 
-        // Draw Elite Aura
+        // Draw Elite Aura (Background Glow)
         if (isElite) {
             const pulseRadius = size * 0.6 + Math.sin(time * 2) * 3 + 3; // Adjusted speed for loop
             ctx.fillStyle = 'rgba(255, 238, 88, 0.25)'; // Pastel Gold glow
             ctx.beginPath();
             ctx.arc(x, y, pulseRadius, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // Cute Mini Crown
-            ctx.fillStyle = '#FDD835';
-            ctx.beginPath();
-            const crownY = y - radius - 12;
-            ctx.moveTo(x - 8, crownY);
-            ctx.lineTo(x - 4, crownY + 6);
-            ctx.lineTo(x, crownY - 2);
-            ctx.lineTo(x + 4, crownY + 6);
-            ctx.lineTo(x + 8, crownY);
-            ctx.lineTo(x + 6, crownY + 10);
-            ctx.lineTo(x - 6, crownY + 10);
             ctx.fill();
         }
 
@@ -98,6 +85,7 @@ export class EnemyCache {
             ctx.fill();
         };
 
+        // Draw Body
         switch(type) {
             case 'SLIME':
                 // Squash and stretch animation
@@ -290,6 +278,44 @@ export class EnemyCache {
                 ctx.fill();
                 drawEyes(0, 0);
                 break;
+        }
+
+        // Draw Elite Crown (Foreground - Drawn AFTER body to stay on top)
+        if (isElite) {
+            const crownY = y - radius - 15;
+            
+            // Crown Shape
+            ctx.fillStyle = '#FFD700'; // Gold
+            ctx.strokeStyle = '#F57F17'; // Darker Gold Outline
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            
+            // Crown Points
+            ctx.moveTo(x - 9, crownY);          // Top Left
+            ctx.lineTo(x - 5, crownY + 7);      // Dip 1
+            ctx.lineTo(x, crownY - 3);          // Top Middle
+            ctx.lineTo(x + 5, crownY + 7);      // Dip 2
+            ctx.lineTo(x + 9, crownY);          // Top Right
+            
+            // Crown Base
+            ctx.lineTo(x + 7, crownY + 11);     // Bottom Right
+            ctx.quadraticCurveTo(x, crownY + 13, x - 7, crownY + 11); // Curved Bottom
+            ctx.closePath();
+            
+            ctx.fill();
+            ctx.stroke();
+            
+            // Red Gem Center
+            ctx.fillStyle = '#D50000'; 
+            ctx.beginPath();
+            ctx.arc(x, crownY + 8, 2, 0, Math.PI*2);
+            ctx.fill();
+
+            // Shine on gem
+            ctx.fillStyle = '#FF8A80';
+            ctx.beginPath();
+            ctx.arc(x - 0.5, crownY + 7.5, 0.8, 0, Math.PI*2);
+            ctx.fill();
         }
     }
 }

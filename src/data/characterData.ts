@@ -1,3 +1,4 @@
+
 import { ICharacterData } from "../utils/types";
 
 export const CHARACTER_DATA: { [key: string]: ICharacterData } = {
@@ -7,8 +8,8 @@ export const CHARACTER_DATA: { [key: string]: ICharacterData } = {
         descriptionKey: 'character.knight.desc',
         startingWeaponId: 'BULLET',
         startingSkillId: 'TOUGHNESS',
-        // --- Animation System Data ---
-        spriteSheet: '/characters/knight.png',
+        // --- Animation System Data (Kept for frame timing in Player.ts, but spritesheet ignored for avatars) ---
+        spriteSheet: '',
         spriteWidth: 32,
         spriteHeight: 32,
         animations: {
@@ -32,8 +33,7 @@ export const CHARACTER_DATA: { [key: string]: ICharacterData } = {
             hp: 80,
             speed: 240 // 20% faster
         },
-        // --- Animation System Data ---
-        spriteSheet: '/characters/rogue.png',
+        spriteSheet: '',
         spriteWidth: 32,
         spriteHeight: 32,
         animations: {
@@ -58,8 +58,7 @@ export const CHARACTER_DATA: { [key: string]: ICharacterData } = {
             speed: 180, // 10% slower
             hpRegen: 1.0
         },
-        // --- Animation System Data ---
-        spriteSheet: '/characters/mage.png',
+        spriteSheet: '',
         spriteWidth: 32,
         spriteHeight: 32,
         animations: {
@@ -83,8 +82,7 @@ export const CHARACTER_DATA: { [key: string]: ICharacterData } = {
             hp: 110,
             hpRegen: 1.0
         },
-        // --- Animation System Data ---
-        spriteSheet: '/characters/cleric.png',
+        spriteSheet: '',
         spriteWidth: 32,
         spriteHeight: 32,
         animations: {
@@ -108,8 +106,7 @@ export const CHARACTER_DATA: { [key: string]: ICharacterData } = {
             hp: 90,
             speed: 230
         },
-        // --- Animation System Data ---
-        spriteSheet: '/characters/huntress.png',
+        spriteSheet: '',
         spriteWidth: 32,
         spriteHeight: 32,
         animations: {
@@ -132,8 +129,7 @@ export const CHARACTER_DATA: { [key: string]: ICharacterData } = {
          stats: {
             hp: 75,
         },
-        // --- Animation System Data ---
-        spriteSheet: '/characters/warlock.png',
+        spriteSheet: '',
         spriteWidth: 32,
         spriteHeight: 32,
         animations: {

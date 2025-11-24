@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { IPlayerState } from '../utils/types';
 import { Weapon } from '../entities/Weapon';
@@ -18,7 +19,9 @@ const formatTime = (seconds: number) => {
     return `${mins}:${secs}`;
 };
 
-export const HUD: React.FC<HUDProps> = ({ playerState, gameTime, weapons, skills, onPause }) => {
+// Use React.memo to prevent re-rendering if props are identical.
+// This is crucial for game loop performance as the parent updates state frequently.
+export const HUD: React.FC<HUDProps> = React.memo(({ playerState, gameTime, weapons, skills, onPause }) => {
     const totalSkillSlots = 6;
     const isLowHp = playerState.hp > 0 && (playerState.hp / playerState.maxHp) <= 0.25;
 
@@ -66,4 +69,4 @@ export const HUD: React.FC<HUDProps> = ({ playerState, gameTime, weapons, skills
             </div>
         </div>
     );
-};
+});

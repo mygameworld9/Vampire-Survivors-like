@@ -32,6 +32,7 @@ export class Weapon {
     firePattern: 'forward' | 'forward_backward' | 'cardinal' | 'all_8';
 
     private cooldownTimer = 0;
+    private activeProjectileCount = 0; // Track projectiles for mechanics like Boomerang return
     public onFireAura: ((weapon: Weapon) => void) | null = null;
     private soundManager: SoundManager;
     private fireSound?: string;
@@ -63,6 +64,12 @@ export class Weapon {
     }
 
     update(dt: number, player: Player, enemies: Enemy[], projectilePool?: ObjectPool<Projectile>): AnyProjectile[] | null {
+        // Boomerang Logic: If the squirrel is out (active), do not cool down.
+        // The cooldown should start *after* it returns.
+        if (this.type === 'BOOMERANG' && this.activeProjectileCount > 0) {
+            return null;
+        }
+
         this.cooldownTimer -= dt * 1000;
         if (this.cooldownTimer <= 0) {
             this.cooldownTimer = this.cooldown;
@@ -155,7 +162,10 @@ export class Weapon {
                 projectiles.push(new LaserProjectile(player, firingState, dir));
             }
         } else if (this.type === 'BOOMERANG') {
-            projectiles.push(new BoomerangProjectile(player.pos.x, player.pos.y, player, firingState));
+            this.activeProjectileCount++;
+            projectiles.push(new BoomerangProjectile(player.pos.x, player.pos.y, player, firingState, () => {
+                this.activeProjectileCount = Math.max(0, this.activeProjectileCount - 1);
+            }));
         } else { // PROJECTILE
             if (projectilePool) {
                 const p = projectilePool.get();

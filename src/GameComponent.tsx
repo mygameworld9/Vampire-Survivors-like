@@ -46,6 +46,10 @@ export const GameComponent: React.FC = () => {
     const soundManagerRef = useRef<SoundManager | null>(null);
     const lastUIUpdateRef = useRef<number>(0);
     
+    // Refs for tracking state changes to avoid unnecessary re-renders
+    const lastWeaponsHash = useRef<string>("");
+    const lastSkillsHash = useRef<string>("");
+
     const [gameState, setGameState] = useState<GameState>('start');
     const [openingChest, setOpeningChest] = useState<Chest | null>(null);
     const [infoPanel, setInfoPanel] = useState<InfoPanelState>('none');
@@ -160,6 +164,8 @@ export const GameComponent: React.FC = () => {
         setSkills([]);
         setPlayerState({ hp: 0, maxHp: 1, xp: 0, xpToNext: 1, level: 1, gold: 0 });
         setGameTime(0);
+        lastWeaponsHash.current = "";
+        lastSkillsHash.current = "";
 
         if (!soundManagerRef.current) {
             soundManagerRef.current = new SoundManager(SOUND_DATA);
@@ -230,8 +236,21 @@ export const GameComponent: React.FC = () => {
                     level: game.player.level,
                     gold: game.player.gold,
                 });
-                setWeapons([...game.player.weapons]);
-                setSkills([...game.player.skills]);
+
+                // Dirty Check for Weapons to avoid expensive array cloning and re-renders
+                const currentWeaponsHash = game.player.weapons.map(w => w.id + w.level).join(',');
+                if (currentWeaponsHash !== lastWeaponsHash.current) {
+                    setWeapons([...game.player.weapons]);
+                    lastWeaponsHash.current = currentWeaponsHash;
+                }
+
+                // Dirty Check for Skills
+                const currentSkillsHash = game.player.skills.map(s => s.id + s.level).join(',');
+                if (currentSkillsHash !== lastSkillsHash.current) {
+                    setSkills([...game.player.skills]);
+                    lastSkillsHash.current = currentSkillsHash;
+                }
+
                 setGameTime(game.gameTime);
             }
         };
@@ -267,6 +286,9 @@ export const GameComponent: React.FC = () => {
         } else if (option.type === 'gold') {
             player.gainGold(option.amount);
         }
+        // Reset hashes to force UI update after upgrade
+        lastWeaponsHash.current = "";
+        lastSkillsHash.current = "";
         setGameState('playing');
     }
     

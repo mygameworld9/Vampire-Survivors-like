@@ -11,7 +11,7 @@ export class BoomerangProjectile {
     speed: number;
     penetration: number;
     range: number;
-    size = 32;
+    size = 20; // Reduced size for cuteness
     shouldBeRemoved = false;
     hitEnemies: Set<number> = new Set(); // Stores Enemy IDs
     statusEffect?: IWeaponStatusEffect;
@@ -22,10 +22,12 @@ export class BoomerangProjectile {
     private direction: Vector2D;
     private rotationAngle = 0;
     private catchCooldown = 0.2; // Seconds before player can catch it
+    private onReturn?: () => void;
 
-    constructor(x: number, y: number, owner: Player, weapon: Weapon) {
+    constructor(x: number, y: number, owner: Player, weapon: Weapon, onReturn?: () => void) {
         this.pos = new Vector2D(x, y);
         this.owner = owner;
+        this.onReturn = onReturn;
         // Ensure valid direction
         if (Math.abs(owner.facingDirection.x) < 0.01 && Math.abs(owner.facingDirection.y) < 0.01) {
             this.direction = new Vector2D(1, 0);
@@ -40,6 +42,7 @@ export class BoomerangProjectile {
     }
 
     update(dt: number) {
+        // We keep rotationAngle updating just in case, though we calculate facing direction in draw
         this.rotationAngle += 15 * dt;
         if (this.catchCooldown > 0) this.catchCooldown -= dt;
 
@@ -63,81 +66,113 @@ export class BoomerangProjectile {
             const distToPlayer = Math.hypot(this.pos.x - this.owner.pos.x, this.pos.y - this.owner.pos.y);
             if (distToPlayer < this.owner.size && this.catchCooldown <= 0) {
                 this.shouldBeRemoved = true;
+                if (this.onReturn) this.onReturn();
             }
         }
     }
 
     draw(ctx: CanvasRenderingContext2D) {
         ctx.save();
+        // Remove rounding to prevent jitter
         ctx.translate(this.pos.x, this.pos.y);
         
-        const isReturning = this.state === 'returning';
-
-        // Rotating Energy Trail
-        ctx.rotate(this.rotationAngle);
+        // Calculate facing angle based on movement state
+        let angle = 0;
+        if (this.state === 'outward') {
+             angle = Math.atan2(this.direction.y, this.direction.x);
+        } else {
+             // Face the owner when returning
+             const dx = this.owner.pos.x - this.pos.x;
+             const dy = this.owner.pos.y - this.pos.y;
+             angle = Math.atan2(dy, dx);
+        }
         
-        // Dynamic arc trail
-        ctx.beginPath();
-        // Draw an arc trailing the rotation
-        ctx.arc(0, 0, this.size * 0.9, Math.PI, Math.PI + 2); 
-        ctx.strokeStyle = `rgba(0, 229, 255, ${isReturning ? 0.6 : 0.3})`;
-        ctx.lineWidth = 4;
-        ctx.stroke();
-
-        const s = this.size / 2;
-
-        // Body Style - Cool Blue/Cyan
-        ctx.fillStyle = '#29B6F6'; // Light Blue 400
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.lineWidth = 10;
-        ctx.strokeStyle = '#0277BD'; // Light Blue 800
+        ctx.rotate(angle);
         
-        ctx.beginPath();
-        // Rounded V-shape
-        ctx.moveTo(-s, -s/2);
-        ctx.quadraticCurveTo(0, 0, s, -s/2); // Top
-        ctx.quadraticCurveTo(0, s, -s, -s/2); // Bottom
-        ctx.fill();
-        ctx.stroke();
+        // Visual Scale adjustment
+        const scale = this.size / 20; 
+        ctx.scale(scale, scale);
 
-        // Highlight
-        ctx.strokeStyle = '#E1F5FE'; // Almost white blue
-        ctx.lineWidth = 3;
+        // Shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.2)';
         ctx.beginPath();
-        ctx.moveTo(-s * 0.5, -s/4);
-        ctx.quadraticCurveTo(0, 0, s * 0.5, -s/4);
-        ctx.stroke();
-        
-        // Central Core/Gem
-        ctx.fillStyle = isReturning ? '#FFFFFF' : '#80D8FF';
-        ctx.beginPath();
-        ctx.arc(0, 0, 5, 0, Math.PI*2);
+        ctx.ellipse(0, 6, 8, 4, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        // Emanating Particles (When returning)
-        if (isReturning) {
-            // Draw orbiting energy bits
-            for(let i=0; i<4; i++) {
-                // Determine position based on rotation to make them spin around
-                const angle = (Math.PI / 2 * i) - (this.rotationAngle * 2); 
-                const dist = this.size; 
-                const px = Math.cos(angle) * dist;
-                const py = Math.sin(angle) * dist;
-                
-                ctx.fillStyle = '#18FFFF'; // High intensity Cyan
-                ctx.beginPath();
-                ctx.arc(px, py, 3, 0, Math.PI*2);
-                ctx.fill();
-                
-                // Trail line connecting to center
-                ctx.strokeStyle = 'rgba(24, 255, 255, 0.3)';
-                ctx.lineWidth = 1;
-                ctx.beginPath();
-                ctx.moveTo(0,0);
-                ctx.lineTo(px, py);
-                ctx.stroke();
-            }
+        // --- Draw Cute Flying Squirrel (Compacted Length) ---
+        
+        // 1. Patagium (Gliding Membrane) - Compacted
+        ctx.fillStyle = '#D7CCC8'; // Light Beige
+        ctx.beginPath();
+        // Left wing
+        ctx.moveTo(2, -4);   
+        ctx.lineTo(-4, -10); 
+        ctx.quadraticCurveTo(0, -7, 2, -4);
+        ctx.fill();
+        
+        // Right wing
+        ctx.beginPath();
+        ctx.moveTo(2, 4);
+        ctx.lineTo(-4, 10);
+        ctx.quadraticCurveTo(0, 7, 2, 4);
+        ctx.fill();
+
+        // 2. Tail (Bushy - Shortened)
+        ctx.fillStyle = '#5D4037'; // Dark Brown
+        ctx.beginPath();
+        ctx.ellipse(-7, 0, 5, 4, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 3. Body (Shortened)
+        ctx.fillStyle = '#8D6E63'; // Brown
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 6, 4.5, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 4. Head (Closer to body)
+        ctx.beginPath();
+        ctx.arc(5, 0, 5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Ears
+        ctx.beginPath();
+        ctx.moveTo(6, -3);
+        ctx.lineTo(8, -7);
+        ctx.lineTo(4, -3);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(6, 3);
+        ctx.lineTo(8, 7);
+        ctx.lineTo(4, 3);
+        ctx.fill();
+
+        // Face
+        ctx.fillStyle = '#212121'; // Eyes
+        ctx.beginPath();
+        ctx.arc(6.5, -2, 1.2, 0, Math.PI*2);
+        ctx.arc(6.5, 2, 1.2, 0, Math.PI*2);
+        ctx.fill();
+        
+        ctx.fillStyle = '#FFAB91'; // Nose
+        ctx.beginPath();
+        ctx.arc(8, 0, 0.8, 0, Math.PI*2);
+        ctx.fill();
+
+        // Eye Shine
+        ctx.fillStyle = 'white'; 
+        ctx.beginPath();
+        ctx.arc(7, -2.2, 0.5, 0, Math.PI * 2);
+        ctx.arc(7, 1.8, 0.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Speed Lines / Wind Effect
+        if (this.state === 'outward' || this.distanceTraveled > 20) {
+             ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+             ctx.lineWidth = 1.5;
+             ctx.beginPath();
+             ctx.moveTo(-10, -3); ctx.lineTo(-15, -3);
+             ctx.moveTo(-10, 3); ctx.lineTo(-15, 3);
+             ctx.stroke();
         }
 
         ctx.restore();
