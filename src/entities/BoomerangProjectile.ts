@@ -13,7 +13,7 @@ export class BoomerangProjectile {
     range: number;
     size = 32;
     shouldBeRemoved = false;
-    hitEnemies: Set<number> = new Set();
+    hitEnemies: Set<number> = new Set(); // Stores Enemy IDs
     statusEffect?: IWeaponStatusEffect;
     
     private owner: Player;
@@ -71,51 +71,80 @@ export class BoomerangProjectile {
         ctx.save();
         ctx.translate(this.pos.x, this.pos.y);
         
-        // Glow Effect
+        // Glow Effect - Bright Cool Cyan
         const isReturning = this.state === 'returning';
-        ctx.shadowBlur = isReturning ? 20 : 10;
-        ctx.shadowColor = '#F48FB1'; // Pink Glow
+        const glowIntensity = isReturning ? 30 : 15;
+        const glowColor = '#00E5FF'; // Cyan Neon
+        
+        ctx.shadowBlur = glowIntensity;
+        ctx.shadowColor = glowColor;
 
-        // Motion blur trail
+        // Rotating Energy Trail
         ctx.rotate(this.rotationAngle);
         
-        ctx.globalAlpha = 0.3;
-        ctx.fillStyle = '#F8BBD0';
+        // Dynamic arc trail
         ctx.beginPath();
-        ctx.arc(0, 0, this.size * 0.8, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.globalAlpha = 1.0;
+        // Draw an arc trailing the rotation
+        ctx.arc(0, 0, this.size * 0.9, Math.PI, Math.PI + 2); 
+        ctx.strokeStyle = `rgba(0, 229, 255, ${isReturning ? 0.6 : 0.3})`;
+        ctx.lineWidth = 4;
+        ctx.stroke();
 
         const s = this.size / 2;
 
-        // Cute Rounded Boomerang Body
-        ctx.fillStyle = '#F06292'; // Darker Pink
+        // Body Style - Cool Blue/Cyan
+        ctx.fillStyle = '#29B6F6'; // Light Blue 400
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
-        ctx.lineWidth = 12;
-        ctx.strokeStyle = '#F48FB1'; // Light Pink Stroke
+        ctx.lineWidth = 10;
+        ctx.strokeStyle = '#0277BD'; // Light Blue 800
         
         ctx.beginPath();
-        // Draw a soft curve V shape
+        // Rounded V-shape
         ctx.moveTo(-s, -s/2);
-        ctx.quadraticCurveTo(0, 0, s, -s/2); // Top curve
-        ctx.quadraticCurveTo(0, s, -s, -s/2); // Bottom curve
+        ctx.quadraticCurveTo(0, 0, s, -s/2); // Top
+        ctx.quadraticCurveTo(0, s, -s, -s/2); // Bottom
         ctx.fill();
         ctx.stroke();
 
-        // White Highlight / Stripe
-        ctx.strokeStyle = '#FFFFFF';
-        ctx.lineWidth = 4;
+        // Highlight
+        ctx.strokeStyle = '#E1F5FE'; // Almost white blue
+        ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.moveTo(-s * 0.5, -s/4);
         ctx.quadraticCurveTo(0, 0, s * 0.5, -s/4);
         ctx.stroke();
         
-        // Center Gem
-        ctx.fillStyle = '#BA68C8'; // Purple
+        // Central Core/Gem
+        ctx.fillStyle = isReturning ? '#FFFFFF' : '#80D8FF';
         ctx.beginPath();
         ctx.arc(0, 0, 5, 0, Math.PI*2);
         ctx.fill();
+
+        // Emanating Particles (When returning)
+        if (isReturning) {
+            // Draw orbiting energy bits
+            for(let i=0; i<4; i++) {
+                // Determine position based on rotation to make them spin around
+                const angle = (Math.PI / 2 * i) - (this.rotationAngle * 2); 
+                const dist = this.size; 
+                const px = Math.cos(angle) * dist;
+                const py = Math.sin(angle) * dist;
+                
+                ctx.fillStyle = '#18FFFF'; // High intensity Cyan
+                ctx.beginPath();
+                ctx.arc(px, py, 3, 0, Math.PI*2);
+                ctx.fill();
+                
+                // Trail line connecting to center
+                ctx.strokeStyle = 'rgba(24, 255, 255, 0.3)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(0,0);
+                ctx.lineTo(px, py);
+                ctx.stroke();
+            }
+        }
 
         ctx.restore();
     }
