@@ -1,6 +1,7 @@
 
 import { Vector2D } from "../utils/Vector2D";
 import { IEnemyData, IStatusEffect, IWeaponStatusEffect, StatusEffectType } from "../utils/types";
+import { EnemyCache } from "../core/EnemyCache";
 
 export class Enemy {
     static _idCounter = 0;
@@ -23,14 +24,6 @@ export class Enemy {
     private type: string;
 
     // Animation properties
-    private image: HTMLImageElement | null = null;
-    private spriteWidth: number;
-    private spriteHeight: number;
-    private frameX = 0;
-    private maxFrames = 1;
-    private frameTimer = 0;
-    private frameInterval = 150; // ms per frame
-    private elitePulseTimer = 0;
     private globalTime = 0;
 
     constructor(x: number, y: number, data: IEnemyData, type: string, isElite: boolean = false) {
@@ -47,8 +40,6 @@ export class Enemy {
         this.color = data.color;
         this.chestDropChance = 0;
         this.originalSpeed = data.speed;
-        this.spriteWidth = data.spriteWidth || data.size;
-        this.spriteHeight = data.spriteHeight || data.size;
         
         // Initialize logic
         this.reset(x, y, data, type, isElite);
@@ -88,52 +79,15 @@ export class Enemy {
 
         this.originalSpeed = this.speed;
         this.activeStatusEffects.clear();
-
-        this.spriteWidth = data.spriteWidth || this.size;
-        this.spriteHeight = data.spriteHeight || this.size;
-        
-        // Re-use image if possible, or load new
-        if (data.spriteSheet) {
-            if (!this.image || this.image.src.indexOf(data.spriteSheet) === -1) {
-                this.image = new Image();
-                this.image.src = data.spriteSheet;
-            }
-        } else {
-            this.image = null;
-        }
-
-        if (data.animation) {
-            this.maxFrames = data.animation.maxFrames;
-        } else {
-            this.maxFrames = 1;
-        }
-        
-        this.frameX = 0;
-        this.frameTimer = 0;
-        this.elitePulseTimer = Math.random() * Math.PI * 2;
-        this.globalTime = Math.random() * 1000;
+        this.globalTime = Math.random() * 10; // Random start frame
     }
     
     update(dt: number, playerPos: Vector2D) {
         this.globalTime += dt;
-        if (this.isElite) {
-            this.elitePulseTimer += dt * 4;
-        }
         this.handleStatusEffects(dt);
-        this.updateAnimation(dt);
         const direction = new Vector2D(playerPos.x - this.pos.x, playerPos.y - this.pos.y).normalize();
         this.pos.x += direction.x * this.speed * dt;
         this.pos.y += direction.y * this.speed * dt;
-    }
-
-    private updateAnimation(dt: number) {
-        if (!this.image) return;
-
-        this.frameTimer += dt * 1000;
-        if (this.frameTimer > this.frameInterval) {
-            this.frameTimer = 0;
-            this.frameX = (this.frameX + 1) % this.maxFrames;
-        }
     }
     
     takeDamage(amount: number) {
@@ -180,283 +134,37 @@ export class Enemy {
     }
 
     draw(ctx: CanvasRenderingContext2D) {
-        const drawX = this.pos.x;
-        const drawY = this.pos.y;
-        const radius = this.size / 2;
+        // Use the Cache System for performance
+        // This returns a pre-rendered canvas element
+        const frame = EnemyCache.getFrame(this.type, this.isElite, this.color, this.size, this.globalTime);
+        
+        // The cache includes padding, so we need to center it based on its width/height
+        // frame.width is likely size * 2 + padding
+        const drawX = this.pos.x - frame.width / 2;
+        const drawY = this.pos.y - frame.height / 2;
 
-        // Draw Elite Aura
-        if (this.isElite) {
-            const pulseRadius = this.size * 0.6 + Math.sin(this.elitePulseTimer) * 3 + 3;
-            ctx.fillStyle = 'rgba(255, 238, 88, 0.25)'; // Pastel Gold glow
-            ctx.beginPath();
-            ctx.arc(drawX, drawY, pulseRadius, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // Cute Mini Crown
-            ctx.fillStyle = '#FDD835';
-            ctx.beginPath();
-            const crownY = drawY - radius - 12;
-            // Center point
-            ctx.moveTo(drawX - 8, crownY);
-            ctx.lineTo(drawX - 4, crownY + 6);
-            ctx.lineTo(drawX, crownY - 2);
-            ctx.lineTo(drawX + 4, crownY + 6);
-            ctx.lineTo(drawX + 8, crownY);
-            ctx.lineTo(drawX + 6, crownY + 10);
-            ctx.lineTo(drawX - 6, crownY + 10);
-            ctx.fill();
-        }
+        ctx.drawImage(frame, drawX, drawY);
 
-        // Draw Shadow
-        ctx.fillStyle = 'rgba(0,0,0,0.2)';
-        ctx.beginPath();
-        ctx.ellipse(drawX, drawY + radius - 2, radius, radius / 2, 0, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Force Cute Procedural Rendering exclusively
-        this.drawCuteEnemy(ctx, drawX, drawY, radius);
-    
-        // Draw overlays for status effects (Cutified)
+        // Draw overlays for status effects (Simple primitives are fine to keep dynamic)
         if (this.activeStatusEffects.size > 0) {
+            const radius = this.size / 2;
             if (this.activeStatusEffects.has('BURN')) {
-                // Draw little flame particles instead of full overlay
                 ctx.fillStyle = '#FF7043';
                 for (let i = 0; i < 3; i++) {
                     const angle = this.globalTime * 5 + i * (Math.PI * 2 / 3);
-                    const fx = drawX + Math.cos(angle) * radius;
-                    const fy = drawY + Math.sin(angle) * radius;
+                    const fx = this.pos.x + Math.cos(angle) * radius;
+                    const fy = this.pos.y + Math.sin(angle) * radius;
                     ctx.beginPath();
                     ctx.arc(fx, fy, 3, 0, Math.PI * 2);
                     ctx.fill();
                 }
             }
             if (this.activeStatusEffects.has('SLOW')) {
-                // Draw snowflake or ice color tint
                 ctx.fillStyle = 'rgba(129, 212, 250, 0.4)';
                 ctx.beginPath();
-                ctx.arc(drawX, drawY, radius, 0, Math.PI*2);
+                ctx.arc(this.pos.x, this.pos.y, radius, 0, Math.PI*2);
                 ctx.fill();
             }
-        }
-    }
-
-    private drawCuteEnemy(ctx: CanvasRenderingContext2D, x: number, y: number, radius: number) {
-        const drawEyes = (offsetX: number, offsetY: number, color: string = '#212121', size: number = 2.5) => {
-            ctx.fillStyle = color;
-            ctx.beginPath();
-            ctx.arc(x + offsetX - 5, y + offsetY, size, 0, Math.PI * 2); // Left
-            ctx.arc(x + offsetX + 5, y + offsetY, size, 0, Math.PI * 2); // Right
-            ctx.fill();
-            
-            // Shine
-            ctx.fillStyle = 'white';
-            ctx.beginPath();
-            ctx.arc(x + offsetX - 4, y + offsetY - 1, 1, 0, Math.PI*2);
-            ctx.arc(x + offsetX + 6, y + offsetY - 1, 1, 0, Math.PI*2);
-            ctx.fill();
-        };
-
-        switch(this.type) {
-            case 'SLIME':
-                // Squash and stretch animation
-                const squash = Math.sin(this.globalTime * 8) * 0.15;
-                ctx.fillStyle = '#A5D6A7'; // Pastel Green
-                ctx.beginPath();
-                // Draw a blob shape
-                ctx.ellipse(x, y + squash * 5, radius * (1 + squash), radius * (1 - squash), 0, 0, Math.PI * 2);
-                ctx.fill();
-                drawEyes(0, -2);
-                // Cute blush
-                ctx.fillStyle = '#EF9A9A';
-                ctx.beginPath();
-                ctx.arc(x - 8, y + 2, 2.5, 0, Math.PI * 2);
-                ctx.arc(x + 8, y + 2, 2.5, 0, Math.PI * 2);
-                ctx.fill();
-                break;
-
-            case 'SPIDER':
-                // Legs
-                ctx.strokeStyle = '#37474F';
-                ctx.lineWidth = 2;
-                const legWiggle = Math.sin(this.globalTime * 20) * 3;
-                for(let i=0; i<4; i++) {
-                    // Left legs
-                    ctx.beginPath();
-                    ctx.moveTo(x - 5, y);
-                    ctx.quadraticCurveTo(x - 15, y - 10 + (i*5) + legWiggle, x - 20, y - 5 + (i*6));
-                    ctx.stroke();
-                    // Right legs
-                    ctx.beginPath();
-                    ctx.moveTo(x + 5, y);
-                    ctx.quadraticCurveTo(x + 15, y - 10 + (i*5) - legWiggle, x + 20, y - 5 + (i*6));
-                    ctx.stroke();
-                }
-                // Body
-                ctx.fillStyle = '#37474F'; // Blue Grey
-                ctx.beginPath();
-                ctx.arc(x, y, radius, 0, Math.PI * 2);
-                ctx.fill();
-                // Eyes (Many)
-                drawEyes(0, -2, 'white', 2);
-                drawEyes(0, -6, 'white', 1.5);
-                break;
-
-            case 'BAT':
-                const flap = Math.sin(this.globalTime * 15) * 8;
-                ctx.fillStyle = '#B39DDB'; // Pastel Purple
-                // Wings
-                ctx.beginPath();
-                ctx.moveTo(x, y);
-                ctx.bezierCurveTo(x - 15, y - 15 + flap, x - 25, y + 10 + flap, x - 5, y + 5);
-                ctx.fill();
-                ctx.beginPath();
-                ctx.moveTo(x, y);
-                ctx.bezierCurveTo(x + 15, y - 15 + flap, x + 25, y + 10 + flap, x + 5, y + 5);
-                ctx.fill();
-                // Body
-                ctx.beginPath();
-                ctx.arc(x, y, radius * 0.8, 0, Math.PI * 2);
-                ctx.fill();
-                // Ears
-                ctx.beginPath();
-                ctx.moveTo(x - 4, y - 8);
-                ctx.lineTo(x - 8, y - 14);
-                ctx.lineTo(x, y - 10);
-                ctx.fill();
-                ctx.beginPath();
-                ctx.moveTo(x + 4, y - 8);
-                ctx.lineTo(x + 8, y - 14);
-                ctx.lineTo(x, y - 10);
-                ctx.fill();
-                drawEyes(0, -2, 'white', 2);
-                // Fangs
-                ctx.fillStyle = 'white';
-                ctx.beginPath();
-                ctx.moveTo(x - 3, y + 2);
-                ctx.lineTo(x - 2, y + 5);
-                ctx.lineTo(x - 1, y + 2);
-                ctx.fill();
-                ctx.beginPath();
-                ctx.moveTo(x + 1, y + 2);
-                ctx.lineTo(x + 2, y + 5);
-                ctx.lineTo(x + 3, y + 2);
-                ctx.fill();
-                break;
-            
-            case 'MUSHROOM':
-                const mushroomBounce = Math.abs(Math.sin(this.globalTime * 6)) * 2;
-                // Stalk
-                ctx.fillStyle = '#FFE0B2';
-                ctx.beginPath();
-                ctx.roundRect(x - 6, y, 12, 14, 4);
-                ctx.fill();
-                // Cap
-                ctx.fillStyle = '#E53935';
-                ctx.beginPath();
-                ctx.arc(x, y - 2 - mushroomBounce, radius, Math.PI, 0); // Top half circle
-                ctx.fill();
-                // Dots
-                ctx.fillStyle = 'white';
-                ctx.beginPath();
-                ctx.arc(x - 6, y - 8 - mushroomBounce, 3, 0, Math.PI*2);
-                ctx.arc(x + 6, y - 6 - mushroomBounce, 2.5, 0, Math.PI*2);
-                ctx.arc(x, y - 12 - mushroomBounce, 2, 0, Math.PI*2);
-                ctx.fill();
-                // Face on Stalk
-                drawEyes(0, 4, '#3E2723', 1.5);
-                break;
-
-            case 'GHOST':
-                const float = Math.sin(this.globalTime * 3) * 4;
-                ctx.fillStyle = 'rgba(224, 247, 250, 0.9)'; // Pastel Cyan-ish White
-                ctx.beginPath();
-                ctx.arc(x, y + float - 5, radius, Math.PI, 0);
-                ctx.lineTo(x + radius, y + float + 5);
-                // Wavy bottom
-                for(let i = 1; i <= 3; i++) {
-                    ctx.quadraticCurveTo(
-                        x + radius - (2 * radius / 3) * i + (radius/3), 
-                        y + float + 10, 
-                        x + radius - (2 * radius / 3) * i, 
-                        y + float + 5
-                    );
-                }
-                ctx.lineTo(x - radius, y + float - 5);
-                ctx.fill();
-                // :O face
-                drawEyes(0, float - 5);
-                ctx.fillStyle = '#212121';
-                ctx.beginPath();
-                ctx.arc(x, y + float + 2, 2.5, 0, Math.PI * 2);
-                ctx.fill();
-                break;
-
-            case 'GOLEM':
-                const waddle = Math.sin(this.globalTime * 4) * 2;
-                ctx.fillStyle = '#B0BEC5'; // Pastel Grey
-                // Body
-                ctx.beginPath();
-                ctx.roundRect(x - radius, y - radius + 2, this.size, this.size - 4, 8);
-                ctx.fill();
-                // Arms
-                ctx.fillStyle = '#90A4AE';
-                ctx.beginPath();
-                ctx.roundRect(x - radius - 6, y - 5 + waddle, 8, 15, 4);
-                ctx.fill();
-                ctx.beginPath();
-                ctx.roundRect(x + radius - 2, y - 5 - waddle, 8, 15, 4);
-                ctx.fill();
-                // Cyclops Eye
-                ctx.fillStyle = '#FFD54F';
-                ctx.beginPath();
-                ctx.arc(x, y - 4, 6, 0, Math.PI * 2);
-                ctx.fill();
-                // Pupil
-                ctx.fillStyle = 'black';
-                ctx.beginPath();
-                ctx.arc(x, y - 4, 2, 0, Math.PI * 2);
-                ctx.fill();
-                break;
-
-            case 'SKELETON':
-                const jitter = Math.sin(this.globalTime * 20) * 1;
-                ctx.fillStyle = '#F5F5F5';
-                // Head
-                ctx.beginPath();
-                ctx.arc(x + jitter, y - 6, radius * 0.8, 0, Math.PI * 2);
-                ctx.fill();
-                // Jaw
-                ctx.fillRect(x - 5 + jitter, y - 1, 10, 6);
-                // Teeth lines
-                ctx.strokeStyle = '#E0E0E0';
-                ctx.beginPath();
-                ctx.moveTo(x + jitter, y - 1); ctx.lineTo(x + jitter, y + 5);
-                ctx.moveTo(x - 3 + jitter, y - 1); ctx.lineTo(x - 3 + jitter, y + 5);
-                ctx.moveTo(x + 3 + jitter, y - 1); ctx.lineTo(x + 3 + jitter, y + 5);
-                ctx.stroke();
-                // Ribs (Body)
-                ctx.strokeStyle = '#FAFAFA';
-                ctx.lineWidth = 3;
-                ctx.beginPath();
-                ctx.moveTo(x, y + 5);
-                ctx.lineTo(x, y + 14);
-                ctx.stroke();
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.moveTo(x - 5, y + 8); ctx.lineTo(x + 5, y + 8);
-                ctx.moveTo(x - 4, y + 12); ctx.lineTo(x + 4, y + 12);
-                ctx.stroke();
-                
-                drawEyes(jitter, -6, '#616161', 2);
-                break;
-
-            default:
-                ctx.fillStyle = this.color;
-                ctx.beginPath();
-                ctx.arc(x, y, radius, 0, Math.PI * 2);
-                ctx.fill();
-                drawEyes(0, 0);
-                break;
         }
     }
 }

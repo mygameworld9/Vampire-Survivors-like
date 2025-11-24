@@ -148,7 +148,7 @@ export class Game {
         this.projectiles.push(...projectiles);
         skillEffects.forEach(effect => this.collisionSystem.handleSkillEffect(effect));
         
-        this.camera.update(this.player.pos);
+        this.camera.update(dt, this.player.pos);
         
         // Update entities using zero-allocation loops
         let i = 0;

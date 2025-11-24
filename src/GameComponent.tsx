@@ -187,7 +187,15 @@ export const GameComponent: React.FC = () => {
 
         const gameLoop = (timestamp: number) => {
             animationFrameId.current = requestAnimationFrame(gameLoop);
-            const dt = (timestamp - lastTime) / 1000;
+            
+            // Calculate delta time in seconds
+            let dt = (timestamp - lastTime) / 1000;
+            
+            // Cap dt at 0.1s (100ms) to prevent massive jumps due to lag spikes/tab switching
+            if (dt > 0.1) dt = 0.1;
+            // Prevent negative dt which can happen in rare cases with precision timers
+            if (dt < 0) dt = 0;
+            
             lastTime = timestamp;
             
             // Handle Death / Revive Logic
