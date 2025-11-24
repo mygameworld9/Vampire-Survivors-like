@@ -2,56 +2,94 @@ import { Camera } from "../Camera";
 import { IMapData } from "../../utils/types";
 
 export class MapRenderer {
-    constructor(private mapData: IMapData) {}
+    private tileCache: Map<string, HTMLCanvasElement> = new Map();
+    private readonly CHUNK_SIZE = 1000; // Pixels (10x10 tiles)
+    private readonly TILE_SIZE: number;
+
+    constructor(private mapData: IMapData) {
+        this.TILE_SIZE = mapData.tileSize;
+    }
 
     draw(ctx: CanvasRenderingContext2D, camera: Camera, width: number, height: number) {
-        // Calculate visible tile range
-        const camX = camera.pos.x;
-        const camY = camera.pos.y;
-        const tileSize = this.mapData.tileSize;
-
-        // Top-left visible world coordinate
-        const startX = camX - width / 2;
-        const startY = camY - height / 2;
-        
-        // Bottom-right visible world coordinate
-        const endX = startX + width;
-        const endY = startY + height;
-
-        // Convert to tile indices (add buffer to prevent flickering at edges)
-        const startCol = Math.floor(startX / tileSize) - 1;
-        const endCol = Math.ceil(endX / tileSize) + 1;
-        const startRow = Math.floor(startY / tileSize) - 1;
-        const endRow = Math.ceil(endY / tileSize) + 1;
+        // Prune chunks that are too far away to free memory
+        this.updateCache(camera);
 
         ctx.save();
         camera.applyTransform(ctx);
+        
+        // Calculate visible chunks
+        const startChunkX = Math.floor((camera.pos.x - width/2) / this.CHUNK_SIZE) - 1;
+        const endChunkX = Math.floor((camera.pos.x + width/2) / this.CHUNK_SIZE) + 1;
+        const startChunkY = Math.floor((camera.pos.y - height/2) / this.CHUNK_SIZE) - 1;
+        const endChunkY = Math.floor((camera.pos.y + height/2) / this.CHUNK_SIZE) + 1;
 
-        for (let col = startCol; col < endCol; col++) {
-            for (let row = startRow; row < endRow; row++) {
-                const x = col * tileSize;
-                const y = row * tileSize;
-
-                // Checkerboard pattern
-                const colorIndex = Math.abs(col + row) % 2;
-                ctx.fillStyle = this.mapData.baseColors[colorIndex];
-                ctx.fillRect(x, y, tileSize, tileSize);
-
-                // Procedural Decoration
-                // Use a pseudo-random seed based on tile position so it stays consistent
-                const seed = Math.sin(col * 1234 + row * 5678);
-                
-                if (seed > 0.7) { // 15% chance for decoration
-                    if (this.mapData.decoration === 'flower') {
-                        this.drawFlower(ctx, x + tileSize/2, y + tileSize/2, seed);
-                    } else if (this.mapData.decoration === 'crack') {
-                        this.drawCrack(ctx, x + tileSize/2, y + tileSize/2, seed);
-                    }
+        for (let x = startChunkX; x <= endChunkX; x++) {
+            for (let y = startChunkY; y <= endChunkY; y++) {
+                const key = `${x},${y}`;
+                let chunk = this.tileCache.get(key);
+                if (!chunk) {
+                    chunk = this.generateChunk(x, y);
+                    this.tileCache.set(key, chunk);
                 }
+                // Draw the cached chunk image onto the main canvas
+                ctx.drawImage(chunk, x * this.CHUNK_SIZE, y * this.CHUNK_SIZE);
             }
         }
 
         ctx.restore();
+    }
+
+    private generateChunk(cx: number, cy: number): HTMLCanvasElement {
+        const canvas = document.createElement('canvas');
+        canvas.width = this.CHUNK_SIZE;
+        canvas.height = this.CHUNK_SIZE;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return canvas;
+
+        const tilesPerChunk = this.CHUNK_SIZE / this.TILE_SIZE; // 10
+        const startCol = cx * tilesPerChunk;
+        const startRow = cy * tilesPerChunk;
+
+        for (let c = 0; c < tilesPerChunk; c++) {
+            for (let r = 0; r < tilesPerChunk; r++) {
+                const col = startCol + c;
+                const row = startRow + r;
+                const x = c * this.TILE_SIZE;
+                const y = r * this.TILE_SIZE;
+
+                // Logic from original draw loop
+                const colorIndex = Math.abs(col + row) % 2;
+                ctx.fillStyle = this.mapData.baseColors[colorIndex];
+                ctx.fillRect(x, y, this.TILE_SIZE, this.TILE_SIZE);
+
+                // Procedural Decoration
+                // Use pseudo-random seed based on tile position
+                const seed = Math.sin(col * 1234 + row * 5678);
+                
+                if (seed > 0.7) { // 15% chance
+                    if (this.mapData.decoration === 'flower') {
+                        this.drawFlower(ctx, x + this.TILE_SIZE/2, y + this.TILE_SIZE/2, seed);
+                    } else if (this.mapData.decoration === 'crack') {
+                        this.drawCrack(ctx, x + this.TILE_SIZE/2, y + this.TILE_SIZE/2, seed);
+                    }
+                }
+            }
+        }
+        return canvas;
+    }
+
+    private updateCache(camera: Camera) {
+        // Keep chunks within N units of the center visible chunk
+        const centerCx = Math.floor(camera.pos.x / this.CHUNK_SIZE);
+        const centerCy = Math.floor(camera.pos.y / this.CHUNK_SIZE);
+        const keepDist = 2; // Keep 5x5 chunks around player
+
+        for (const key of this.tileCache.keys()) {
+            const [cx, cy] = key.split(',').map(Number);
+            if (Math.abs(cx - centerCx) > keepDist || Math.abs(cy - centerCy) > keepDist) {
+                this.tileCache.delete(key);
+            }
+        }
     }
 
     private drawFlower(ctx: CanvasRenderingContext2D, x: number, y: number, seed: number) {

@@ -32,7 +32,7 @@ export const Armory: React.FC<ArmoryProps> = ({ onBack }) => {
     };
 
     return (
-        <div className="menu-screen">
+        <div className="menu-screen armory-screen">
             <h2>{i18nManager.t('ui.armory.title')}</h2>
             <div className="armory-header">
                 <span className="gold-display">💰 {gold}</span>

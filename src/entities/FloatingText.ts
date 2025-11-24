@@ -1,3 +1,4 @@
+
 import { Vector2D } from "../utils/Vector2D";
 
 export class FloatingText {
@@ -27,14 +28,17 @@ export class FloatingText {
     draw(ctx: CanvasRenderingContext2D) {
         const opacity = Math.max(0, this.lifeTimer / this.duration);
         ctx.globalAlpha = opacity;
-        ctx.fillStyle = this.color;
         ctx.font = 'bold 16px "Segoe UI", sans-serif';
         ctx.textAlign = 'center';
-        ctx.shadowColor = 'black';
-        ctx.shadowBlur = 2;
+        
+        // Optimization: Manual shadow instead of context shadowBlur/shadowColor
+        ctx.fillStyle = 'black';
+        ctx.fillText(this.text, this.pos.x + 1, this.pos.y + 1);
+        
+        ctx.fillStyle = this.color;
         ctx.fillText(this.text, this.pos.x, this.pos.y);
+        
         ctx.globalAlpha = 1.0;
         ctx.textAlign = 'start'; // Reset alignment
-        ctx.shadowBlur = 0; // Reset shadow
     }
 }

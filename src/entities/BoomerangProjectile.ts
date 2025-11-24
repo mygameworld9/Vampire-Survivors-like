@@ -71,13 +71,7 @@ export class BoomerangProjectile {
         ctx.save();
         ctx.translate(this.pos.x, this.pos.y);
         
-        // Glow Effect - Bright Cool Cyan
         const isReturning = this.state === 'returning';
-        const glowIntensity = isReturning ? 30 : 15;
-        const glowColor = '#00E5FF'; // Cyan Neon
-        
-        ctx.shadowBlur = glowIntensity;
-        ctx.shadowColor = glowColor;
 
         // Rotating Energy Trail
         ctx.rotate(this.rotationAngle);

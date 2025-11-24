@@ -116,8 +116,8 @@ export const CreativeSetup: React.FC<CreativeSetupProps> = ({ onStart, onBack })
 
     const handleStart = () => {
         const loadout: CreativeLoadout = {
-            weapons: Object.entries(weaponLevels).map(([id, level]) => ({ id, level })),
-            skills: Object.entries(skillLevels).map(([id, level]) => ({ id, level }))
+            weapons: Object.entries(weaponLevels).map(([id, level]) => ({ id, level: level as number })),
+            skills: Object.entries(skillLevels).map(([id, level]) => ({ id, level: level as number }))
         };
         onStart(loadout);
     };

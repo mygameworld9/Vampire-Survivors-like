@@ -44,6 +44,7 @@ export const GameComponent: React.FC = () => {
     const gameRef = useRef<Game | null>(null);
     const animationFrameId = useRef<number | null>(null);
     const soundManagerRef = useRef<SoundManager | null>(null);
+    const lastUIUpdateRef = useRef<number>(0);
     
     const [gameState, setGameState] = useState<GameState>('start');
     const [openingChest, setOpeningChest] = useState<Chest | null>(null);
@@ -209,17 +210,22 @@ export const GameComponent: React.FC = () => {
             game.updateAnimations(dt);
             game.draw(canvas.getContext('2d')!);
             
-            setPlayerState({
-                hp: Math.round(game.player.hp),
-                maxHp: Math.round(game.player.maxHp),
-                xp: game.player.xp,
-                xpToNext: XP_LEVELS[game.player.level - 1] || Infinity,
-                level: game.player.level,
-                gold: game.player.gold,
-            });
-            setWeapons([...game.player.weapons]);
-            setSkills([...game.player.skills]);
-            setGameTime(game.gameTime);
+            // Optimization: Throttle UI updates to ~10 FPS (every 100ms)
+            // This prevents React from re-rendering 60 times a second which causes stutter
+            if (timestamp - lastUIUpdateRef.current > 100) {
+                lastUIUpdateRef.current = timestamp;
+                setPlayerState({
+                    hp: Math.round(game.player.hp),
+                    maxHp: Math.round(game.player.maxHp),
+                    xp: game.player.xp,
+                    xpToNext: XP_LEVELS[game.player.level - 1] || Infinity,
+                    level: game.player.level,
+                    gold: game.player.gold,
+                });
+                setWeapons([...game.player.weapons]);
+                setSkills([...game.player.skills]);
+                setGameTime(game.gameTime);
+            }
         };
         
         animationFrameId.current = requestAnimationFrame(gameLoop);

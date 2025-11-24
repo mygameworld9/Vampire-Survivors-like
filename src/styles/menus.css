@@ -1,3 +1,4 @@
+
 /* Level Up Modal */
 .level-up-modal-backdrop {
   position: absolute;
@@ -161,6 +162,19 @@
     background-color: #4caf50;
     border-color: #388e3c;
     box-shadow: 0 0 5px #4caf50;
+}
+
+.armory-screen {
+    justify-content: flex-start;
+    overflow-y: auto;
+    padding-top: 5rem;
+    padding-bottom: 2rem;
+}
+.armory-screen .back-button {
+    position: fixed;
+    top: 2rem;
+    left: 2rem;
+    z-index: 1000;
 }
 
 /* Pause & Info Panels (Kept same but ensures compatibility) */
