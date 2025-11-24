@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { UpgradeOption } from '../utils/types';
 import { i18nManager } from '../core/i18n';
@@ -22,7 +23,7 @@ const renderOption = (option: UpgradeOption) => {
             title = <h3>{i18nManager.t('ui.levelup.upgradeSkill', { name: option.skill.name, level: option.skill.level })}</h3>;
             description = option.skill.getCurrentUpgradeDescription();
         }
-    } else { // 'new'
+    } else if (option.type === 'new') {
         if ('weaponData' in option) {
             icon = option.weaponData.icon;
             title = <h3>{i18nManager.t('ui.levelup.newWeapon', { name: i18nManager.t(option.weaponData.nameKey) })}</h3>;
@@ -32,6 +33,14 @@ const renderOption = (option: UpgradeOption) => {
             title = <h3>{i18nManager.t('ui.levelup.newSkill', { name: i18nManager.t(option.skillData.nameKey) })}</h3>;
             description = i18nManager.t(option.skillData.descriptionKey);
         }
+    } else if (option.type === 'heal') {
+        icon = '🍗';
+        title = <h3>{i18nManager.t('ui.levelup.heal')}</h3>;
+        description = i18nManager.t('ui.levelup.healDesc', { value: option.amount * 100 });
+    } else { // gold
+        icon = '💰';
+        title = <h3>{i18nManager.t('ui.levelup.gold')}</h3>;
+        description = i18nManager.t('ui.levelup.goldDesc', { value: option.amount });
     }
 
     return (

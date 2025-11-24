@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Game } from './core/Game';
 import { XP_LEVELS } from './data/gameConfig';
@@ -82,31 +83,39 @@ export const GameComponent: React.FC = () => {
         const game = gameRef.current;
         const player = game.player;
 
+        const MAX_SLOTS = 6;
+
         // 1. Get available weapon upgrades
         const availableWeaponUpgrades = player.weapons
             .filter(w => !w.isMaxLevel())
             .map(w => ({ type: 'upgrade', weapon: w } as UpgradeOption));
 
-        // 2. Get available new weapons
-        const ownedWeaponIds = new Set(player.weapons.map(w => w.id));
-        const availableNewWeapons = Object.values(WEAPON_DATA)
-            .filter(wd => !ownedWeaponIds.has(wd.id))
-            .map(wd => ({ type: 'new', weaponData: wd } as UpgradeOption));
+        // 2. Get available new weapons (Only if slots available)
+        let availableNewWeapons: UpgradeOption[] = [];
+        if (player.weapons.length < MAX_SLOTS) {
+            const ownedWeaponIds = new Set(player.weapons.map(w => w.id));
+            availableNewWeapons = Object.values(WEAPON_DATA)
+                .filter(wd => !ownedWeaponIds.has(wd.id))
+                .map(wd => ({ type: 'new', weaponData: wd } as UpgradeOption));
+        }
         
         // 3. Get available skill upgrades
         const availableSkillUpgrades = player.skills
             .filter(s => !s.isMaxLevel())
             .map(s => ({ type: 'upgrade', skill: s } as UpgradeOption));
 
-        // 4. Get available new skills
-        const ownedSkillIds = new Set(player.skills.map(s => s.id));
-        let availableNewSkills = Object.values(SKILL_DATA)
-             .filter(sd => !ownedSkillIds.has(sd.id))
-             .map(sd => ({ type: 'new', skillData: sd } as UpgradeOption));
-        
-        // *** RULE: No new skills on the first level up (player level will be 2) ***
-        if (player.level === 2) {
-            availableNewSkills = [];
+        // 4. Get available new skills (Only if slots available)
+        let availableNewSkills: UpgradeOption[] = [];
+        if (player.skills.length < MAX_SLOTS) {
+            const ownedSkillIds = new Set(player.skills.map(s => s.id));
+            availableNewSkills = Object.values(SKILL_DATA)
+                .filter(sd => !ownedSkillIds.has(sd.id))
+                .map(sd => ({ type: 'new', skillData: sd } as UpgradeOption));
+            
+             // *** RULE: No new skills on the first level up (player level will be 2) ***
+            if (player.level === 2) {
+                availableNewSkills = [];
+            }
         }
 
         const optionsPool = [
@@ -116,7 +125,15 @@ export const GameComponent: React.FC = () => {
             ...availableNewSkills
         ];
 
-        setUpgradeOptions(shuffleArray(optionsPool).slice(0, 3));
+        if (optionsPool.length === 0) {
+            // All maxed out! Offer Health or Gold
+            setUpgradeOptions([
+                { type: 'heal', amount: 0.5 }, // 50% Heal
+                { type: 'gold', amount: 50 }   // 50 Gold
+            ]);
+        } else {
+            setUpgradeOptions(shuffleArray(optionsPool).slice(0, 3));
+        }
         setGameState('levelUp');
     }, []);
 
@@ -230,6 +247,10 @@ export const GameComponent: React.FC = () => {
             } else { // skillData
                 player.addSkill(option.skillData.id);
             }
+        } else if (option.type === 'heal') {
+            player.heal(option.amount); // amount is percent here (0.5)
+        } else if (option.type === 'gold') {
+            player.gainGold(option.amount);
         }
         setGameState('playing');
     }

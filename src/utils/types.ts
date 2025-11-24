@@ -130,7 +130,9 @@ export type UpgradeOption =
     | { type: 'upgrade'; weapon: Weapon }
     | { type: 'new'; weaponData: IWeaponData }
     | { type: 'upgrade'; skill: Skill }
-    | { type: 'new'; skillData: ISkillData };
+    | { type: 'new'; skillData: ISkillData }
+    | { type: 'heal'; amount: number }
+    | { type: 'gold'; amount: number };
 
 export type ItemRarity = 'Common' | 'Rare' | 'Epic' | 'Legendary';
 export type ItemEffectType = 'HEAL_PERCENT';
