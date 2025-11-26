@@ -29,9 +29,6 @@ export const HUD: React.FC<HUDProps> = React.memo(({ playerState, weapons, skill
     const initialHpPercent = playerState.maxHp > 0 ? (playerState.hp / playerState.maxHp) * 100 : 0;
     const initialXpPercent = playerState.xpToNext > 0 ? (playerState.xp / playerState.xpToNext) * 100 : 0;
 
-    // Note: We removed 'isLowHp' reactive class toggling for performance. 
-    // Ideally, the low-hp class should also be toggled via ref in the loop if critical.
-
     return (
         <div className="hud">
             {activeBoss && <BossBar boss={activeBoss} />}

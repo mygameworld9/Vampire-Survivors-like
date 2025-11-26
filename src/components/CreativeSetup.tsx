@@ -6,6 +6,7 @@ import { SKILL_DATA } from '../data/skillData';
 import { UPGRADE_DATA } from '../data/upgradeData';
 import { SKILL_UPGRADE_DATA } from '../data/skillUpgradeData';
 import { CreativeLoadout } from '../utils/types';
+import { EVOLUTION_RECIPES } from '../data/evolutionData';
 
 interface CreativeSetupProps {
     onStart: (loadout: CreativeLoadout) => void;
@@ -17,6 +18,8 @@ export const CreativeSetup: React.FC<CreativeSetupProps> = ({ onStart, onBack })
     const [weaponLevels, setWeaponLevels] = useState<{ [id: string]: number }>({});
     const [skillLevels, setSkillLevels] = useState<{ [id: string]: number }>({});
     const LIMIT = 6;
+
+    const evolvedWeaponIds = new Set(EVOLUTION_RECIPES.map(r => r.evolvedWeaponId));
 
     const getWeaponCount = () => Object.keys(weaponLevels).length;
     const getSkillCount = () => Object.keys(skillLevels).length;
@@ -131,9 +134,12 @@ export const CreativeSetup: React.FC<CreativeSetupProps> = ({ onStart, onBack })
                 <div className="creative-section">
                     <h3>{i18nManager.t('ui.codex.weapons')} ({getWeaponCount()}/{LIMIT})</h3>
                     <div className="creative-grid">
-                        {Object.values(WEAPON_DATA).map(w => (
-                            renderCard(w.id, w.icon, w.nameKey, weaponLevels[w.id] || 0, 'weapon')
-                        ))}
+                        {Object.values(WEAPON_DATA)
+                            .filter(w => !evolvedWeaponIds.has(w.id)) // Hide evolved weapons
+                            .map(w => (
+                                renderCard(w.id, w.icon, w.nameKey, weaponLevels[w.id] || 0, 'weapon')
+                            ))
+                        }
                     </div>
                 </div>
                 

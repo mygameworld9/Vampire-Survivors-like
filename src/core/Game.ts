@@ -37,7 +37,7 @@ export class Game {
     
     // Map & Render
     public mapData: IMapData;
-    private mapRenderer: MapRenderer;
+    public mapRenderer: MapRenderer;
     
     // Subsystems
     private spawnSystem: SpawnSystem;
@@ -209,11 +209,17 @@ export class Game {
             .filter(w => !w.isMaxLevel() && !this.banishedItemIds.has(w.id))
             .map(w => ({ type: 'upgrade', weapon: w } as UpgradeOption));
 
+        const evolvedWeaponIds = new Set(EVOLUTION_RECIPES.map(r => r.evolvedWeaponId));
+
         let availableNewWeapons: UpgradeOption[] = [];
         if (player.weapons.length < MAX_SLOTS) {
             const ownedWeaponIds = new Set(player.weapons.map(w => w.id));
             availableNewWeapons = Object.values(WEAPON_DATA)
-                .filter(wd => !ownedWeaponIds.has(wd.id) && !this.banishedItemIds.has(wd.id))
+                .filter(wd => 
+                    !ownedWeaponIds.has(wd.id) && 
+                    !this.banishedItemIds.has(wd.id) &&
+                    !evolvedWeaponIds.has(wd.id) // Exclude evolved weapons from random pool
+                )
                 .map(wd => ({ type: 'new', weaponData: wd } as UpgradeOption));
         }
         
