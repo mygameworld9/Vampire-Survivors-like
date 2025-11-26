@@ -190,9 +190,16 @@ export class Weapon {
                 
                 switch (key) {
                     case 'damage':
-                        if (effect.op === 'add') this.baseDamage += effect.value;
-                        if (effect.op === 'multiply') this.baseDamage *= effect.value;
-                        if (effect.op === 'set') this.baseDamage = effect.value as unknown as number;
+                        if (effect.op === 'set') {
+                            const newValue = parseFloat(effect.value as any);
+                            if (!isNaN(newValue)) {
+                                this.baseDamage = newValue;
+                            }
+                        } else {
+                           const numericValue = effect.value as number;
+                           if (effect.op === 'add') this.baseDamage += numericValue;
+                           if (effect.op === 'multiply') this.baseDamage *= numericValue;
+                        }
                         break;
                     case 'cooldown':
                     case 'speed':
