@@ -1,3 +1,4 @@
+
 class I18nManager {
     private static instance: I18nManager;
     private translations: { [key: string]: string } = {};
@@ -25,7 +26,7 @@ class I18nManager {
     async setLanguage(lang: string) {
         this.language = lang;
         try {
-            const response = await fetch(`/locales/${lang}.json`);
+            const response = await fetch(`./locales/${lang}.json`);
             if (!response.ok) {
                 throw new Error(`Could not load language file: ${lang}`);
             }

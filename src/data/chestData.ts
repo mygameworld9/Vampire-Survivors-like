@@ -1,7 +1,7 @@
 import { IChestData } from "../utils/types";
 
 export const CHEST_DATA: IChestData = {
-    spriteSheet: '/items/chest.png',
+    spriteSheet: './items/chest.png',
     spriteWidth: 32,
     spriteHeight: 32,
     size: 32,
