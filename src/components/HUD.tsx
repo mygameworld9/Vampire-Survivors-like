@@ -1,6 +1,4 @@
 
-
-
 import React from 'react';
 import { IPlayerState, BossData } from '../utils/types';
 import { Weapon } from '../entities/Weapon';
@@ -8,25 +6,31 @@ import { Skill } from '../entities/Skill';
 import { i18nManager } from '../core/i18n';
 import { BossBar } from './BossBar';
 
+interface HUDRefs {
+    hpBarRef: React.RefObject<HTMLDivElement>;
+    xpBarRef: React.RefObject<HTMLDivElement>;
+    timerRef: React.RefObject<HTMLDivElement>;
+    hpTextRef: React.RefObject<HTMLSpanElement>;
+}
+
 interface HUDProps {
     playerState: IPlayerState;
-    gameTime: number;
+    // Removed gameTime prop to avoid re-renders
     weapons: Weapon[];
     skills: Skill[];
     onPause: () => void;
     activeBoss?: BossData;
+    hudRefs: HUDRefs;
 }
 
-const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
-    const secs = Math.floor(seconds % 60).toString().padStart(2, '0');
-    return `${mins}:${secs}`;
-};
-
-// Use React.memo to prevent re-rendering if props are identical.
-export const HUD: React.FC<HUDProps> = React.memo(({ playerState, gameTime, weapons, skills, onPause, activeBoss }) => {
+export const HUD: React.FC<HUDProps> = React.memo(({ playerState, weapons, skills, onPause, activeBoss, hudRefs }) => {
     const totalSkillSlots = 6;
-    const isLowHp = playerState.hp > 0 && (playerState.hp / playerState.maxHp) <= 0.25;
+    // Initial width set by React, updates handled by direct DOM manipulation
+    const initialHpPercent = playerState.maxHp > 0 ? (playerState.hp / playerState.maxHp) * 100 : 0;
+    const initialXpPercent = playerState.xpToNext > 0 ? (playerState.xp / playerState.xpToNext) * 100 : 0;
+
+    // Note: We removed 'isLowHp' reactive class toggling for performance. 
+    // Ideally, the low-hp class should also be toggled via ref in the loop if critical.
 
     return (
         <div className="hud">
@@ -38,15 +42,25 @@ export const HUD: React.FC<HUDProps> = React.memo(({ playerState, gameTime, weap
                         <span className="stats-text">{i18nManager.t('ui.hud.level', { level: playerState.level })}</span>
                         <span className="gold-counter">💰 {playerState.gold}</span>
                     </div>
-                    <div className={`stats-bar ${isLowHp ? 'low-hp-container' : ''}`}>
-                        <div className={`stats-bar-inner hp-bar ${isLowHp ? 'low-hp' : ''}`} style={{width: `${(playerState.hp / playerState.maxHp) * 100}%`}}></div>
+                    <div className="stats-bar">
+                        <div 
+                            ref={hudRefs.hpBarRef}
+                            className="stats-bar-inner hp-bar" 
+                            style={{width: `${initialHpPercent}%`}}
+                        ></div>
                     </div>
-                     <span className="stats-text">{playerState.hp} / {playerState.maxHp}</span>
+                     <span className="stats-text" ref={hudRefs.hpTextRef}>
+                        {Math.round(playerState.hp)} / {Math.round(playerState.maxHp)}
+                     </span>
                      <div className="stats-bar">
-                        <div className="stats-bar-inner xp-bar" style={{width: `${(playerState.xp / playerState.xpToNext) * 100}%`}}></div>
+                        <div 
+                            ref={hudRefs.xpBarRef}
+                            className="stats-bar-inner xp-bar" 
+                            style={{width: `${initialXpPercent}%`}}
+                        ></div>
                     </div>
                 </div>
-                <div className="hud-top-center">{formatTime(gameTime)}</div>
+                <div className="hud-top-center" ref={hudRefs.timerRef}>00:00</div>
                 <div className="hud-top-right">
                     <button className="pause-button" onClick={onPause} aria-label="Pause Game">||</button>
                 </div>

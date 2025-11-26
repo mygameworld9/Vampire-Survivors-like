@@ -1,8 +1,4 @@
 
-
-
-
-
 import { Game } from "../Game";
 import { LaserProjectile } from "../../entities/LaserProjectile";
 import { Vector2D } from "../../utils/Vector2D";
@@ -29,8 +25,6 @@ export class CollisionSystem {
     private enemyQuadTree: QuadTree<Enemy>;
 
     constructor(private game: Game) {
-        // Initialize with the standard game size bound.
-        // We will update x/y dynamically, but w/h stays constant (2500)
         this.enemyQuadTree = new QuadTree({ x: 0, y: 0, w: 2500, h: 2500 }, 8);
     }
 
@@ -40,13 +34,8 @@ export class CollisionSystem {
         this.handleProjectileToProp();
         this.handleEnemyToPlayer();
         this.handlePickups();
-        this.handleEffects();
     }
 
-    /**
-     * Finds enemies within a certain radius of a point.
-     * Uses the QuadTree from the previous frame (or current if called after update).
-     */
     public getNeighbors(center: Vector2D, radius: number): Enemy[] {
         const range: Rectangle = { x: center.x, y: center.y, w: radius, h: radius };
         return this.enemyQuadTree.query(range);
@@ -54,27 +43,21 @@ export class CollisionSystem {
 
     private rebuildQuadTree() {
         const player = this.game.player;
-        
-        // Optimization 1: GC Reduction
-        // Instead of creating a new QuadTree every frame, clear and update the existing one.
         this.enemyQuadTree.clear();
-        
-        // Update boundary center to match player position
         this.enemyQuadTree.boundary.x = player.pos.x;
         this.enemyQuadTree.boundary.y = player.pos.y;
-        // w and h remain 2500 as initialized
         
-        for (const e of this.game.enemies) {
+        // Access via EntityManager
+        for (const e of this.game.entityManager.enemies) {
             this.enemyQuadTree.insert(e);
         }
     }
 
     private handleProjectileToEnemy() {
-        for (const p of this.game.projectiles) {
+        for (const p of this.game.entityManager.projectiles) {
             let range: Rectangle;
 
             if (p instanceof LaserProjectile) {
-                // Center the query box in the middle of the laser beam
                 const midX = p.p1.x + p.dir.x * (p.range / 2);
                 const midY = p.p1.y + p.dir.y * (p.range / 2);
                 const halfSize = p.range / 2 + 50; 
@@ -84,10 +67,6 @@ export class CollisionSystem {
             }
             
             const candidates = this.enemyQuadTree.query(range);
-
-            // Optimization 2: Math Performance
-            // Replace Math.hypot (sqrt) with squared distance comparisons.
-            // d < r  <=>  d^2 < r^2
 
             if (p instanceof LaserProjectile) {
                 for (const e of candidates) {
@@ -125,7 +104,7 @@ export class CollisionSystem {
                          p.hitEnemies.add(e.id);
                     }
                 }
-            } else { // Projectile, Boomerang, Homing
+            } else { 
                 for (const e of candidates) {
                     if (p.hitEnemies.has(e.id)) continue;
                     const dx = p.pos.x - e.pos.x;
@@ -150,12 +129,11 @@ export class CollisionSystem {
     }
 
     private handleProjectileToProp() {
-        // Props are not in QuadTree for now (usually low count), simple iteration
-        for (const p of this.game.projectiles) {
+        for (const p of this.game.entityManager.projectiles) {
             if (p.shouldBeRemoved) continue;
 
             if (p instanceof LaserProjectile) {
-                 for (const prop of this.game.props) {
+                 for (const prop of this.game.entityManager.props) {
                     const V = new Vector2D(prop.pos.x - p.p1.x, prop.pos.y - p.p1.y);
                     const D = p.dir;
                     let t = Math.max(0, Math.min(p.range, V.x * D.x + V.y * D.y));
@@ -174,25 +152,16 @@ export class CollisionSystem {
                     }
                 }
             } else {
-                for (const prop of this.game.props) {
-                    // Simple Hitbox
+                for (const prop of this.game.entityManager.props) {
                     const dx = p.pos.x - prop.pos.x;
                     const dy = p.pos.y - prop.pos.y;
                     const distSq = dx * dx + dy * dy;
-                    
-                    // Allow generous hit radius for props
                     const hitDist = prop.size + 10; 
 
                     if (distSq < hitDist * hitDist) {
-                         // Check special projectile types if needed, for now all damage props
-                         // Lasers and AOE are trickier without hitEnemies set logic, 
-                         // but for simplicity, let's just apply damage directly.
-                         // To avoid 60fps damage from persistent projectiles (like Aura), we can add an immunity timer to Prop or just let them break fast.
-                         
-                         prop.takeDamage(10); // Fixed damage to props for now, or use p.damage
+                         prop.takeDamage(10); 
                          this.game.particleSystem.emit(prop.pos.x, prop.pos.y, 2, '#8D6E63');
                          
-                         // If it's a standard projectile, destroy it
                          if (!(p instanceof LightningProjectile || p instanceof SlashProjectile || p.statusEffect)) {
                              p.shouldBeRemoved = true;
                          }
@@ -204,7 +173,6 @@ export class CollisionSystem {
 
     private handleEnemyToPlayer() {
         const player = this.game.player;
-        // Optimization: Reuse range object? (Future todo), for now standard query
         const range: Rectangle = { x: player.pos.x, y: player.pos.y, w: 100, h: 100 };
         const candidates = this.enemyQuadTree.query(range);
 
@@ -224,11 +192,10 @@ export class CollisionSystem {
         const player = this.game.player;
 
         // XP Orbs
-        for (const orb of this.game.xpOrbs) {
+        for (const orb of this.game.entityManager.xpOrbs) {
              const dx = orb.pos.x - player.pos.x;
              const dy = orb.pos.y - player.pos.y;
              const distSq = dx * dx + dy * dy;
-             // Magnet range: orb.size + player.size/2 + 50
              const pickupRange = orb.size + player.size / 2 + 50;
 
              if (distSq < pickupRange * pickupRange) { 
@@ -241,7 +208,7 @@ export class CollisionSystem {
         }
 
         // Items
-        for (const item of this.game.items) {
+        for (const item of this.game.entityManager.items) {
              const dx = item.pos.x - player.pos.x;
              const dy = item.pos.y - player.pos.y;
              const distSq = dx * dx + dy * dy;
@@ -255,7 +222,7 @@ export class CollisionSystem {
         }
 
         // Chests
-        for (const chest of this.game.chests) {
+        for (const chest of this.game.entityManager.chests) {
             if (chest.isBeingOpened) continue;
             const dx = chest.pos.x - player.pos.x;
             const dy = chest.pos.y - player.pos.y;
@@ -265,12 +232,12 @@ export class CollisionSystem {
             if (distSq < hitDist * hitDist) {
                 chest.isBeingOpened = true;
                 this.game.onChestOpenStart(chest);
-                this.game.animatingEntities.push(chest);
+                this.game.entityManager.animatingEntities.push(chest);
             }
         }
 
         // Exploration Points
-        for (const point of this.game.explorationPoints) {
+        for (const point of this.game.entityManager.explorationPoints) {
             const dx = point.pos.x - player.pos.x;
             const dy = point.pos.y - player.pos.y;
             const distSq = dx * dx + dy * dy;
@@ -278,40 +245,27 @@ export class CollisionSystem {
 
             if (distSq < hitDist * hitDist) {
                 point.shouldBeRemoved = true;
-                // Big Rewards!
-                this.game.soundManager.playSound('CHEST_OPEN'); // Use a big sound
+                this.game.soundManager.playSound('CHEST_OPEN');
                 
-                // 1. Full Heal
                 player.heal(1.0);
-                
-                // 2. Big XP
                 if(player.gainXp(500)) {
                     this.game.onLevelUp();
                 }
-                
-                // 3. Gold
                 const goldReward = 250;
                 player.gainGold(goldReward);
 
-                // Effects
                 this.game.particleSystem.emit(point.pos.x, point.pos.y, 50, '#00BCD4');
-                this.game.floatingTexts.push(new FloatingText(player.pos.x, player.pos.y - 40, i18nManager.t('ui.shrine.found'), '#00BCD4', 2.5));
+                this.game.entityManager.floatingTexts.push(new FloatingText(player.pos.x, player.pos.y - 40, i18nManager.t('ui.shrine.found'), '#00BCD4', 2.5));
             }
         }
     }
-
-    private handleEffects() {
-        // Only internal update logic here if any, mostly handled by Game triggering callbacks
-    }
-
-    // --- Actions ---
 
     applyDamageToEnemy(e: Enemy, damage: number, statusEffect?: any) {
         const wasAlive = e.hp > 0;
         e.takeDamage(damage);
         if (statusEffect) e.applyStatusEffect(statusEffect);
         
-        if (wasAlive) this.game.soundManager.playSound('ENEMY_HIT', 0.5); // Lower volume for spam hits
+        if (wasAlive) this.game.soundManager.playSound('ENEMY_HIT', 0.5);
         
         if (wasAlive && e.shouldBeRemoved) {
             this.onEnemyDefeated(e);
@@ -324,7 +278,7 @@ export class CollisionSystem {
         
         const orbData = XP_ORB_DATA[enemy.xpOrbType];
         if (orbData) {
-            this.game.xpOrbs.push(new XpOrb(enemy.pos.x, enemy.pos.y, orbData.value, orbData.size, orbData.color));
+            this.game.entityManager.xpOrbs.push(new XpOrb(enemy.pos.x, enemy.pos.y, orbData.value, orbData.size, orbData.color));
         }
 
         if (enemy.goldDrop) {
@@ -336,15 +290,14 @@ export class CollisionSystem {
         }
         
         if (enemy.chestDropChance && Math.random() < enemy.chestDropChance) {
-            this.game.chests.push(new Chest(enemy.pos.x, enemy.pos.y, CHEST_DATA));
+            this.game.entityManager.chests.push(new Chest(enemy.pos.x, enemy.pos.y, CHEST_DATA));
         }
     }
 
     onPropDestroyed(prop: Prop) {
-        this.game.soundManager.playSound('ENEMY_HIT'); // Re-use hit sound for wood breaking
-        this.game.particleSystem.emit(prop.pos.x, prop.pos.y, 10, '#8D6E63'); // Wood particles
+        this.game.soundManager.playSound('ENEMY_HIT'); 
+        this.game.particleSystem.emit(prop.pos.x, prop.pos.y, 10, '#8D6E63'); 
 
-        // Calculate drops
         const dropRoll = Math.random();
         let cumulative = 0;
         
@@ -353,9 +306,9 @@ export class CollisionSystem {
             if (dropRoll <= cumulative) {
                 const itemData = ITEM_DATA[drop.itemId];
                 if (itemData) {
-                     this.game.items.push(new Item(prop.pos.x, prop.pos.y, itemData));
+                     this.game.entityManager.items.push(new Item(prop.pos.x, prop.pos.y, itemData));
                 }
-                break; // One drop per prop
+                break; 
             }
         }
     }
@@ -365,12 +318,12 @@ export class CollisionSystem {
         switch (effect.type) {
             case 'HEAL_PERCENT':
                 player.heal(effect.value);
-                this.game.floatingTexts.push(new FloatingText(player.pos.x, player.pos.y - 20, `Heal!`, '#e57373'));
+                this.game.entityManager.floatingTexts.push(new FloatingText(player.pos.x, player.pos.y - 20, `Heal!`, '#e57373'));
                 break;
             case 'GOLD_ADD':
                 const amount = Math.ceil(effect.value * player.goldMultiplier);
                 player.gainGold(amount);
-                this.game.floatingTexts.push(new FloatingText(player.pos.x, player.pos.y - 20, `+${amount} Gold`, '#ffd700'));
+                this.game.entityManager.floatingTexts.push(new FloatingText(player.pos.x, player.pos.y - 20, `+${amount} Gold`, '#ffd700'));
                 break;
             default:
                 console.warn(`Unknown item effect type: ${effect.type}`);
@@ -380,21 +333,19 @@ export class CollisionSystem {
     applyAuraDamage(weapon: Weapon) {
         const isMax = weapon.isMaxLevel();
         
-        // --- Visual Logic ---
         if (isMax) {
-            const persistentAura = this.game.effects.find(e => e instanceof AuraEffect && e.isPersistent) as AuraEffect | undefined;
+            const persistentAura = this.game.entityManager.effects.find(e => e instanceof AuraEffect && e.isPersistent) as AuraEffect | undefined;
             if (!persistentAura) {
-                this.game.effects.push(new AuraEffect(this.game.player, weapon.range, true));
+                this.game.entityManager.effects.push(new AuraEffect(this.game.player, weapon.range, true));
             } else {
                 persistentAura.maxRange = weapon.range;
             }
         } else {
-            this.game.effects.push(new AuraEffect(this.game.player, weapon.range, false));
+            this.game.entityManager.effects.push(new AuraEffect(this.game.player, weapon.range, false));
         }
 
         const range: Rectangle = { x: this.game.player.pos.x, y: this.game.player.pos.y, w: weapon.range + 50, h: weapon.range + 50 };
         
-        // 1. Damage Enemies
         const candidates = this.enemyQuadTree.query(range);
         for (const e of candidates) {
             const dx = this.game.player.pos.x - e.pos.x;
@@ -412,15 +363,14 @@ export class CollisionSystem {
             }
         }
 
-        // 2. Damage Props
-        for (const prop of this.game.props) {
+        for (const prop of this.game.entityManager.props) {
             const dx = this.game.player.pos.x - prop.pos.x;
             const dy = this.game.player.pos.y - prop.pos.y;
             const distSq = dx * dx + dy * dy;
             const hitDist = weapon.range + prop.size / 2;
 
             if (distSq < hitDist * hitDist) {
-                prop.takeDamage(weapon.damage * 0.1); // Aura deals reduced/tick damage
+                prop.takeDamage(weapon.damage * 0.1); 
                 if (Math.random() > 0.9) {
                      this.game.particleSystem.emit(prop.pos.x, prop.pos.y, 1, '#8D6E63');
                 }
@@ -431,9 +381,8 @@ export class CollisionSystem {
     handleSkillEffect(effect: SkillEffect) {
         switch (effect.type) {
             case 'PULSE':
-                this.game.effects.push(new PulseEffect(this.game.player.pos, effect.range));
+                this.game.entityManager.effects.push(new PulseEffect(this.game.player.pos, effect.range));
                 
-                // Damage Enemies
                 const range: Rectangle = { x: this.game.player.pos.x, y: this.game.player.pos.y, w: effect.range + 50, h: effect.range + 50 };
                 const candidates = this.enemyQuadTree.query(range);
                 
@@ -449,15 +398,14 @@ export class CollisionSystem {
                     }
                 }
 
-                // Damage Props
-                for (const prop of this.game.props) {
+                for (const prop of this.game.entityManager.props) {
                     const dx = this.game.player.pos.x - prop.pos.x;
                     const dy = this.game.player.pos.y - prop.pos.y;
                     const distSq = dx * dx + dy * dy;
                     const hitDist = effect.range + prop.size / 2;
 
                     if (distSq < hitDist * hitDist) {
-                        prop.takeDamage(100); // Pulse instant kills props
+                        prop.takeDamage(100);
                         this.game.particleSystem.emit(prop.pos.x, prop.pos.y, 5, '#8D6E63');
                     }
                 }

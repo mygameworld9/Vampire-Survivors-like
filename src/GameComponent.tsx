@@ -1,10 +1,4 @@
 
-
-
-
-
-
-
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Game } from './core/Game';
 import { XP_LEVELS } from './data/gameConfig';
@@ -12,14 +6,12 @@ import { IPlayerState, UpgradeOption, CreativeLoadout, BossData } from './utils/
 import { Weapon } from './entities/Weapon';
 import { HUD } from './components/HUD';
 import { LevelUpModal } from './components/LevelUpModal';
-import { WEAPON_DATA } from './data/weaponData';
 import { PauseMenu } from './components/PauseMenu';
 import { WeaponsPanel } from './components/WeaponsPanel';
 import { SkillsPanel } from './components/SkillsPanel';
 import { SoundManager } from './core/SoundManager';
 import { SOUND_DATA } from './data/soundData';
 import { Skill } from './entities/Skill';
-import { SKILL_DATA } from './data/skillData';
 import { i18nManager } from './core/i18n';
 import { Codex } from './components/Codex';
 import { CharacterSelect } from './components/CharacterSelect';
@@ -39,12 +31,26 @@ import { Minimap } from './components/Minimap';
 type GameState = 'start' | 'characterSelect' | 'creativeSetup' | 'mapSelect' | 'playing' | 'levelUp' | 'gameOver' | 'paused' | 'chestOpening' | 'armory' | 'revive' | 'evolution';
 type InfoPanelState = 'none' | 'weapons' | 'skills';
 
+const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const secs = Math.floor(seconds % 60).toString().padStart(2, '0');
+    return `${mins}:${secs}`;
+};
+
 export const GameComponent: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const gameRef = useRef<Game | null>(null);
     const animationFrameId = useRef<number | null>(null);
     const soundManagerRef = useRef<SoundManager | null>(null);
     
+    // HUD Refs for Direct Manipulation (Performance Optimization)
+    const hpBarRef = useRef<HTMLDivElement>(null);
+    const xpBarRef = useRef<HTMLDivElement>(null);
+    const timerRef = useRef<HTMLDivElement>(null);
+    const hpTextRef = useRef<HTMLSpanElement>(null);
+
+    const hudRefs = { hpBarRef, xpBarRef, timerRef, hpTextRef };
+
     // Refs for tracking state changes
     const lastWeaponsHash = useRef<string>("");
     const lastSkillsHash = useRef<string>("");
@@ -54,13 +60,14 @@ export const GameComponent: React.FC = () => {
     const [evolvedWeapon, setEvolvedWeapon] = useState<Weapon | null>(null);
     const [infoPanel, setInfoPanel] = useState<InfoPanelState>('none');
     
-    // Initial state
+    // React state for low-frequency updates
     const [playerState, setPlayerState] = useState<IPlayerState>({ 
         hp: 0, maxHp: 1, xp: 0, xpToNext: 1, level: 1, gold: 0,
         rerolls: 0, banishes: 0, skips: 0
     });
     const [activeBoss, setActiveBoss] = useState<BossData | undefined>(undefined);
-    const [gameTime, setGameTime] = useState(0);
+    const [finalGameTime, setFinalGameTime] = useState(0); // Only for Game Over screen
+    
     const [weapons, setWeapons] = useState<Weapon[]>([]);
     const [skills, setSkills] = useState<Skill[]>([]);
     const [upgradeOptions, setUpgradeOptions] = useState<UpgradeOption[]>([]);
@@ -71,10 +78,8 @@ export const GameComponent: React.FC = () => {
     const [selectedMap, setSelectedMap] = useState<string | null>(null);
     const [showMinimap, setShowMinimap] = useState(true);
     
-    // Creative Mode State
     const [isCreativeMode, setIsCreativeMode] = useState(false);
     const [creativeLoadout, setCreativeLoadout] = useState<CreativeLoadout | undefined>(undefined);
-
 
     useEffect(() => {
         i18nManager.init().then(() => {
@@ -116,7 +121,6 @@ export const GameComponent: React.FC = () => {
         lastWeaponsHash.current = ""; 
     }, []);
 
-    // --- BUILD CONTROLS HANDLERS ---
     const handleReroll = () => {
         if (!gameRef.current) return;
         const newOptions = gameRef.current.performReroll();
@@ -138,7 +142,6 @@ export const GameComponent: React.FC = () => {
         gameRef.current.performSkip();
         setGameState('playing');
     };
-    // ------------------------------
 
     const startGame = useCallback((characterId: string, mapId: string, loadout?: CreativeLoadout) => {
         stopGameLoop();
@@ -151,7 +154,6 @@ export const GameComponent: React.FC = () => {
             hp: 0, maxHp: 1, xp: 0, xpToNext: 1, level: 1, gold: 0,
             rerolls: 0, banishes: 0, skips: 0 
         });
-        setGameTime(0);
         setActiveBoss(undefined);
         lastWeaponsHash.current = "";
         lastSkillsHash.current = "";
@@ -178,15 +180,34 @@ export const GameComponent: React.FC = () => {
         );
         gameRef.current = game;
         
-        // --- EVENT SUBSCRIPTIONS (Refactored from polling) ---
+        // --- EVENT SUBSCRIPTIONS ---
         game.events.on('player-update', (stats: Partial<IPlayerState>) => {
-            setPlayerState(prev => ({ ...prev, ...stats }));
+            // 1. Update Low-Frequency State (Level, Gold, Inventory changes)
+            if (stats.level !== undefined || stats.gold !== undefined || stats.rerolls !== undefined || stats.banishes !== undefined || stats.skips !== undefined) {
+                setPlayerState(prev => ({ ...prev, ...stats }));
+            }
+
+            // 2. Direct DOM Manipulation for High-Frequency (HP, XP)
+            if (stats.hp !== undefined && stats.maxHp !== undefined) {
+                if (hpBarRef.current) {
+                    const pct = Math.max(0, Math.min(100, (stats.hp / stats.maxHp) * 100));
+                    hpBarRef.current.style.width = `${pct}%`;
+                }
+                if (hpTextRef.current) {
+                    hpTextRef.current.innerText = `${Math.round(stats.hp)} / ${Math.round(stats.maxHp)}`;
+                }
+            }
+            if (stats.xp !== undefined && stats.xpToNext !== undefined) {
+                if (xpBarRef.current) {
+                    const pct = Math.max(0, Math.min(100, (stats.xp / stats.xpToNext) * 100));
+                    xpBarRef.current.style.width = `${pct}%`;
+                }
+            }
         });
 
         game.events.on('boss-update', (bossData: BossData | null) => {
             setActiveBoss(bossData || undefined);
         });
-        // --------------------------------------------------
         
         // Force initial state set
         const p = game.player;
@@ -210,6 +231,7 @@ export const GameComponent: React.FC = () => {
                 } else {
                     progressionManager.addGold(game.player.gold);
                     soundManagerRef.current?.stopBGM();
+                    setFinalGameTime(game.gameTime);
                     setGameState('gameOver');
                     stopGameLoop();
                     return;
@@ -218,15 +240,15 @@ export const GameComponent: React.FC = () => {
 
             if (gameStateRef.current === 'playing') {
                  game.update(dt);
+                 // Update Timer DOM directly
+                 if (timerRef.current) {
+                     timerRef.current.innerText = formatTime(game.gameTime);
+                 }
             }
             game.updateAnimations(dt);
             game.draw(canvas.getContext('2d')!);
             
-            // Update simple timers/visuals that don't need exact sync
-            // (Game time is fine to update per frame or throttled, keeping throttling for performance)
-            // Inventory check is also kept here as it's structure driven
-            
-            // Dirty Check for Weapons/Skills
+            // Inventory check
             const currentWeaponsHash = game.player.weapons.map(w => w.id + w.level).join(',');
             if (currentWeaponsHash !== lastWeaponsHash.current) {
                 setWeapons([...game.player.weapons]);
@@ -237,8 +259,6 @@ export const GameComponent: React.FC = () => {
                 setSkills([...game.player.skills]);
                 lastSkillsHash.current = currentSkillsHash;
             }
-
-            setGameTime(game.gameTime);
         };
         
         animationFrameId.current = requestAnimationFrame(gameLoop);
@@ -286,6 +306,7 @@ export const GameComponent: React.FC = () => {
     const handleGiveUp = () => {
         if (gameRef.current) {
             progressionManager.addGold(gameRef.current.player.gold);
+            setFinalGameTime(gameRef.current.gameTime);
         }
         soundManagerRef.current?.stopBGM();
         setGameState('gameOver');
@@ -302,7 +323,6 @@ export const GameComponent: React.FC = () => {
         
         setWeapons([]);
         setSkills([]);
-        setGameTime(0);
         setPlayerState({ hp: 0, maxHp: 1, xp: 0, xpToNext: 1, level: 1, gold: 0, rerolls: 0, banishes: 0, skips: 0 });
         setGameState('start');
         setIsCreativeMode(false);
@@ -391,7 +411,7 @@ export const GameComponent: React.FC = () => {
              
              {gameState === 'gameOver' && (
                 <GameOverScreen 
-                    gameTime={gameTime}
+                    gameTime={finalGameTime}
                     playerLevel={playerState.level}
                     gold={playerState.gold}
                     onRestart={handleRestart}
@@ -403,11 +423,11 @@ export const GameComponent: React.FC = () => {
               <>
                 <HUD 
                   playerState={playerState}
-                  gameTime={gameTime}
                   weapons={weapons}
                   skills={skills}
                   onPause={() => setGameState('paused')}
                   activeBoss={activeBoss}
+                  hudRefs={hudRefs}
                 />
                 <div className="hud-minimap-toggle" onClick={() => setShowMinimap(!showMinimap)}>
                     {showMinimap ? '👁️' : '🙈'}

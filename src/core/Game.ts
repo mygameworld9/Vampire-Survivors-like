@@ -1,20 +1,11 @@
+
 import { Player } from '../entities/Player';
 import { Enemy } from '../entities/Enemy';
-import { Projectile } from '../entities/Projectile';
-import { XpOrb } from '../entities/XpOrb';
 import { Camera } from './Camera';
 import { InputHandler } from './InputHandler';
-import { BoomerangProjectile } from '../entities/BoomerangProjectile';
-import { LaserProjectile } from '../entities/LaserProjectile';
-import { AuraEffect } from '../entities/AuraEffect';
-import { Item } from '../entities/Item';
 import { SoundManager } from './SoundManager';
-import { PulseEffect } from '../entities/PulseEffect';
 import { ParticleSystem } from './ParticleSystem';
 import { MAP_DATA } from '../data/mapData';
-import { HomingProjectile } from '../entities/HomingProjectile';
-import { LightningProjectile } from '../entities/LightningProjectile';
-import { SlashProjectile } from '../entities/SlashProjectile';
 import { Chest } from '../entities/Chest';
 import { FloatingText } from '../entities/FloatingText';
 import { CHEST_LOOT_TABLE } from '../data/lootData';
@@ -24,43 +15,36 @@ import { UpgradeOption, IMapData, CreativeLoadout, IPlayerState, BossData } from
 import { MapRenderer } from './systems/MapRenderer';
 import { SpawnSystem } from './systems/SpawnSystem';
 import { CollisionSystem } from './systems/CollisionSystem';
-import { ObjectPool } from '../utils/ObjectPool';
-import { Particle } from '../entities/Particle';
-import { Vector2D } from '../utils/Vector2D';
-import { Prop } from '../entities/Prop';
-import { EVOLUTION_RECIPES } from '../data/evolutionData';
 import { Weapon } from '../entities/Weapon';
-import { ExplorationPoint } from '../entities/ExplorationPoint';
 import { EventEmitter } from '../utils/EventEmitter';
 import { SKILL_DATA } from '../data/skillData';
 import { WEAPON_DATA } from '../data/weaponData';
 import { XP_LEVELS } from '../data/gameConfig';
-
-type AnyProjectile = Projectile | BoomerangProjectile | LaserProjectile | HomingProjectile | LightningProjectile | SlashProjectile;
-type AnyEffect = AuraEffect | PulseEffect;
+import { EntityManager } from './EntityManager';
+import { EVOLUTION_RECIPES } from '../data/evolutionData';
 
 export class Game {
     // Event Emitter for UI Communication
     public events = new EventEmitter();
 
+    // Systems
+    public entityManager: EntityManager;
     public player: Player;
-    public enemies: Enemy[] = [];
-    public props: Prop[] = [];
-    public projectiles: AnyProjectile[] = [];
-    public xpOrbs: XpOrb[] = [];
-    public effects: AnyEffect[] = [];
-    public items: Item[] = [];
-    public chests: Chest[] = [];
-    public explorationPoints: ExplorationPoint[] = [];
-    public floatingTexts: FloatingText[] = [];
-    public animatingEntities: Chest[] = [];
-    
     public camera: Camera;
     public input: InputHandler;
     public particleSystem: ParticleSystem;
-    public gameTime = 0;
     public soundManager: SoundManager;
+    
+    // Map & Render
     public mapData: IMapData;
+    private mapRenderer: MapRenderer;
+    
+    // Subsystems
+    private spawnSystem: SpawnSystem;
+    private collisionSystem: CollisionSystem;
+
+    // Game State
+    public gameTime = 0;
     public width: number;
     public height: number;
     public onLevelUp: () => void;
@@ -72,20 +56,6 @@ export class Game {
 
     // Boss Tracking
     public activeBosses: Enemy[] = [];
-
-    // Subsystems
-    private mapRenderer: MapRenderer;
-    private spawnSystem: SpawnSystem;
-    private collisionSystem: CollisionSystem;
-
-    // Pools
-    public enemyPool: ObjectPool<Enemy>;
-    public propPool: ObjectPool<Prop>;
-    public projectilePool: ObjectPool<Projectile>;
-    public particlePool: ObjectPool<Particle>;
-
-    // Optimization: Frame counter for staggered updates
-    private frameCount = 0;
 
     constructor(
         width: number, 
@@ -105,30 +75,29 @@ export class Game {
         this.onEvolution = onEvolution;
         this.soundManager = soundManager;
 
-        // Initialize Object Pools
-        this.enemyPool = new ObjectPool(() => new Enemy(0, 0, {} as any, 'SLIME', false));
-        this.propPool = new ObjectPool(() => new Prop(0, 0, {} as any));
-        this.projectilePool = new ObjectPool(() => new Projectile(0, 0, new Vector2D(0, 0), {} as any));
-        this.particlePool = new ObjectPool(() => new Particle(0, 0, '#fff'));
+        // Initialize Manager
+        this.entityManager = new EntityManager();
         
         // Initialize Systems
         this.input = new InputHandler();
-        this.particleSystem = new ParticleSystem(this.particlePool);
+        this.particleSystem = new ParticleSystem(this.entityManager.particlePool);
         this.collisionSystem = new CollisionSystem(this);
-        this.spawnSystem = new SpawnSystem(this);
         
+        // Load Map Data
+        this.mapData = MAP_DATA[mapId] || MAP_DATA['FOREST'];
+        this.spawnSystem = new SpawnSystem(this, this.mapData.spawnScheduleId);
+        this.mapRenderer = new MapRenderer(this.mapData);
+        
+        // Initialize Player
         this.player = new Player(
             width / 2, height / 2, 
             (w) => this.collisionSystem.applyAuraDamage(w), 
             this.soundManager, 
             characterId,
-            (stats) => this.events.emit('player-update', stats) // Forward Player stats to Game Events
+            (stats) => this.events.emit('player-update', stats) 
         );
         this.camera = new Camera(this.player.pos.x, this.player.pos.y);
         
-        this.mapData = MAP_DATA[mapId] || MAP_DATA['FOREST'];
-        this.mapRenderer = new MapRenderer(this.mapData);
-
         if (initialLoadout) {
             this.applyCreativeLoadout(initialLoadout);
         }
@@ -164,115 +133,35 @@ export class Game {
     
     update(dt: number) {
         this.gameTime += dt;
-        this.frameCount++;
 
-        // Update BGM Intensity based on time (0 to 1 over 300 seconds)
         const intensity = Math.min(1.0, this.gameTime / 300);
         this.soundManager.setBGMIntensity(intensity);
 
         this.spawnSystem.update(dt);
 
-        const { projectiles, skillEffects } = this.player.update(dt, this.input, this.enemies);
-        this.projectiles.push(...projectiles);
+        const { projectiles, skillEffects } = this.player.update(dt, this.input, this.entityManager.enemies);
+        this.entityManager.projectiles.push(...projectiles);
         skillEffects.forEach(effect => this.collisionSystem.handleSkillEffect(effect));
         
         this.camera.update(dt, this.player.pos);
         
-        // Update entities using zero-allocation loops
-        let i = 0;
-        const flockingRadius = 50; 
-        const updateStride = 10;
-        const frameMod = this.frameCount % updateStride;
+        this.entityManager.update(dt, this.player.pos, this.collisionSystem, (enemy) => {
+            if (enemy.isElite) {
+                this.removeActiveBoss(enemy);
+            }
+        });
 
-        while (i < this.enemies.length) {
-            const e = this.enemies[i];
-            const wasAlive = e.hp > 0;
-            
-            const shouldUpdateFlocking = (e.id % updateStride) === frameMod;
-            let neighbors: Enemy[] | null = null;
-            if (shouldUpdateFlocking) {
-                neighbors = this.collisionSystem.getNeighbors(e.pos, flockingRadius);
-            }
-            
-            e.update(dt, this.player.pos, neighbors);
-            
-            if (wasAlive && e.shouldBeRemoved) {
-                this.collisionSystem.onEnemyDefeated(e);
-            }
-            if (e.isBurning() && Math.random() < 0.5) {
-                this.particleSystem.emit(e.pos.x + (Math.random() - 0.5) * e.size, e.pos.y + (Math.random() - 0.5) * e.size, 1, '#ff9800');
-            }
-
-            if (e.shouldBeRemoved) {
-                // Boss Check
-                if (e.isElite) {
-                    this.removeActiveBoss(e);
-                }
-                // Return to pool and swap with last element
-                this.enemyPool.release(e);
-                const last = this.enemies[this.enemies.length - 1];
-                this.enemies[i] = last;
-                this.enemies.pop();
-            } else {
-                i++;
-            }
-        }
-
-        // Update Props
-        let k = 0;
-        while (k < this.props.length) {
-            const p = this.props[k];
-            p.update(dt);
-            if (p.shouldBeRemoved) {
-                this.collisionSystem.onPropDestroyed(p);
-                this.propPool.release(p);
-                const last = this.props[this.props.length - 1];
-                this.props[k] = last;
-                this.props.pop();
-            } else {
-                k++;
-            }
-        }
-
-        let j = 0;
-        while (j < this.projectiles.length) {
-            const p = this.projectiles[j];
-            p.update(dt);
-            if (p.shouldBeRemoved) {
-                if (p instanceof Projectile) {
-                    this.projectilePool.release(p);
-                }
-                const last = this.projectiles[this.projectiles.length - 1];
-                this.projectiles[j] = last;
-                this.projectiles.pop();
-            } else {
-                j++;
-            }
-        }
-
-        this.effects.forEach(e => e.update(dt));
-        this.floatingTexts.forEach(t => t.update(dt));
-        this.explorationPoints.forEach(p => p.update(dt));
         this.particleSystem.update(dt);
         
         this.collisionSystem.update(dt);
-
-        // Cleanup other entities
-        this.xpOrbs = this.xpOrbs.filter(o => !o.shouldBeRemoved);
-        this.effects = this.effects.filter(e => !e.shouldBeRemoved);
-        this.items = this.items.filter(i => !i.shouldBeRemoved);
-        this.chests = this.chests.filter(c => !c.shouldBeRemoved);
-        this.explorationPoints = this.explorationPoints.filter(e => !e.shouldBeRemoved);
-        this.floatingTexts = this.floatingTexts.filter(t => !t.shouldBeRemoved);
         
-        // Emit Boss Update (Optimization: throttle this if needed, but for single boss it's fine)
         if (this.activeBosses.length > 0) {
-            const closestBoss = this.activeBosses[0]; // Simple logic: just take first
+            const closestBoss = this.activeBosses[0]; 
             const bossData: BossData = {
                 id: closestBoss.id,
                 name: i18nManager.t(closestBoss.data.nameKey),
                 hp: Math.ceil(closestBoss.hp),
-                maxHp: Math.ceil(closestBoss.data.hp * (closestBoss.data.elite?.hpMultiplier || 1)) // Approximation if not stored perfectly
+                maxHp: Math.ceil(closestBoss.data.hp * (closestBoss.data.elite?.hpMultiplier || 1))
             };
             this.events.emit('boss-update', bossData);
         } else {
@@ -281,31 +170,21 @@ export class Game {
     }
 
     updateAnimations(dt: number) {
-        this.animatingEntities.forEach(e => e.update(dt));
-        this.chests.forEach(c => c.update(dt));
+        this.entityManager.updateAnimations(dt);
     }
 
     draw(ctx: CanvasRenderingContext2D) {
         ctx.fillStyle = this.mapData.baseColors[0];
         ctx.fillRect(0, 0, this.width, this.height);
         
-        // Pass gameTime for Day/Night cycle
         this.mapRenderer.draw(ctx, this.camera, this.width, this.height, this.gameTime);
 
         ctx.save();
         this.camera.applyTransform(ctx);
         
-        this.props.forEach(p => p.draw(ctx));
-        this.explorationPoints.forEach(p => p.draw(ctx));
-        this.xpOrbs.forEach(o => o.draw(ctx));
-        this.items.forEach(i => i.draw(ctx));
-        this.chests.forEach(c => c.draw(ctx));
-        this.effects.forEach(e => e.draw(ctx));
+        this.entityManager.draw(ctx);
         this.player.draw(ctx);
-        this.enemies.forEach(e => e.draw(ctx));
-        this.projectiles.forEach(p => p.draw(ctx));
         this.particleSystem.draw(ctx);
-        this.floatingTexts.forEach(t => t.draw(ctx));
 
         ctx.restore();
     }
@@ -314,9 +193,8 @@ export class Game {
 
     public registerActiveBoss(enemy: Enemy) {
         this.activeBosses.push(enemy);
-        // Warning Sound
         this.soundManager.playSound('GAME_OVER'); // Use heavy sound
-        this.floatingTexts.push(new FloatingText(this.player.pos.x, this.player.pos.y - 100, "WARNING!", "#FF0000", 3));
+        this.entityManager.floatingTexts.push(new FloatingText(this.player.pos.x, this.player.pos.y - 100, "WARNING!", "#FF0000", 3));
     }
 
     public removeActiveBoss(enemy: Enemy) {
@@ -369,7 +247,6 @@ export class Game {
             ];
         }
 
-        // Fisher-Yates shuffle inline
         for (let i = optionsPool.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [optionsPool[i], optionsPool[j]] = [optionsPool[j], optionsPool[i]];
@@ -380,7 +257,6 @@ export class Game {
     public performReroll(): UpgradeOption[] | null {
         if (this.player.rerolls > 0) {
             this.player.rerolls--;
-            // Notify UI of stat change
             this.events.emit('player-update', { rerolls: this.player.rerolls });
             return this.generateUpgradeOptions();
         }
@@ -402,7 +278,7 @@ export class Game {
                 this.banishedItemIds.add(idToBanish);
                 this.player.banishes--;
                 this.events.emit('player-update', { banishes: this.player.banishes });
-                return this.generateUpgradeOptions(); // Regenerate all
+                return this.generateUpgradeOptions();
             }
         }
         return null;
@@ -411,7 +287,7 @@ export class Game {
     public performSkip() {
         if (this.player.skips > 0) {
             this.player.skips--;
-            this.player.gainXp(XP_LEVELS[this.player.level - 1] * 0.25); // 25% XP Refund
+            this.player.gainXp(XP_LEVELS[this.player.level - 1] * 0.25); 
             this.events.emit('player-update', { skips: this.player.skips });
         }
     }
@@ -420,7 +296,7 @@ export class Game {
 
     public finalizeChestOpening(chest: Chest) {
         this.grantChestRewards(chest);
-        this.animatingEntities = this.animatingEntities.filter(e => e !== chest);
+        this.entityManager.animatingEntities = this.entityManager.animatingEntities.filter(e => e !== chest);
     }
 
     private grantChestRewards(chest: Chest) {
@@ -432,7 +308,7 @@ export class Game {
         
         const goldAmount = Math.floor(Math.random() * (CHEST_LOOT_TABLE.gold.max - CHEST_LOOT_TABLE.gold.min + 1)) + CHEST_LOOT_TABLE.gold.min;
         this.player.gainGold(goldAmount);
-        this.floatingTexts.push(new FloatingText(chest.pos.x, chest.pos.y, `+${Math.ceil(goldAmount * this.player.goldMultiplier)} Gold`, '#ffd700'));
+        this.entityManager.floatingTexts.push(new FloatingText(chest.pos.x, chest.pos.y, `+${Math.ceil(goldAmount * this.player.goldMultiplier)} Gold`, '#ffd700'));
         
         let totalXp = 0;
         for (const orbDrop of CHEST_LOOT_TABLE.xpOrbs) {
@@ -447,7 +323,7 @@ export class Game {
                 this.soundManager.playSound('LEVEL_UP');
                 this.onLevelUp();
             }
-            this.floatingTexts.push(new FloatingText(chest.pos.x, chest.pos.y - 20, `+${totalXp} XP`, '#42a5f5'));
+            this.entityManager.floatingTexts.push(new FloatingText(chest.pos.x, chest.pos.y - 20, `+${totalXp} XP`, '#42a5f5'));
         }
 
         if (!evolutionPerformed && Math.random() < CHEST_LOOT_TABLE.upgrades.chance) {
@@ -496,7 +372,7 @@ export class Game {
         if (optionsPool.length === 0) {
             const limitBreakGold = 100;
             player.gainGold(limitBreakGold);
-            this.floatingTexts.push(new FloatingText(
+            this.entityManager.floatingTexts.push(new FloatingText(
                 player.pos.x, 
                 player.pos.y - 40, 
                 i18nManager.t('ui.chest.limitBreak', { amount: Math.ceil(limitBreakGold * player.goldMultiplier) }), 
@@ -513,12 +389,12 @@ export class Game {
             if ('weapon' in chosenOption) {
                 upgradeText = `${chosenOption.weapon.name} Lvl ${chosenOption.weapon.level + 1}!`;
                 chosenOption.weapon.levelUp();
-            } else { // skill
+            } else { 
                 upgradeText = `${chosenOption.skill.name} Lvl ${chosenOption.skill.level + 1}!`;
                 chosenOption.skill.levelUp(player);
             }
         }
         
-        this.floatingTexts.push(new FloatingText(player.pos.x, player.pos.y - player.size, upgradeText, '#69f0ae', 2.5));
+        this.entityManager.floatingTexts.push(new FloatingText(player.pos.x, player.pos.y - player.size, upgradeText, '#69f0ae', 2.5));
     }
 }

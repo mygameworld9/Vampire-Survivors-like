@@ -1,12 +1,10 @@
 
-
-
 import { Game } from "../Game";
 
 export class MinimapRenderer {
-    private readonly SCALE = 0.15; // Scale factor
-    private readonly MAP_SIZE = 150; // Canvas pixel size (assuming square)
-    private readonly RANGE = 1500; // World units range radius
+    private readonly SCALE = 0.15; 
+    private readonly MAP_SIZE = 150; 
+    private readonly RANGE = 1500; 
 
     render(ctx: CanvasRenderingContext2D, game: Game) {
         const player = game.player;
@@ -24,12 +22,9 @@ export class MinimapRenderer {
         ctx.lineWidth = 2;
         ctx.stroke();
 
-        // Helper for coordinate transform
-        // Transforms world coordinate to minimap coordinate relative to player center
         const toMap = (wx: number, wy: number) => {
             const dx = wx - player.pos.x;
             const dy = wy - player.pos.y;
-            // Scale down distance
             const scaledX = dx * (center / this.RANGE);
             const scaledY = dy * (center / this.RANGE);
             
@@ -42,11 +37,10 @@ export class MinimapRenderer {
 
         const maxDistSq = this.RANGE * this.RANGE;
 
-        // 1. Draw Exploration Points (Cyan Diamonds - High Priority)
+        // 1. Exploration Points
         ctx.fillStyle = '#00BCD4';
-        for (const p of game.explorationPoints) {
+        for (const p of game.entityManager.explorationPoints) {
             const m = toMap(p.pos.x, p.pos.y);
-            // Always draw indicators for exploration points on the edge if out of range
             let drawX = m.x;
             let drawY = m.y;
             
@@ -55,7 +49,6 @@ export class MinimapRenderer {
                 drawX = center + Math.cos(angle) * (center - 8);
                 drawY = center + Math.sin(angle) * (center - 8);
             } else {
-                // Clip inside
                 if (Math.hypot(drawX - center, drawY - center) > center - 2) continue;
             }
 
@@ -67,9 +60,9 @@ export class MinimapRenderer {
             ctx.fill();
         }
 
-        // 2. Draw Chests (Gold Squares)
+        // 2. Chests
         ctx.fillStyle = '#FFD700';
-        for (const c of game.chests) {
+        for (const c of game.entityManager.chests) {
             if (c.isBeingOpened) continue;
             const m = toMap(c.pos.x, c.pos.y);
             if (m.distSq < maxDistSq) {
@@ -77,9 +70,8 @@ export class MinimapRenderer {
             }
         }
 
-        // 3. Draw Enemies (Red Dots)
-        // Optimization: only draw every Nth enemy if count is high, or limit by strict range
-        for (const e of game.enemies) {
+        // 3. Enemies
+        for (const e of game.entityManager.enemies) {
             const m = toMap(e.pos.x, e.pos.y);
             if (m.distSq < maxDistSq) {
                 if (e.isElite) {
@@ -88,13 +80,13 @@ export class MinimapRenderer {
                     ctx.arc(m.x, m.y, 3, 0, Math.PI*2);
                     ctx.fill();
                 } else {
-                    ctx.fillStyle = '#ef9a9a'; // Lighter red for normal
+                    ctx.fillStyle = '#ef9a9a';
                     ctx.fillRect(m.x - 1, m.y - 1, 2, 2);
                 }
             }
         }
 
-        // 4. Draw Player (Arrow in Center)
+        // 4. Player
         ctx.save();
         ctx.translate(center, center);
         const angle = Math.atan2(player.facingDirection.y, player.facingDirection.x);

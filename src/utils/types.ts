@@ -1,7 +1,4 @@
 
-
-
-
 import { Weapon } from "../entities/Weapon";
 import { Skill } from "../entities/Skill";
 
@@ -203,6 +200,18 @@ export interface ICharacterData {
     };
 }
 
+// Spawn System Types
+export interface ISpawnEvent {
+    time: number;
+    enemyType: string;
+    rate: number; // ms per spawn
+}
+
+export interface ISpawnSchedule {
+    id: string;
+    events: ISpawnEvent[];
+}
+
 export interface IMapData {
     id: string;
     nameKey: string;
@@ -211,6 +220,7 @@ export interface IMapData {
     baseColors: string[]; // 2 colors for checkerboard
     decoration: 'none' | 'flower' | 'crack' | 'pebble';
     backgroundColor: string;
+    spawnScheduleId: string;
 }
 
 export interface IChestData {
