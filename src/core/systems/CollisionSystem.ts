@@ -1,4 +1,8 @@
 
+
+
+
+
 import { Game } from "../Game";
 import { LaserProjectile } from "../../entities/LaserProjectile";
 import { Vector2D } from "../../utils/Vector2D";
@@ -19,6 +23,7 @@ import { SlashProjectile } from "../../entities/SlashProjectile";
 import { QuadTree, Rectangle } from "../../utils/QuadTree";
 import { ITEM_DATA } from "../../data/itemData";
 import { FloatingText } from "../../entities/FloatingText";
+import { i18nManager } from "../i18n";
 
 export class CollisionSystem {
     private enemyQuadTree: QuadTree<Enemy>;
@@ -261,6 +266,36 @@ export class CollisionSystem {
                 chest.isBeingOpened = true;
                 this.game.onChestOpenStart(chest);
                 this.game.animatingEntities.push(chest);
+            }
+        }
+
+        // Exploration Points
+        for (const point of this.game.explorationPoints) {
+            const dx = point.pos.x - player.pos.x;
+            const dy = point.pos.y - player.pos.y;
+            const distSq = dx * dx + dy * dy;
+            const hitDist = point.size + player.size;
+
+            if (distSq < hitDist * hitDist) {
+                point.shouldBeRemoved = true;
+                // Big Rewards!
+                this.game.soundManager.playSound('CHEST_OPEN'); // Use a big sound
+                
+                // 1. Full Heal
+                player.heal(1.0);
+                
+                // 2. Big XP
+                if(player.gainXp(500)) {
+                    this.game.onLevelUp();
+                }
+                
+                // 3. Gold
+                const goldReward = 250;
+                player.gainGold(goldReward);
+
+                // Effects
+                this.game.particleSystem.emit(point.pos.x, point.pos.y, 50, '#00BCD4');
+                this.game.floatingTexts.push(new FloatingText(player.pos.x, player.pos.y - 40, i18nManager.t('ui.shrine.found'), '#00BCD4', 2.5));
             }
         }
     }

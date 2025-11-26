@@ -1,9 +1,12 @@
 
+
+
 import React from 'react';
-import { IPlayerState } from '../utils/types';
+import { IPlayerState, BossData } from '../utils/types';
 import { Weapon } from '../entities/Weapon';
 import { Skill } from '../entities/Skill';
 import { i18nManager } from '../core/i18n';
+import { BossBar } from './BossBar';
 
 interface HUDProps {
     playerState: IPlayerState;
@@ -11,6 +14,7 @@ interface HUDProps {
     weapons: Weapon[];
     skills: Skill[];
     onPause: () => void;
+    activeBoss?: BossData;
 }
 
 const formatTime = (seconds: number) => {
@@ -20,13 +24,14 @@ const formatTime = (seconds: number) => {
 };
 
 // Use React.memo to prevent re-rendering if props are identical.
-// This is crucial for game loop performance as the parent updates state frequently.
-export const HUD: React.FC<HUDProps> = React.memo(({ playerState, gameTime, weapons, skills, onPause }) => {
+export const HUD: React.FC<HUDProps> = React.memo(({ playerState, gameTime, weapons, skills, onPause, activeBoss }) => {
     const totalSkillSlots = 6;
     const isLowHp = playerState.hp > 0 && (playerState.hp / playerState.maxHp) <= 0.25;
 
     return (
         <div className="hud">
+            {activeBoss && <BossBar boss={activeBoss} />}
+            
             <div className="hud-top">
                 <div className="hud-top-left">
                     <div className="hud-stats-line">

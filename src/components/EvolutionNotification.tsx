@@ -1,4 +1,6 @@
 
+
+
 import React, { useEffect } from 'react';
 import { Weapon } from '../entities/Weapon';
 import { i18nManager } from '../core/i18n';

@@ -1,4 +1,6 @@
 
+
+
 import { IWeaponData } from "../utils/types";
 
 export const WEAPON_DATA: { [key: string]: IWeaponData } = {
@@ -14,6 +16,30 @@ export const WEAPON_DATA: { [key: string]: IWeaponData } = {
         range: 800,
         fireSound: 'WEAPON_BULLET',
     },
+    GATLING_GUN: {
+        id: 'GATLING_GUN',
+        nameKey: 'weapon.gatling.name',
+        icon: '🦾',
+        type: 'PROJECTILE',
+        damage: 40,
+        cooldown: 100, // Very fast
+        speed: 550,
+        penetration: 2,
+        range: 900,
+        fireSound: 'WEAPON_BULLET',
+    },
+    DOOM_CANNON: {
+        id: 'DOOM_CANNON',
+        nameKey: 'weapon.doomcannon.name',
+        icon: '👹',
+        type: 'PROJECTILE',
+        damage: 150,
+        cooldown: 80, // Extreme speed
+        speed: 700,
+        penetration: 5,
+        range: 1200,
+        fireSound: 'WEAPON_BULLET',
+    },
     BOOMERANG: {
         id: 'BOOMERANG',
         nameKey: 'weapon.boomerang.name',
@@ -24,6 +50,30 @@ export const WEAPON_DATA: { [key: string]: IWeaponData } = {
         speed: 350,
         penetration: 999, // Can hit many enemies
         range: 400, // Half a screen's width approx
+        fireSound: 'WEAPON_BOOMERANG',
+    },
+    SONIC_DISC: {
+        id: 'SONIC_DISC',
+        nameKey: 'weapon.sonicdisc.name',
+        icon: '💿',
+        type: 'BOOMERANG',
+        damage: 120,
+        cooldown: 2000,
+        speed: 600,
+        penetration: 999,
+        range: 600,
+        fireSound: 'WEAPON_BOOMERANG',
+    },
+    VOID_EATER: {
+        id: 'VOID_EATER',
+        nameKey: 'weapon.voideater.name',
+        icon: '🌌',
+        type: 'BOOMERANG',
+        damage: 250,
+        cooldown: 1500,
+        speed: 500,
+        penetration: 999,
+        range: 800,
         fireSound: 'WEAPON_BOOMERANG',
     },
     SUNFIRE: {
@@ -42,6 +92,42 @@ export const WEAPON_DATA: { [key: string]: IWeaponData } = {
             chance: 1.0,
             duration: 3000, // 3 seconds
             magnitude: 5, // 5 dps
+        }
+    },
+    SUPERNOVA: {
+        id: 'SUPERNOVA',
+        nameKey: 'weapon.supernova.name',
+        icon: '🌞',
+        type: 'AURA',
+        damage: 30,
+        cooldown: 500, // Faster tick
+        range: 160,
+        speed: 0,
+        penetration: 999,
+        fireSound: 'WEAPON_AURA',
+        statusEffect: {
+            type: 'BURN',
+            chance: 1.0,
+            duration: 4000,
+            magnitude: 20,
+        }
+    },
+    BLACK_HOLE: {
+        id: 'BLACK_HOLE',
+        nameKey: 'weapon.blackhole.name',
+        icon: '🕳️',
+        type: 'AURA',
+        damage: 100,
+        cooldown: 250, // Ultra fast tick
+        range: 250,
+        speed: 0,
+        penetration: 999,
+        fireSound: 'WEAPON_AURA',
+        statusEffect: {
+            type: 'SLOW', // Massive slow
+            chance: 1.0,
+            duration: 1000,
+            magnitude: 0.2, // 80% slow
         }
     },
     ICE_SHARD: {

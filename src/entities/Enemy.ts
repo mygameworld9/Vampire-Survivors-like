@@ -1,4 +1,6 @@
 
+
+
 import { Vector2D } from "../utils/Vector2D";
 import { IEnemyData, IStatusEffect, IWeaponStatusEffect, StatusEffectType } from "../utils/types";
 import { EnemyCache } from "../core/EnemyCache";
@@ -22,6 +24,9 @@ export class Enemy {
     private originalSpeed: number;
     private activeStatusEffects: Map<StatusEffectType, IStatusEffect> = new Map();
     private type: string;
+
+    // Flocking Optimization
+    private cachedSeparation: Vector2D = new Vector2D(0, 0);
 
     // Animation properties
     private globalTime = 0;
@@ -80,40 +85,53 @@ export class Enemy {
         this.originalSpeed = this.speed;
         this.activeStatusEffects.clear();
         this.globalTime = Math.random() * 10; // Random start frame
+        
+        // Reset Cached vectors
+        this.cachedSeparation.x = 0;
+        this.cachedSeparation.y = 0;
     }
     
-    update(dt: number, playerPos: Vector2D, neighbors: Enemy[] = []) {
+    /**
+     * Updates enemy logic.
+     * @param dt Delta time
+     * @param playerPos Player position
+     * @param neighbors List of nearby enemies for separation. If null, use cached separation.
+     */
+    update(dt: number, playerPos: Vector2D, neighbors: Enemy[] | null = null) {
         this.globalTime += dt;
         this.handleStatusEffects(dt);
         
         // --- Flocking Behavior ---
         
         // 1. Separation: Calculate vector away from nearby neighbors
-        let separationX = 0;
-        let separationY = 0;
-        let count = 0;
-        const separationThreshold = this.size * 1.5; // Avoidance radius
-        
-        for (const neighbor of neighbors) {
-            if (neighbor.id === this.id) continue;
+        // Optimization: Only recalculate if neighbors are provided (Staggered Update)
+        if (neighbors) {
+            let sepX = 0;
+            let sepY = 0;
+            const separationThreshold = this.size * 1.5; // Avoidance radius
             
-            const dx = this.pos.x - neighbor.pos.x;
-            const dy = this.pos.y - neighbor.pos.y;
-            const distSq = dx * dx + dy * dy;
-            
-            // If too close
-            if (distSq > 0 && distSq < separationThreshold * separationThreshold) {
-                const dist = Math.sqrt(distSq);
-                // The closer they are, the stronger the push (linear falloff)
-                const strength = 1.0 - (dist / separationThreshold);
+            for (const neighbor of neighbors) {
+                if (neighbor.id === this.id) continue;
                 
-                separationX += (dx / dist) * strength;
-                separationY += (dy / dist) * strength;
-                count++;
+                const dx = this.pos.x - neighbor.pos.x;
+                const dy = this.pos.y - neighbor.pos.y;
+                const distSq = dx * dx + dy * dy;
+                
+                // If too close
+                if (distSq > 0 && distSq < separationThreshold * separationThreshold) {
+                    const dist = Math.sqrt(distSq);
+                    // The closer they are, the stronger the push (linear falloff)
+                    const strength = 1.0 - (dist / separationThreshold);
+                    
+                    sepX += (dx / dist) * strength;
+                    sepY += (dy / dist) * strength;
+                }
             }
+            this.cachedSeparation.x = sepX;
+            this.cachedSeparation.y = sepY;
         }
 
-        // 2. Seek: Calculate vector towards player
+        // 2. Seek: Calculate vector towards player (Always update this for responsiveness)
         const dx = playerPos.x - this.pos.x;
         const dy = playerPos.y - this.pos.y;
         const distToPlayer = Math.sqrt(dx * dx + dy * dy);
@@ -125,11 +143,12 @@ export class Enemy {
         }
 
         // 3. Blend Forces
-        if (count > 0) {
+        // We check if we have any separation force cached
+        if (this.cachedSeparation.x !== 0 || this.cachedSeparation.y !== 0) {
             const separationWeight = 2.0; // Tuning: How much they prefer space over chasing
             
-            dirX += separationX * separationWeight;
-            dirY += separationY * separationWeight;
+            dirX += this.cachedSeparation.x * separationWeight;
+            dirY += this.cachedSeparation.y * separationWeight;
             
             // Re-normalize blended direction
             const totalLen = Math.sqrt(dirX * dirX + dirY * dirY);

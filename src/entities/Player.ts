@@ -1,4 +1,8 @@
 
+
+
+
+
 import { Vector2D } from "../utils/Vector2D";
 import { InputHandler } from "../core/InputHandler";
 import { PLAYER_DATA } from "../data/playerData";
@@ -11,7 +15,7 @@ import { Projectile } from "./Projectile";
 import { SoundManager } from "../core/SoundManager";
 import { Skill, SkillEffect } from "./Skill";
 import { SKILL_DATA } from "../data/skillData";
-import { UpgradeEffect, AnimationState } from "../utils/types";
+import { UpgradeEffect, AnimationState, IPlayerState } from "../utils/types";
 import { CHARACTER_DATA } from "../data/characterData";
 import { HomingProjectile } from "./HomingProjectile";
 import { Enemy } from "./Enemy";
@@ -33,6 +37,11 @@ export class Player {
     revives = PLAYER_DATA.revives;
     gold = 0;
     
+    // Build Control Resources
+    rerolls = 1;
+    banishes = 1;
+    skips = 1;
+    
     // Multipliers from Meta Progression
     public damageMultiplier = 1.0;
     public goldMultiplier = 1.0;
@@ -44,6 +53,7 @@ export class Player {
     weapons: Weapon[] = [];
     skills: Skill[] = [];
     private onAuraDamage: (weapon: Weapon) => void;
+    private onStatsChange?: (stats: Partial<IPlayerState>) => void;
     private soundManager: SoundManager;
     private characterId: string;
 
@@ -59,11 +69,19 @@ export class Player {
     private frameInterval = 100; // ms per frame
     private globalTime = 0;
 
-    constructor(x: number, y: number, onAuraDamage: (weapon: Weapon) => void, soundManager: SoundManager, characterId: string) {
+    constructor(
+        x: number, 
+        y: number, 
+        onAuraDamage: (weapon: Weapon) => void, 
+        soundManager: SoundManager, 
+        characterId: string,
+        onStatsChange?: (stats: Partial<IPlayerState>) => void
+    ) {
         this.pos = new Vector2D(x, y);
         this.onAuraDamage = onAuraDamage;
         this.soundManager = soundManager;
         this.characterId = characterId;
+        this.onStatsChange = onStatsChange;
         
         const charData = CHARACTER_DATA[characterId];
         if (!charData) {
@@ -111,6 +129,22 @@ export class Player {
         }
     }
 
+    private notifyStatsChange() {
+        if (this.onStatsChange) {
+            this.onStatsChange({
+                hp: Math.round(this.hp),
+                maxHp: Math.round(this.maxHp),
+                xp: this.xp,
+                xpToNext: XP_LEVELS[this.level - 1],
+                level: this.level,
+                gold: this.gold,
+                rerolls: this.rerolls,
+                banishes: this.banishes,
+                skips: this.skips
+            });
+        }
+    }
+
     addWeapon(weaponId: string) {
         if (this.weapons.find(w => w.id === weaponId)) return;
         const data = WEAPON_DATA[weaponId];
@@ -121,6 +155,23 @@ export class Player {
             }
             this.weapons.push(newWeapon);
         }
+    }
+    
+    evolveWeapon(baseWeaponId: string, evolvedWeaponId: string) {
+        const index = this.weapons.findIndex(w => w.id === baseWeaponId);
+        if (index !== -1) {
+            const data = WEAPON_DATA[evolvedWeaponId];
+            if (data) {
+                const newWeapon = new Weapon(data, this.soundManager);
+                if (newWeapon.type === 'AURA') {
+                    newWeapon.onFireAura = this.onAuraDamage;
+                }
+                // Replace in place to maintain order
+                this.weapons[index] = newWeapon;
+                return newWeapon;
+            }
+        }
+        return null;
     }
 
     addSkill(skillId: string) {
@@ -133,6 +184,10 @@ export class Player {
                 this.applyPassiveEffect(newSkill.effects);
             }
         }
+    }
+    
+    hasSkill(skillId: string): boolean {
+        return this.skills.some(s => s.id === skillId);
     }
     
     update(dt: number, input: InputHandler, enemies: Enemy[]): { projectiles: AnyProjectile[], skillEffects: SkillEffect[] } {
@@ -157,8 +212,6 @@ export class Player {
             // Normalize
             const lenSq = moveVector.x * moveVector.x + moveVector.y * moveVector.y;
             if (lenSq > 0) {
-                // If length is greater than 1 or if we want consistent speed, we normalize.
-                // We always normalize to ensure consistent speed.
                 moveVector.normalize();
                 this.facingDirection = new Vector2D(moveVector.x, moveVector.y);
             }
@@ -170,13 +223,15 @@ export class Player {
             this.state = 'Idle';
         }
 
-        // Note: We keep updateAnimation for internal frame logic, even if drawing procedurally
         this.updateAnimation(dt);
         
         // Health Regeneration
         if (this.hp > 0 && this.hp < this.maxHp) {
             this.hp += this.hpRegen * dt;
             this.hp = Math.min(this.maxHp, this.hp);
+            // Optimize: Don't notify every frame of regen, maybe every 1s or when int changes?
+            // For smoothness, let's notify on integer change or large steps
+            // this.notifyStatsChange(); 
         }
 
         const newProjectiles: AnyProjectile[] = [];
@@ -240,9 +295,9 @@ export class Player {
         if (this.isInvincible) return;
         this.soundManager.playSound('PLAYER_HURT');
         this.hp = Math.max(0, this.hp - amount);
+        this.notifyStatsChange();
+        
         if (this.hp === 0) {
-             // Logic for death/revive is now handled in GameComponent update loop
-             // based on hp === 0 state.
              if (this.revives <= 0) {
                  this.soundManager.playSound('GAME_OVER');
                  this.state = 'Dead';
@@ -252,13 +307,13 @@ export class Player {
         }
     }
 
-    // Manual revive triggered by UI
     revive() {
         if (this.revives > 0) {
             this.revives--;
             this.hp = this.maxHp / 2;
             this.setInvincible(2000);
-            this.state = 'Idle'; // Reset state from potential death
+            this.state = 'Idle';
+            this.notifyStatsChange();
         }
     }
 
@@ -270,15 +325,19 @@ export class Player {
     heal(percent: number) {
         const healAmount = this.maxHp * percent;
         this.hp = Math.min(this.maxHp, this.hp + healAmount);
+        this.notifyStatsChange();
     }
 
     gainXp(amount: number) {
         this.xp += amount;
+        this.notifyStatsChange();
+        
         if (this.xp >= XP_LEVELS[this.level - 1]) {
             this.level++;
             this.xp = 0;
             // Restore some health on level up
             this.hp = Math.min(this.maxHp, this.hp + this.maxHp * 0.2);
+            this.notifyStatsChange();
             return true;
         }
         return false;
@@ -287,6 +346,7 @@ export class Player {
     gainGold(amount: number) {
         // Apply Meta Greed Multiplier
         this.gold += Math.ceil(amount * this.goldMultiplier);
+        this.notifyStatsChange();
     }
 
     applyPassiveEffect(effects: { [key: string]: UpgradeEffect }) {
@@ -301,7 +361,6 @@ export class Player {
                 case 'speed':
                      if (effect.op === 'multiply') this.speed *= effect.value;
                      if (effect.op === 'add') this.speed += effect.value;
-                     // Force integer speed logic update, but movement remains float
                      this.speed = Math.round(this.speed);
                      break;
                 case 'hpRegen':
@@ -310,32 +369,27 @@ export class Player {
                      break;
             }
         }
-         // Heal the player by the amount of HP they gained
+        // Heal the player by the amount of HP they gained
         const hpGained = this.maxHp - oldMaxHp;
         if (hpGained > 0) {
             this.hp += hpGained;
         }
         this.hp = Math.round(this.hp);
         this.maxHp = Math.round(this.maxHp);
+        this.notifyStatsChange();
     }
 
     draw(ctx: CanvasRenderingContext2D) {
         ctx.globalAlpha = this.isInvincible ? 0.5 : 1.0;
-
-        // Use float coordinates for drawing to match camera interpolation.
-        // Rounding here causes jitter against the background.
         const drawX = this.pos.x;
         const drawY = this.pos.y;
 
-        // Draw Shadow (Cute round shadow)
         ctx.fillStyle = 'rgba(0,0,0,0.2)';
         ctx.beginPath();
         ctx.ellipse(drawX, drawY + this.size / 2 - 4, this.size / 2, this.size / 5, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        // Use Procedural Cute Rendering exclusively for the requested design
         this.drawCuteCharacter(ctx, drawX, drawY);
-        
         ctx.globalAlpha = 1.0;
     }
 

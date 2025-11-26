@@ -1,4 +1,8 @@
 
+
+
+
+
 import { Game } from "../Game";
 import { SPAWN_SCHEDULE } from "../../data/gameConfig";
 import { ENEMY_DATA } from "../../data/enemyData";
@@ -8,6 +12,7 @@ import { PROP_DATA } from "../../data/propData";
 import { Enemy } from "../../entities/Enemy";
 import { Item } from "../../entities/Item";
 import { Chest } from "../../entities/Chest";
+import { ExplorationPoint } from "../../entities/ExplorationPoint";
 
 const ELITE_SPAWN_START_TIME = 300; // 5 minutes
 const ELITE_SPAWN_CHANCE = 0.1; // 10% chance
@@ -17,8 +22,11 @@ export class SpawnSystem {
     private nextSpawnEventIndex = 0;
     private itemSpawnTimer = 0;
     private propSpawnTimer = 0;
+    private explorationSpawnTimer = 45; // Start first one early
+    
     private readonly ITEM_SPAWN_INTERVAL = 15; // seconds
     private readonly PROP_SPAWN_INTERVAL = 2; // spawn a prop every 2 seconds
+    private readonly EXPLORATION_SPAWN_INTERVAL = 60; // every 60 seconds
 
     constructor(private game: Game) {}
 
@@ -56,6 +64,16 @@ export class SpawnSystem {
         if (this.propSpawnTimer >= this.PROP_SPAWN_INTERVAL) {
             this.propSpawnTimer = 0;
             this.spawnProp();
+        }
+
+        // --- Handle Exploration Point Spawning ---
+        this.explorationSpawnTimer += dt;
+        if (this.explorationSpawnTimer >= this.EXPLORATION_SPAWN_INTERVAL) {
+            this.explorationSpawnTimer = 0;
+            // Cap at 2 points to prevent clutter if player is AFK
+            if (this.game.explorationPoints.length < 2) {
+                this.spawnExplorationPoint();
+            }
         }
     }
 
@@ -109,5 +127,20 @@ export class SpawnSystem {
         if (this.game.player) {
             this.game.chests.push(new Chest(this.game.player.pos.x + 80, this.game.player.pos.y, CHEST_DATA));
         }
+    }
+
+    spawnExplorationPoint() {
+        // Spawn far away to encourage movement
+        const angle = Math.random() * Math.PI * 2;
+        const minDist = 800;
+        const maxDist = 1500;
+        const radius = minDist + Math.random() * (maxDist - minDist);
+        
+        const x = this.game.player.pos.x + Math.cos(angle) * radius;
+        const y = this.game.player.pos.y + Math.sin(angle) * radius;
+
+        this.game.explorationPoints.push(new ExplorationPoint(x, y));
+        
+        // Notify player? Maybe a sound or hint in future updates.
     }
 }

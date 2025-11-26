@@ -1,4 +1,6 @@
 
+
+
 import { UpgradeLevel } from "../utils/types";
 
 export const UPGRADE_DATA: { [key: string]: UpgradeLevel[] } = {
@@ -10,7 +12,7 @@ export const UPGRADE_DATA: { [key: string]: UpgradeLevel[] } = {
       { "descriptionKey": "upgrade.bullet.5", "effects": { "penetration": { "op": "add", "value": 1 } } },
       { "descriptionKey": "upgrade.bullet.6", "effects": { "cooldown": { "op": "multiply", "value": 0.85 } } },
       { "descriptionKey": "upgrade.bullet.7", "effects": { "damage": { "op": "add", "value": 15 } } },
-      { "descriptionKey": "upgrade.bullet.evolution", "effects": { "cooldown": { "op": "set", "value": 50 }, "damage": { "op": "multiply", "value": 1.5 } } } // Evolution: Minigun
+      { "descriptionKey": "upgrade.max.stats", "effects": { "damage": { "op": "multiply", "value": 1.2 } } } 
     ],
     BOOMERANG: [
       { "descriptionKey": "upgrade.boomerang.1", "effects": { "damage": { "op": "add", "value": 10 } } },
@@ -18,7 +20,7 @@ export const UPGRADE_DATA: { [key: string]: UpgradeLevel[] } = {
       { "descriptionKey": "upgrade.boomerang.3", "effects": { "range": { "op": "multiply", "value": 1.2 } } },
       { "descriptionKey": "upgrade.boomerang.4", "effects": { "damage": { "op": "add", "value": 15 } } },
       { "descriptionKey": "upgrade.boomerang.5", "effects": { "cooldown": { "op": "multiply", "value": 0.80 } } },
-      { "descriptionKey": "upgrade.boomerang.evolution", "effects": { "cooldown": { "op": "multiply", "value": 0.5 }, "range": { "op": "multiply", "value": 1.5 } } } // Evolution: Storm Squirrel
+      { "descriptionKey": "upgrade.max.stats", "effects": { "damage": { "op": "multiply", "value": 1.2 } } }
     ],
     SUNFIRE: [
       { "descriptionKey": "upgrade.sunfire.1", "effects": { "damage": { "op": "add", "value": 5 } } },
@@ -29,8 +31,32 @@ export const UPGRADE_DATA: { [key: string]: UpgradeLevel[] } = {
       { "descriptionKey": "upgrade.sunfire.6", "effects": { "cooldown": { "op": "multiply", "value": 0.85 } } },
       { "descriptionKey": "upgrade.sunfire.7", "effects": { "range": { "op": "multiply", "value": 1.20 } } },
       { "descriptionKey": "upgrade.sunfire.8", "effects": { "damage": { "op": "add", "value": 15 } } },
-      { "descriptionKey": "upgrade.sunfire.evolution", "effects": { "cooldown": { "op": "set", "value": 50 } } } // Evolution: Supernova
+      { "descriptionKey": "upgrade.max.stats", "effects": { "damage": { "op": "multiply", "value": 1.2 } } }
     ],
+    // --- TIER 2 UPGRADES (To allow reaching Level 6 for Tier 3 evolution) ---
+    GATLING_GUN: [
+        { "descriptionKey": "upgrade.gatling.1", "effects": { "damage": { "op": "add", "value": 10 } } },
+        { "descriptionKey": "upgrade.gatling.2", "effects": { "penetration": { "op": "add", "value": 1 } } },
+        { "descriptionKey": "upgrade.gatling.3", "effects": { "cooldown": { "op": "multiply", "value": 0.9 } } },
+        { "descriptionKey": "upgrade.gatling.4", "effects": { "damage": { "op": "add", "value": 20 } } },
+        { "descriptionKey": "upgrade.max.stats", "effects": { "damage": { "op": "multiply", "value": 1.2 } } }
+    ],
+    SONIC_DISC: [
+        { "descriptionKey": "upgrade.sonicdisc.1", "effects": { "range": { "op": "multiply", "value": 1.2 } } },
+        { "descriptionKey": "upgrade.sonicdisc.2", "effects": { "damage": { "op": "add", "value": 20 } } },
+        { "descriptionKey": "upgrade.sonicdisc.3", "effects": { "cooldown": { "op": "multiply", "value": 0.8 } } },
+        { "descriptionKey": "upgrade.sonicdisc.4", "effects": { "damage": { "op": "add", "value": 30 } } },
+        { "descriptionKey": "upgrade.max.stats", "effects": { "damage": { "op": "multiply", "value": 1.2 } } }
+    ],
+    SUPERNOVA: [
+        { "descriptionKey": "upgrade.supernova.1", "effects": { "range": { "op": "multiply", "value": 1.2 } } },
+        { "descriptionKey": "upgrade.supernova.2", "effects": { "damage": { "op": "add", "value": 10 } } },
+        { "descriptionKey": "upgrade.supernova.3", "effects": { "cooldown": { "op": "multiply", "value": 0.8 } } },
+        { "descriptionKey": "upgrade.supernova.4", "effects": { "damage": { "op": "add", "value": 20 } } },
+        { "descriptionKey": "upgrade.max.stats", "effects": { "damage": { "op": "multiply", "value": 1.2 } } }
+    ],
+    
+    // --- EXISTING WEAPONS ---
     ICE_SHARD: [
       { "descriptionKey": "upgrade.iceshard.1", "effects": { "firePattern": { "op": "set", "value": "forward_backward" } } },
       { "descriptionKey": "upgrade.iceshard.2", "effects": { "damage": { "op": "add", "value": 10 } } },
@@ -39,7 +65,7 @@ export const UPGRADE_DATA: { [key: string]: UpgradeLevel[] } = {
       { "descriptionKey": "upgrade.iceshard.5", "effects": { "damage": { "op": "add", "value": 15 } } },
       { "descriptionKey": "upgrade.iceshard.6", "effects": { "cooldown": { "op": "multiply", "value": 0.9 } } },
       { "descriptionKey": "upgrade.iceshard.7", "effects": { "cooldown": { "op": "multiply", "value": 0.9 } } },
-      { "descriptionKey": "upgrade.iceshard.evolution", "effects": { "firePattern": { "op": "set", "value": "all_8" }, "cooldown": { "op": "multiply", "value": 0.6 } } } // Evolution: Frozen Star
+      { "descriptionKey": "upgrade.max.stats", "effects": { "firePattern": { "op": "set", "value": "all_8" }, "cooldown": { "op": "multiply", "value": 0.6 } } } 
     ],
     MAGIC_MISSILE: [
       { "descriptionKey": "upgrade.magicmissile.1", "effects": { "damage": { "op": "add", "value": 8 } } },
@@ -47,17 +73,17 @@ export const UPGRADE_DATA: { [key: string]: UpgradeLevel[] } = {
       { "descriptionKey": "upgrade.magicmissile.3", "effects": { "speed": { "op": "add", "value": 50 } } },
       { "descriptionKey": "upgrade.magicmissile.4", "effects": { "damage": { "op": "add", "value": 10 } } },
       { "descriptionKey": "upgrade.magicmissile.5", "effects": { "cooldown": { "op": "multiply", "value": 0.85 } } },
-      { "descriptionKey": "upgrade.magicmissile.evolution", "effects": { "cooldown": { "op": "multiply", "value": 0.2 }, "damage": { "op": "multiply", "value": 0.8 } } } // Evolution: Arcane Machinegun
+      { "descriptionKey": "upgrade.max.stats", "effects": { "cooldown": { "op": "multiply", "value": 0.2 }, "damage": { "op": "multiply", "value": 0.8 } } }
     ],
     THUNDER_STAFF: [
-        { "descriptionKey": "upgrade.thunderstaff.1", "effects": { "penetration": { "op": "add", "value": 1 } } }, // +1 target
+        { "descriptionKey": "upgrade.thunderstaff.1", "effects": { "penetration": { "op": "add", "value": 1 } } }, 
         { "descriptionKey": "upgrade.thunderstaff.2", "effects": { "damage": { "op": "add", "value": 15 } } },
-        { "descriptionKey": "upgrade.thunderstaff.3", "effects": { "range": { "op": "multiply", "value": 1.25 } } }, // Wider AOE
+        { "descriptionKey": "upgrade.thunderstaff.3", "effects": { "range": { "op": "multiply", "value": 1.25 } } },
         { "descriptionKey": "upgrade.thunderstaff.4", "effects": { "penetration": { "op": "add", "value": 1 } } },
         { "descriptionKey": "upgrade.thunderstaff.5", "effects": { "cooldown": { "op": "multiply", "value": 0.8 } } },
         { "descriptionKey": "upgrade.thunderstaff.6", "effects": { "damage": { "op": "add", "value": 20 } } },
         { "descriptionKey": "upgrade.thunderstaff.7", "effects": { "penetration": { "op": "add", "value": 2 } } },
-        { "descriptionKey": "upgrade.thunderstaff.evolution", "effects": { "penetration": { "op": "add", "value": 5 }, "range": { "op": "multiply", "value": 1.5 } } } // Evolution: Thor's Wrath
+        { "descriptionKey": "upgrade.max.stats", "effects": { "penetration": { "op": "add", "value": 5 }, "range": { "op": "multiply", "value": 1.5 } } }
     ],
     KATANA: [
         { "descriptionKey": "upgrade.katana.1", "effects": { "damage": { "op": "add", "value": 10 } } },
@@ -66,6 +92,6 @@ export const UPGRADE_DATA: { [key: string]: UpgradeLevel[] } = {
         { "descriptionKey": "upgrade.katana.4", "effects": { "damage": { "op": "add", "value": 15 } } },
         { "descriptionKey": "upgrade.katana.5", "effects": { "range": { "op": "multiply", "value": 1.2 } } },
         { "descriptionKey": "upgrade.katana.6", "effects": { "cooldown": { "op": "multiply", "value": 0.8 } } },
-        { "descriptionKey": "upgrade.katana.evolution", "effects": { "firePattern": { "op": "set", "value": "all_8" }, "cooldown": { "op": "multiply", "value": 0.5 } } } // Evolution: Omnislash
+        { "descriptionKey": "upgrade.max.stats", "effects": { "firePattern": { "op": "set", "value": "all_8" }, "cooldown": { "op": "multiply", "value": 0.5 } } } 
     ]
 };

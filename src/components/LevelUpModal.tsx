@@ -1,4 +1,6 @@
 
+
+
 import React from 'react';
 import { UpgradeOption } from '../utils/types';
 import { i18nManager } from '../core/i18n';
@@ -6,6 +8,12 @@ import { i18nManager } from '../core/i18n';
 interface LevelUpModalProps {
     options: UpgradeOption[];
     onSelect: (option: UpgradeOption) => void;
+    onReroll: () => void;
+    onBanish: (option: UpgradeOption) => void;
+    onSkip: () => void;
+    rerollsLeft: number;
+    banishesLeft: number;
+    skipsLeft: number;
 }
 
 const renderOption = (option: UpgradeOption) => {
@@ -52,20 +60,109 @@ const renderOption = (option: UpgradeOption) => {
     );
 };
 
-export const LevelUpModal: React.FC<LevelUpModalProps> = ({ options, onSelect }) => {
+export const LevelUpModal: React.FC<LevelUpModalProps> = ({ 
+    options, onSelect, 
+    onReroll, onBanish, onSkip,
+    rerollsLeft, banishesLeft, skipsLeft 
+}) => {
     return (
         <div className="level-up-modal-backdrop">
             <div className="level-up-modal">
                 <h2>{i18nManager.t('ui.levelup.title')}</h2>
                 <p>{i18nManager.t('ui.levelup.subtitle')}</p>
+                
                 <div className="level-up-options">
                     {options.map((opt, index) => (
-                        <div className="level-up-option" key={index} onClick={() => onSelect(opt)}>
-                            {renderOption(opt)}
+                        <div className="level-up-option-container" key={index}>
+                            <div className="level-up-option" onClick={() => onSelect(opt)}>
+                                {renderOption(opt)}
+                            </div>
+                            {/* Banish Button below option */}
+                            {banishesLeft > 0 && (
+                                <button 
+                                    className="banish-btn" 
+                                    onClick={(e) => { e.stopPropagation(); onBanish(opt); }}
+                                    title="Banish this item"
+                                >
+                                    🚫 Banish
+                                </button>
+                            )}
                         </div>
                     ))}
                 </div>
+
+                <div className="level-up-controls">
+                    <button 
+                        className="control-btn reroll" 
+                        onClick={onReroll} 
+                        disabled={rerollsLeft <= 0}
+                    >
+                        🎲 Reroll ({rerollsLeft})
+                    </button>
+                    <button 
+                        className="control-btn skip" 
+                        onClick={onSkip}
+                        disabled={skipsLeft <= 0}
+                    >
+                        ⏩ Skip ({skipsLeft})
+                    </button>
+                </div>
             </div>
+            <style>{`
+                .level-up-option-container {
+                    flex: 1;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0.5rem;
+                }
+                .banish-btn {
+                    background: #ef5350;
+                    border: none;
+                    color: white;
+                    border-radius: 15px;
+                    padding: 5px 10px;
+                    cursor: pointer;
+                    font-weight: bold;
+                    align-self: center;
+                    opacity: 0.8;
+                }
+                .banish-btn:hover {
+                    opacity: 1;
+                    transform: scale(1.05);
+                }
+                .level-up-controls {
+                    margin-top: 2rem;
+                    display: flex;
+                    justify-content: center;
+                    gap: 1rem;
+                }
+                .control-btn {
+                    padding: 0.8rem 1.5rem;
+                    border: none;
+                    border-radius: 30px;
+                    font-weight: bold;
+                    font-size: 1.1rem;
+                    cursor: pointer;
+                    color: white;
+                    box-shadow: 0 4px 0 rgba(0,0,0,0.2);
+                    transition: transform 0.1s;
+                }
+                .control-btn:active {
+                    transform: translateY(2px);
+                    box-shadow: 0 2px 0 rgba(0,0,0,0.2);
+                }
+                .control-btn:disabled {
+                    opacity: 0.5;
+                    cursor: not-allowed;
+                    filter: grayscale(1);
+                }
+                .control-btn.reroll {
+                    background-color: #42a5f5;
+                }
+                .control-btn.skip {
+                    background-color: #ffa726;
+                }
+            `}</style>
         </div>
     );
 };

@@ -1,5 +1,7 @@
 
 
+
+
 import { Weapon } from "../entities/Weapon";
 import { Skill } from "../entities/Skill";
 
@@ -22,6 +24,12 @@ export interface UpgradeLevel {
     effects: {
         [key: string]: AnyUpgradeEffect;
     };
+}
+
+export interface EvolutionRecipe {
+    baseWeaponId: string;
+    requiredSkillId: string;
+    evolvedWeaponId: string;
 }
 
 export type StatusEffectType = 'BURN' | 'SLOW';
@@ -122,6 +130,10 @@ export interface IPlayerState {
     xpToNext: number;
     level: number;
     gold: number;
+    // Build Control Resources
+    rerolls: number;
+    banishes: number;
+    skips: number;
 }
 
 export type AnimationState = {
@@ -240,4 +252,11 @@ export interface ISaveData {
 export interface CreativeLoadout {
     weapons: { id: string, level: number }[];
     skills: { id: string, level: number }[];
+}
+
+export interface BossData {
+    id: number;
+    name: string;
+    hp: number;
+    maxHp: number;
 }

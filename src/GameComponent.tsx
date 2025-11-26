@@ -1,8 +1,14 @@
 
+
+
+
+
+
+
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Game } from './core/Game';
 import { XP_LEVELS } from './data/gameConfig';
-import { IPlayerState, UpgradeOption, CreativeLoadout } from './utils/types';
+import { IPlayerState, UpgradeOption, CreativeLoadout, BossData } from './utils/types';
 import { Weapon } from './entities/Weapon';
 import { HUD } from './components/HUD';
 import { LevelUpModal } from './components/LevelUpModal';
@@ -28,27 +34,18 @@ import { StartScreen } from './components/StartScreen';
 import { GameOverScreen } from './components/GameOverScreen';
 import { EvolutionNotification } from './components/EvolutionNotification';
 import { VirtualJoystick } from './components/VirtualJoystick';
+import { Minimap } from './components/Minimap';
 
 type GameState = 'start' | 'characterSelect' | 'creativeSetup' | 'mapSelect' | 'playing' | 'levelUp' | 'gameOver' | 'paused' | 'chestOpening' | 'armory' | 'revive' | 'evolution';
 type InfoPanelState = 'none' | 'weapons' | 'skills';
-
-// Fisher-Yates shuffle
-const shuffleArray = (array: any[]) => {
-    for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
-    }
-    return array;
-}
 
 export const GameComponent: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const gameRef = useRef<Game | null>(null);
     const animationFrameId = useRef<number | null>(null);
     const soundManagerRef = useRef<SoundManager | null>(null);
-    const lastUIUpdateRef = useRef<number>(0);
     
-    // Refs for tracking state changes to avoid unnecessary re-renders
+    // Refs for tracking state changes
     const lastWeaponsHash = useRef<string>("");
     const lastSkillsHash = useRef<string>("");
 
@@ -56,7 +53,13 @@ export const GameComponent: React.FC = () => {
     const [openingChest, setOpeningChest] = useState<Chest | null>(null);
     const [evolvedWeapon, setEvolvedWeapon] = useState<Weapon | null>(null);
     const [infoPanel, setInfoPanel] = useState<InfoPanelState>('none');
-    const [playerState, setPlayerState] = useState<IPlayerState>({ hp: 0, maxHp: 1, xp: 0, xpToNext: 1, level: 1, gold: 0 });
+    
+    // Initial state
+    const [playerState, setPlayerState] = useState<IPlayerState>({ 
+        hp: 0, maxHp: 1, xp: 0, xpToNext: 1, level: 1, gold: 0,
+        rerolls: 0, banishes: 0, skips: 0
+    });
+    const [activeBoss, setActiveBoss] = useState<BossData | undefined>(undefined);
     const [gameTime, setGameTime] = useState(0);
     const [weapons, setWeapons] = useState<Weapon[]>([]);
     const [skills, setSkills] = useState<Skill[]>([]);
@@ -66,6 +69,7 @@ export const GameComponent: React.FC = () => {
     const [showCodex, setShowCodex] = useState(false);
     const [selectedCharacter, setSelectedCharacter] = useState<string | null>(null);
     const [selectedMap, setSelectedMap] = useState<string | null>(null);
+    const [showMinimap, setShowMinimap] = useState(true);
     
     // Creative Mode State
     const [isCreativeMode, setIsCreativeMode] = useState(false);
@@ -88,60 +92,8 @@ export const GameComponent: React.FC = () => {
 
     const generateUpgradeOptions = useCallback(() => {
         if (!gameRef.current) return;
-        const game = gameRef.current;
-        const player = game.player;
-
-        const MAX_SLOTS = 6;
-
-        // 1. Get available weapon upgrades
-        const availableWeaponUpgrades = player.weapons
-            .filter(w => !w.isMaxLevel())
-            .map(w => ({ type: 'upgrade', weapon: w } as UpgradeOption));
-
-        // 2. Get available new weapons (Only if slots available)
-        let availableNewWeapons: UpgradeOption[] = [];
-        if (player.weapons.length < MAX_SLOTS) {
-            const ownedWeaponIds = new Set(player.weapons.map(w => w.id));
-            availableNewWeapons = Object.values(WEAPON_DATA)
-                .filter(wd => !ownedWeaponIds.has(wd.id))
-                .map(wd => ({ type: 'new', weaponData: wd } as UpgradeOption));
-        }
-        
-        // 3. Get available skill upgrades
-        const availableSkillUpgrades = player.skills
-            .filter(s => !s.isMaxLevel())
-            .map(s => ({ type: 'upgrade', skill: s } as UpgradeOption));
-
-        // 4. Get available new skills (Only if slots available)
-        let availableNewSkills: UpgradeOption[] = [];
-        if (player.skills.length < MAX_SLOTS) {
-            const ownedSkillIds = new Set(player.skills.map(s => s.id));
-            availableNewSkills = Object.values(SKILL_DATA)
-                .filter(sd => !ownedSkillIds.has(sd.id))
-                .map(sd => ({ type: 'new', skillData: sd } as UpgradeOption));
-            
-             // *** RULE: No new skills on the first level up (player level will be 2) ***
-            if (player.level === 2) {
-                availableNewSkills = [];
-            }
-        }
-
-        const optionsPool = [
-            ...availableWeaponUpgrades,
-            ...availableNewWeapons,
-            ...availableSkillUpgrades,
-            ...availableNewSkills
-        ];
-
-        if (optionsPool.length === 0) {
-            // All maxed out! Offer Health or Gold
-            setUpgradeOptions([
-                { type: 'heal', amount: 0.5 }, // 50% Heal
-                { type: 'gold', amount: 50 }   // 50 Gold
-            ]);
-        } else {
-            setUpgradeOptions(shuffleArray(optionsPool).slice(0, 3));
-        }
+        const options = gameRef.current.generateUpgradeOptions();
+        setUpgradeOptions(options);
         setGameState('levelUp');
     }, []);
 
@@ -155,25 +107,58 @@ export const GameComponent: React.FC = () => {
             gameRef.current.finalizeChestOpening(openingChest);
         }
         setOpeningChest(null);
-        setGameState('playing');
+        setGameState(prev => prev === 'evolution' ? 'evolution' : 'playing');
     }, [openingChest]);
     
+    const handleEvolutionTrigger = useCallback((weapon: Weapon) => {
+        setEvolvedWeapon(weapon);
+        setGameState('evolution');
+        lastWeaponsHash.current = ""; 
+    }, []);
+
+    // --- BUILD CONTROLS HANDLERS ---
+    const handleReroll = () => {
+        if (!gameRef.current) return;
+        const newOptions = gameRef.current.performReroll();
+        if (newOptions) {
+            setUpgradeOptions(newOptions);
+        }
+    };
+
+    const handleBanish = (option: UpgradeOption) => {
+        if (!gameRef.current) return;
+        const newOptions = gameRef.current.performBanish(option);
+        if (newOptions) {
+            setUpgradeOptions(newOptions);
+        }
+    };
+
+    const handleSkip = () => {
+        if (!gameRef.current) return;
+        gameRef.current.performSkip();
+        setGameState('playing');
+    };
+    // ------------------------------
+
     const startGame = useCallback((characterId: string, mapId: string, loadout?: CreativeLoadout) => {
         stopGameLoop();
         if (!canvasRef.current) return;
 
-        // Reset UI state to avoid stale data flash
+        // Reset UI state
         setWeapons([]);
         setSkills([]);
-        setPlayerState({ hp: 0, maxHp: 1, xp: 0, xpToNext: 1, level: 1, gold: 0 });
+        setPlayerState({ 
+            hp: 0, maxHp: 1, xp: 0, xpToNext: 1, level: 1, gold: 0,
+            rerolls: 0, banishes: 0, skips: 0 
+        });
         setGameTime(0);
+        setActiveBoss(undefined);
         lastWeaponsHash.current = "";
         lastSkillsHash.current = "";
 
         if (!soundManagerRef.current) {
             soundManagerRef.current = new SoundManager(SOUND_DATA);
         }
-        // This is the user interaction point required by browsers to enable audio.
         soundManagerRef.current.init();
 
         const canvas = canvasRef.current;
@@ -184,7 +169,8 @@ export const GameComponent: React.FC = () => {
             canvas.width, 
             canvas.height, 
             generateUpgradeOptions, 
-            handleChestOpenStart, 
+            handleChestOpenStart,
+            handleEvolutionTrigger,
             soundManagerRef.current, 
             characterId, 
             mapId, 
@@ -192,26 +178,35 @@ export const GameComponent: React.FC = () => {
         );
         gameRef.current = game;
         
+        // --- EVENT SUBSCRIPTIONS (Refactored from polling) ---
+        game.events.on('player-update', (stats: Partial<IPlayerState>) => {
+            setPlayerState(prev => ({ ...prev, ...stats }));
+        });
+
+        game.events.on('boss-update', (bossData: BossData | null) => {
+            setActiveBoss(bossData || undefined);
+        });
+        // --------------------------------------------------
+        
+        // Force initial state set
+        const p = game.player;
+        setPlayerState({
+            hp: p.hp, maxHp: p.maxHp, xp: p.xp, xpToNext: XP_LEVELS[p.level-1], level: p.level, gold: p.gold,
+            rerolls: p.rerolls, banishes: p.banishes, skips: p.skips
+        });
+
         let lastTime = performance.now();
 
         const gameLoop = (timestamp: number) => {
             animationFrameId.current = requestAnimationFrame(gameLoop);
-            
-            // Calculate delta time in seconds
             let dt = (timestamp - lastTime) / 1000;
-            
-            // Cap dt at 0.1s (100ms) to prevent massive jumps due to lag spikes/tab switching
             if (dt > 0.1) dt = 0.1;
-            // Prevent negative dt which can happen in rare cases with precision timers
             if (dt < 0) dt = 0;
-            
             lastTime = timestamp;
             
-            // Handle Death / Revive Logic
             if (game.player.hp <= 0 && gameStateRef.current !== 'revive' && gameStateRef.current !== 'gameOver') {
                 if (game.player.revives > 0) {
                     setGameState('revive');
-                    // Loop continues but update is paused by check below
                 } else {
                     progressionManager.addGold(game.player.gold);
                     soundManagerRef.current?.stopBGM();
@@ -227,42 +222,29 @@ export const GameComponent: React.FC = () => {
             game.updateAnimations(dt);
             game.draw(canvas.getContext('2d')!);
             
-            // Optimization: Throttle UI updates to ~10 FPS (every 100ms)
-            // This prevents React from re-rendering 60 times a second which causes stutter
-            if (timestamp - lastUIUpdateRef.current > 100) {
-                lastUIUpdateRef.current = timestamp;
-                setPlayerState({
-                    hp: Math.round(game.player.hp),
-                    maxHp: Math.round(game.player.maxHp),
-                    xp: game.player.xp,
-                    xpToNext: XP_LEVELS[game.player.level - 1] || Infinity,
-                    level: game.player.level,
-                    gold: game.player.gold,
-                });
-
-                // Dirty Check for Weapons to avoid expensive array cloning and re-renders
-                const currentWeaponsHash = game.player.weapons.map(w => w.id + w.level).join(',');
-                if (currentWeaponsHash !== lastWeaponsHash.current) {
-                    setWeapons([...game.player.weapons]);
-                    lastWeaponsHash.current = currentWeaponsHash;
-                }
-
-                // Dirty Check for Skills
-                const currentSkillsHash = game.player.skills.map(s => s.id + s.level).join(',');
-                if (currentSkillsHash !== lastSkillsHash.current) {
-                    setSkills([...game.player.skills]);
-                    lastSkillsHash.current = currentSkillsHash;
-                }
-
-                setGameTime(game.gameTime);
+            // Update simple timers/visuals that don't need exact sync
+            // (Game time is fine to update per frame or throttled, keeping throttling for performance)
+            // Inventory check is also kept here as it's structure driven
+            
+            // Dirty Check for Weapons/Skills
+            const currentWeaponsHash = game.player.weapons.map(w => w.id + w.level).join(',');
+            if (currentWeaponsHash !== lastWeaponsHash.current) {
+                setWeapons([...game.player.weapons]);
+                lastWeaponsHash.current = currentWeaponsHash;
             }
+            const currentSkillsHash = game.player.skills.map(s => s.id + s.level).join(',');
+            if (currentSkillsHash !== lastSkillsHash.current) {
+                setSkills([...game.player.skills]);
+                lastSkillsHash.current = currentSkillsHash;
+            }
+
+            setGameTime(game.gameTime);
         };
         
         animationFrameId.current = requestAnimationFrame(gameLoop);
 
-    }, [generateUpgradeOptions, stopGameLoop, handleChestOpenStart]);
+    }, [generateUpgradeOptions, stopGameLoop, handleChestOpenStart, handleEvolutionTrigger]);
 
-    // Use a ref to get the latest gameState inside the game loop
     const gameStateRef = useRef(gameState);
     useEffect(() => {
         gameStateRef.current = gameState;
@@ -273,34 +255,17 @@ export const GameComponent: React.FC = () => {
         const player = gameRef.current.player;
 
         if (option.type === 'upgrade') {
-            if ('weapon' in option) {
-                const wasMax = option.weapon.isMaxLevel();
-                option.weapon.levelUp();
-                // Check if it just became max level
-                if (!wasMax && option.weapon.isMaxLevel()) {
-                    setEvolvedWeapon(option.weapon);
-                    setGameState('evolution');
-                    // Don't break/return here immediately if we want to process other logic,
-                    // but for state transition, we return to prevent setting 'playing' below.
-                    // Reset hashes to ensure UI reflects new stats behind the modal
-                    lastWeaponsHash.current = ""; 
-                    return;
-                }
-            } else { // skill
-                option.skill.levelUp(player);
-            }
+            if ('weapon' in option) option.weapon.levelUp();
+            else option.skill.levelUp(player);
         } else if (option.type === 'new') {
-            if ('weaponData' in option) {
-                player.addWeapon(option.weaponData.id);
-            } else { // skillData
-                player.addSkill(option.skillData.id);
-            }
+            if ('weaponData' in option) player.addWeapon(option.weaponData.id);
+            else player.addSkill(option.skillData.id);
         } else if (option.type === 'heal') {
-            player.heal(option.amount); // amount is percent here (0.5)
+            player.heal(option.amount);
         } else if (option.type === 'gold') {
             player.gainGold(option.amount);
         }
-        // Reset hashes to force UI update after upgrade
+        
         lastWeaponsHash.current = "";
         lastSkillsHash.current = "";
         setGameState('playing');
@@ -329,18 +294,16 @@ export const GameComponent: React.FC = () => {
 
     const handleMainMenu = () => {
         if (gameRef.current && gameStateRef.current !== 'gameOver' && gameStateRef.current !== 'start') {
-             // In case user quits mid-game (from pause menu), save their gold
              progressionManager.addGold(gameRef.current.player.gold);
         }
         soundManagerRef.current?.stopBGM();
         stopGameLoop();
         gameRef.current = null;
         
-        // Explicitly reset UI state
         setWeapons([]);
         setSkills([]);
         setGameTime(0);
-        setPlayerState({ hp: 0, maxHp: 1, xp: 0, xpToNext: 1, level: 1, gold: 0 });
+        setPlayerState({ hp: 0, maxHp: 1, xp: 0, xpToNext: 1, level: 1, gold: 0, rerolls: 0, banishes: 0, skips: 0 });
         setGameState('start');
         setIsCreativeMode(false);
         setCreativeLoadout(undefined);
@@ -351,7 +314,6 @@ export const GameComponent: React.FC = () => {
             setGameState('playing');
             startGame(selectedCharacter, selectedMap, creativeLoadout);
         } else {
-            // Fallback to main menu if selections are lost for some reason
             handleMainMenu();
         }
     };
@@ -371,7 +333,7 @@ export const GameComponent: React.FC = () => {
     };
 
     const handleMapSelect = (mapId: string) => {
-        if (!selectedCharacter) return; // Should not happen
+        if (!selectedCharacter) return;
         setSelectedMap(mapId);
         setGameState('playing');
         startGame(selectedCharacter, mapId, creativeLoadout);
@@ -445,20 +407,31 @@ export const GameComponent: React.FC = () => {
                   weapons={weapons}
                   skills={skills}
                   onPause={() => setGameState('paused')}
+                  activeBoss={activeBoss}
                 />
+                <div className="hud-minimap-toggle" onClick={() => setShowMinimap(!showMinimap)}>
+                    {showMinimap ? '👁️' : '🙈'}
+                </div>
+                
+                {gameRef.current && (
+                    <Minimap game={gameRef.current} visible={showMinimap} />
+                )}
+
                 <VirtualJoystick onMove={(x, y) => gameRef.current?.input.setJoystick(x, y)} />
-                { gameState === 'playing' &&
-                    <button 
-                        className="debug-button" 
-                        onClick={() => gameRef.current?.spawnChestNearPlayer()}>
-                        Spawn Chest
-                    </button>
-                }
               </>
             )}
 
             {gameState === 'levelUp' && (
-                <LevelUpModal options={upgradeOptions} onSelect={handleSelectUpgrade} />
+                <LevelUpModal 
+                    options={upgradeOptions} 
+                    onSelect={handleSelectUpgrade}
+                    onReroll={handleReroll}
+                    onBanish={handleBanish}
+                    onSkip={handleSkip}
+                    rerollsLeft={playerState.rerolls}
+                    banishesLeft={playerState.banishes}
+                    skipsLeft={playerState.skips}
+                />
             )}
             
             {gameState === 'evolution' && evolvedWeapon && (
