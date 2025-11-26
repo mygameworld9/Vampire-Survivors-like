@@ -303,7 +303,6 @@ export class SoundManager {
                 const noiseSrc = ctx.createBufferSource();
                 noiseSrc.buffer = this.noiseBuffer;
                 const noiseGain = ctx.createGain();
-                noiseSrc.connect(noiseGain);
                 noiseGain.connect(output);
                 
                 // Lowpass filter for deep fire sound
