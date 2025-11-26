@@ -11,7 +11,7 @@ export class BoomerangProjectile {
     speed: number;
     penetration: number;
     range: number;
-    size = 20; // Reduced size for cuteness
+    size = 32; // Increased size to match player (was 20)
     shouldBeRemoved = false;
     hitEnemies: Set<number> = new Set(); // Stores Enemy IDs
     statusEffect?: IWeaponStatusEffect;
@@ -42,7 +42,6 @@ export class BoomerangProjectile {
     }
 
     update(dt: number) {
-        // We keep rotationAngle updating just in case, though we calculate facing direction in draw
         this.rotationAngle += 15 * dt;
         if (this.catchCooldown > 0) this.catchCooldown -= dt;
 
@@ -73,106 +72,46 @@ export class BoomerangProjectile {
 
     draw(ctx: CanvasRenderingContext2D) {
         ctx.save();
-        // Remove rounding to prevent jitter
         ctx.translate(this.pos.x, this.pos.y);
         
-        // Calculate facing angle based on movement state
-        let angle = 0;
-        if (this.state === 'outward') {
-             angle = Math.atan2(this.direction.y, this.direction.x);
-        } else {
-             // Face the owner when returning
-             const dx = this.owner.pos.x - this.pos.x;
-             const dy = this.owner.pos.y - this.pos.y;
-             angle = Math.atan2(dy, dx);
-        }
+        // Shadow (Draw before rotation)
+        ctx.fillStyle = 'rgba(0,0,0,0.2)';
+        ctx.beginPath();
+        ctx.ellipse(0, 6, 10, 3, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Spin the frisbee
+        ctx.rotate(this.rotationAngle);
         
-        ctx.rotate(angle);
-        
-        // Visual Scale adjustment
         const scale = this.size / 20; 
         ctx.scale(scale, scale);
 
-        // Shadow
-        ctx.fillStyle = 'rgba(0,0,0,0.2)';
+        // Frisbee Body
+        ctx.fillStyle = '#76FF03'; // Light Green
         ctx.beginPath();
-        ctx.ellipse(0, 6, 8, 4, 0, 0, Math.PI * 2);
+        ctx.arc(0, 0, 10, 0, Math.PI * 2);
         ctx.fill();
 
-        // --- Draw Cute Flying Squirrel (Compacted Length) ---
+        // Rings
+        ctx.strokeStyle = '#33691E'; // Dark Green
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, 0, 10, 0, Math.PI * 2); // Outer rim
+        ctx.stroke();
         
-        // 1. Patagium (Gliding Membrane) - Compacted
-        ctx.fillStyle = '#D7CCC8'; // Light Beige
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = '#64DD17';
         ctx.beginPath();
-        // Left wing
-        ctx.moveTo(2, -4);   
-        ctx.lineTo(-4, -10); 
-        ctx.quadraticCurveTo(0, -7, 2, -4);
-        ctx.fill();
-        
-        // Right wing
-        ctx.beginPath();
-        ctx.moveTo(2, 4);
-        ctx.lineTo(-4, 10);
-        ctx.quadraticCurveTo(0, 7, 2, 4);
-        ctx.fill();
+        ctx.arc(0, 0, 7, 0, Math.PI * 2); // Inner ridge
+        ctx.stroke();
 
-        // 2. Tail (Bushy - Shortened)
-        ctx.fillStyle = '#5D4037'; // Dark Brown
-        ctx.beginPath();
-        ctx.ellipse(-7, 0, 5, 4, 0, 0, Math.PI * 2);
-        ctx.fill();
-
-        // 3. Body (Shortened)
-        ctx.fillStyle = '#8D6E63'; // Brown
-        ctx.beginPath();
-        ctx.ellipse(0, 0, 6, 4.5, 0, 0, Math.PI * 2);
-        ctx.fill();
-
-        // 4. Head (Closer to body)
-        ctx.beginPath();
-        ctx.arc(5, 0, 5, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Ears
-        ctx.beginPath();
-        ctx.moveTo(6, -3);
-        ctx.lineTo(8, -7);
-        ctx.lineTo(4, -3);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.moveTo(6, 3);
-        ctx.lineTo(8, 7);
-        ctx.lineTo(4, 3);
-        ctx.fill();
-
-        // Face
-        ctx.fillStyle = '#212121'; // Eyes
-        ctx.beginPath();
-        ctx.arc(6.5, -2, 1.2, 0, Math.PI*2);
-        ctx.arc(6.5, 2, 1.2, 0, Math.PI*2);
-        ctx.fill();
-        
-        ctx.fillStyle = '#FFAB91'; // Nose
-        ctx.beginPath();
-        ctx.arc(8, 0, 0.8, 0, Math.PI*2);
-        ctx.fill();
-
-        // Eye Shine
-        ctx.fillStyle = 'white'; 
-        ctx.beginPath();
-        ctx.arc(7, -2.2, 0.5, 0, Math.PI * 2);
-        ctx.arc(7, 1.8, 0.5, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Speed Lines / Wind Effect
-        if (this.state === 'outward' || this.distanceTraveled > 20) {
-             ctx.strokeStyle = 'rgba(255,255,255,0.5)';
-             ctx.lineWidth = 1.5;
-             ctx.beginPath();
-             ctx.moveTo(-10, -3); ctx.lineTo(-15, -3);
-             ctx.moveTo(-10, 3); ctx.lineTo(-15, 3);
-             ctx.stroke();
+        // Pattern to show spin
+        ctx.fillStyle = '#1B5E20';
+        for(let i=0; i<3; i++) {
+            ctx.beginPath();
+            ctx.arc(6, 0, 1.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.rotate((Math.PI * 2) / 3);
         }
 
         ctx.restore();
