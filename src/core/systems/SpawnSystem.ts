@@ -4,6 +4,7 @@ import { SPAWN_SCHEDULE } from "../../data/gameConfig";
 import { ENEMY_DATA } from "../../data/enemyData";
 import { ITEM_DATA } from "../../data/itemData";
 import { CHEST_DATA } from "../../data/chestData";
+import { PROP_DATA } from "../../data/propData";
 import { Enemy } from "../../entities/Enemy";
 import { Item } from "../../entities/Item";
 import { Chest } from "../../entities/Chest";
@@ -15,7 +16,9 @@ export class SpawnSystem {
     private spawnManager: { [type: string]: { rate: number, timer: number } } = {};
     private nextSpawnEventIndex = 0;
     private itemSpawnTimer = 0;
+    private propSpawnTimer = 0;
     private readonly ITEM_SPAWN_INTERVAL = 15; // seconds
+    private readonly PROP_SPAWN_INTERVAL = 2; // spawn a prop every 2 seconds
 
     constructor(private game: Game) {}
 
@@ -47,6 +50,13 @@ export class SpawnSystem {
             this.itemSpawnTimer = 0;
             this.spawnItem();
         }
+
+        // --- Handle Prop Spawning ---
+        this.propSpawnTimer += dt;
+        if (this.propSpawnTimer >= this.PROP_SPAWN_INTERVAL) {
+            this.propSpawnTimer = 0;
+            this.spawnProp();
+        }
     }
 
     spawnEnemy(type: string, isElite: boolean = false) {
@@ -62,6 +72,23 @@ export class SpawnSystem {
         const enemy = this.game.enemyPool.get();
         enemy.reset(x, y, data, type, isElite);
         this.game.enemies.push(enemy);
+    }
+
+    spawnProp() {
+        // Randomly choose CRATE or BARREL
+        const type = Math.random() > 0.5 ? 'CRATE' : 'BARREL';
+        const data = PROP_DATA[type];
+        if (!data) return;
+
+        // Spawn logic: Just outside view, but in random directions
+        const angle = Math.random() * Math.PI * 2;
+        const radius = Math.max(this.game.width, this.game.height) / 2 + 100;
+        const x = this.game.player.pos.x + Math.cos(angle) * radius;
+        const y = this.game.player.pos.y + Math.sin(angle) * radius;
+
+        const prop = this.game.propPool.get();
+        prop.reset(x, y, data);
+        this.game.props.push(prop);
     }
 
     spawnItem() {

@@ -57,7 +57,7 @@ export const CharacterSelect: React.FC<CharacterSelectProps> = ({ onSelect, onBa
                             {/* Header: Avatar & Name */}
                             <div className="hero-header">
                                 <div className="hero-avatar-container">
-                                    <div className={`character-portrait ${isHovered ? 'animate' : ''}`} 
+                                    <div className="character-portrait" 
                                          style={{ backgroundImage: `url(${avatarUrl})` }}>
                                     </div>
                                 </div>

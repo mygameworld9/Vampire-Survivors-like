@@ -82,12 +82,65 @@ export class Enemy {
         this.globalTime = Math.random() * 10; // Random start frame
     }
     
-    update(dt: number, playerPos: Vector2D) {
+    update(dt: number, playerPos: Vector2D, neighbors: Enemy[] = []) {
         this.globalTime += dt;
         this.handleStatusEffects(dt);
-        const direction = new Vector2D(playerPos.x - this.pos.x, playerPos.y - this.pos.y).normalize();
-        this.pos.x += direction.x * this.speed * dt;
-        this.pos.y += direction.y * this.speed * dt;
+        
+        // --- Flocking Behavior ---
+        
+        // 1. Separation: Calculate vector away from nearby neighbors
+        let separationX = 0;
+        let separationY = 0;
+        let count = 0;
+        const separationThreshold = this.size * 1.5; // Avoidance radius
+        
+        for (const neighbor of neighbors) {
+            if (neighbor.id === this.id) continue;
+            
+            const dx = this.pos.x - neighbor.pos.x;
+            const dy = this.pos.y - neighbor.pos.y;
+            const distSq = dx * dx + dy * dy;
+            
+            // If too close
+            if (distSq > 0 && distSq < separationThreshold * separationThreshold) {
+                const dist = Math.sqrt(distSq);
+                // The closer they are, the stronger the push (linear falloff)
+                const strength = 1.0 - (dist / separationThreshold);
+                
+                separationX += (dx / dist) * strength;
+                separationY += (dy / dist) * strength;
+                count++;
+            }
+        }
+
+        // 2. Seek: Calculate vector towards player
+        const dx = playerPos.x - this.pos.x;
+        const dy = playerPos.y - this.pos.y;
+        const distToPlayer = Math.sqrt(dx * dx + dy * dy);
+        let dirX = 0;
+        let dirY = 0;
+        if (distToPlayer > 0) {
+            dirX = dx / distToPlayer;
+            dirY = dy / distToPlayer;
+        }
+
+        // 3. Blend Forces
+        if (count > 0) {
+            const separationWeight = 2.0; // Tuning: How much they prefer space over chasing
+            
+            dirX += separationX * separationWeight;
+            dirY += separationY * separationWeight;
+            
+            // Re-normalize blended direction
+            const totalLen = Math.sqrt(dirX * dirX + dirY * dirY);
+            if (totalLen > 0) {
+                dirX /= totalLen;
+                dirY /= totalLen;
+            }
+        }
+
+        this.pos.x += dirX * this.speed * dt;
+        this.pos.y += dirY * this.speed * dt;
     }
     
     takeDamage(amount: number) {

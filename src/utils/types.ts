@@ -1,4 +1,5 @@
 
+
 import { Weapon } from "../entities/Weapon";
 import { Skill } from "../entities/Skill";
 
@@ -103,6 +104,17 @@ export interface IEnemyData {
     };
 }
 
+export interface IPropData {
+    type: 'CRATE' | 'BARREL';
+    hp: number;
+    size: number;
+    dropTable: {
+        itemId: string;
+        chance: number;
+    }[];
+    color: string;
+}
+
 export interface IPlayerState {
     hp: number;
     maxHp: number;
@@ -135,7 +147,7 @@ export type UpgradeOption =
     | { type: 'gold'; amount: number };
 
 export type ItemRarity = 'Common' | 'Rare' | 'Epic' | 'Legendary';
-export type ItemEffectType = 'HEAL_PERCENT';
+export type ItemEffectType = 'HEAL_PERCENT' | 'GOLD_ADD';
 
 export interface IItemData {
     id: string;

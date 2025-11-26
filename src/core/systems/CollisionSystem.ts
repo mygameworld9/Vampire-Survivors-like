@@ -13,9 +13,12 @@ import { Player } from "../../entities/Player";
 import { Item } from "../../entities/Item";
 import { Weapon } from "../../entities/Weapon";
 import { Enemy } from "../../entities/Enemy";
+import { Prop } from "../../entities/Prop";
 import { LightningProjectile } from "../../entities/LightningProjectile";
 import { SlashProjectile } from "../../entities/SlashProjectile";
 import { QuadTree, Rectangle } from "../../utils/QuadTree";
+import { ITEM_DATA } from "../../data/itemData";
+import { FloatingText } from "../../entities/FloatingText";
 
 export class CollisionSystem {
     private enemyQuadTree: QuadTree<Enemy>;
@@ -29,9 +32,19 @@ export class CollisionSystem {
     update(dt: number) {
         this.rebuildQuadTree();
         this.handleProjectileToEnemy();
+        this.handleProjectileToProp();
         this.handleEnemyToPlayer();
         this.handlePickups();
         this.handleEffects();
+    }
+
+    /**
+     * Finds enemies within a certain radius of a point.
+     * Uses the QuadTree from the previous frame (or current if called after update).
+     */
+    public getNeighbors(center: Vector2D, radius: number): Enemy[] {
+        const range: Rectangle = { x: center.x, y: center.y, w: radius, h: radius };
+        return this.enemyQuadTree.query(range);
     }
 
     private rebuildQuadTree() {
@@ -125,6 +138,59 @@ export class CollisionSystem {
                             p.shouldBeRemoved = true;
                             break; 
                         }
+                    }
+                }
+            }
+        }
+    }
+
+    private handleProjectileToProp() {
+        // Props are not in QuadTree for now (usually low count), simple iteration
+        for (const p of this.game.projectiles) {
+            if (p.shouldBeRemoved) continue;
+
+            if (p instanceof LaserProjectile) {
+                 for (const prop of this.game.props) {
+                    const V = new Vector2D(prop.pos.x - p.p1.x, prop.pos.y - p.p1.y);
+                    const D = p.dir;
+                    let t = Math.max(0, Math.min(p.range, V.x * D.x + V.y * D.y));
+                    const closestX = p.p1.x + t * D.x;
+                    const closestY = p.p1.y + t * D.y;
+                    
+                    const dx = prop.pos.x - closestX;
+                    const dy = prop.pos.y - closestY;
+                    const distSq = dx * dx + dy * dy;
+                    
+                    const hitDist = prop.size + p.width / 2;
+
+                    if (distSq < hitDist * hitDist) {
+                        prop.takeDamage(10);
+                        this.game.particleSystem.emit(prop.pos.x, prop.pos.y, 2, '#8D6E63');
+                    }
+                }
+            } else {
+                for (const prop of this.game.props) {
+                    // Simple Hitbox
+                    const dx = p.pos.x - prop.pos.x;
+                    const dy = p.pos.y - prop.pos.y;
+                    const distSq = dx * dx + dy * dy;
+                    
+                    // Allow generous hit radius for props
+                    const hitDist = prop.size + 10; 
+
+                    if (distSq < hitDist * hitDist) {
+                         // Check special projectile types if needed, for now all damage props
+                         // Lasers and AOE are trickier without hitEnemies set logic, 
+                         // but for simplicity, let's just apply damage directly.
+                         // To avoid 60fps damage from persistent projectiles (like Aura), we can add an immunity timer to Prop or just let them break fast.
+                         
+                         prop.takeDamage(10); // Fixed damage to props for now, or use p.damage
+                         this.game.particleSystem.emit(prop.pos.x, prop.pos.y, 2, '#8D6E63');
+                         
+                         // If it's a standard projectile, destroy it
+                         if (!(p instanceof LightningProjectile || p instanceof SlashProjectile || p.statusEffect)) {
+                             p.shouldBeRemoved = true;
+                         }
                     }
                 }
             }
@@ -239,11 +305,37 @@ export class CollisionSystem {
         }
     }
 
+    onPropDestroyed(prop: Prop) {
+        this.game.soundManager.playSound('ENEMY_HIT'); // Re-use hit sound for wood breaking
+        this.game.particleSystem.emit(prop.pos.x, prop.pos.y, 10, '#8D6E63'); // Wood particles
+
+        // Calculate drops
+        const dropRoll = Math.random();
+        let cumulative = 0;
+        
+        for (const drop of prop.data.dropTable) {
+            cumulative += drop.chance;
+            if (dropRoll <= cumulative) {
+                const itemData = ITEM_DATA[drop.itemId];
+                if (itemData) {
+                     this.game.items.push(new Item(prop.pos.x, prop.pos.y, itemData));
+                }
+                break; // One drop per prop
+            }
+        }
+    }
+
     applyItemEffect(player: Player, item: Item) {
         const { effect } = item.data;
         switch (effect.type) {
             case 'HEAL_PERCENT':
                 player.heal(effect.value);
+                this.game.floatingTexts.push(new FloatingText(player.pos.x, player.pos.y - 20, `Heal!`, '#e57373'));
+                break;
+            case 'GOLD_ADD':
+                const amount = Math.ceil(effect.value * player.goldMultiplier);
+                player.gainGold(amount);
+                this.game.floatingTexts.push(new FloatingText(player.pos.x, player.pos.y - 20, `+${amount} Gold`, '#ffd700'));
                 break;
             default:
                 console.warn(`Unknown item effect type: ${effect.type}`);
@@ -265,10 +357,10 @@ export class CollisionSystem {
             this.game.effects.push(new AuraEffect(this.game.player, weapon.range, false));
         }
 
-        // --- Damage Logic ---
         const range: Rectangle = { x: this.game.player.pos.x, y: this.game.player.pos.y, w: weapon.range + 50, h: weapon.range + 50 };
+        
+        // 1. Damage Enemies
         const candidates = this.enemyQuadTree.query(range);
-
         for (const e of candidates) {
             const dx = this.game.player.pos.x - e.pos.x;
             const dy = this.game.player.pos.y - e.pos.y;
@@ -284,12 +376,29 @@ export class CollisionSystem {
                 }
             }
         }
+
+        // 2. Damage Props
+        for (const prop of this.game.props) {
+            const dx = this.game.player.pos.x - prop.pos.x;
+            const dy = this.game.player.pos.y - prop.pos.y;
+            const distSq = dx * dx + dy * dy;
+            const hitDist = weapon.range + prop.size / 2;
+
+            if (distSq < hitDist * hitDist) {
+                prop.takeDamage(weapon.damage * 0.1); // Aura deals reduced/tick damage
+                if (Math.random() > 0.9) {
+                     this.game.particleSystem.emit(prop.pos.x, prop.pos.y, 1, '#8D6E63');
+                }
+            }
+        }
     }
 
     handleSkillEffect(effect: SkillEffect) {
         switch (effect.type) {
             case 'PULSE':
                 this.game.effects.push(new PulseEffect(this.game.player.pos, effect.range));
+                
+                // Damage Enemies
                 const range: Rectangle = { x: this.game.player.pos.x, y: this.game.player.pos.y, w: effect.range + 50, h: effect.range + 50 };
                 const candidates = this.enemyQuadTree.query(range);
                 
@@ -304,6 +413,20 @@ export class CollisionSystem {
                         this.game.particleSystem.emit(e.pos.x, e.pos.y, 5, e.color);
                     }
                 }
+
+                // Damage Props
+                for (const prop of this.game.props) {
+                    const dx = this.game.player.pos.x - prop.pos.x;
+                    const dy = this.game.player.pos.y - prop.pos.y;
+                    const distSq = dx * dx + dy * dy;
+                    const hitDist = effect.range + prop.size / 2;
+
+                    if (distSq < hitDist * hitDist) {
+                        prop.takeDamage(100); // Pulse instant kills props
+                        this.game.particleSystem.emit(prop.pos.x, prop.pos.y, 5, '#8D6E63');
+                    }
+                }
+
                 break;
         }
     }

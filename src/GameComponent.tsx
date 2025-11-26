@@ -26,8 +26,10 @@ import { CreativeSetup } from './components/CreativeSetup';
 import { ReviveModal } from './components/ReviveModal';
 import { StartScreen } from './components/StartScreen';
 import { GameOverScreen } from './components/GameOverScreen';
+import { EvolutionNotification } from './components/EvolutionNotification';
+import { VirtualJoystick } from './components/VirtualJoystick';
 
-type GameState = 'start' | 'characterSelect' | 'creativeSetup' | 'mapSelect' | 'playing' | 'levelUp' | 'gameOver' | 'paused' | 'chestOpening' | 'armory' | 'revive';
+type GameState = 'start' | 'characterSelect' | 'creativeSetup' | 'mapSelect' | 'playing' | 'levelUp' | 'gameOver' | 'paused' | 'chestOpening' | 'armory' | 'revive' | 'evolution';
 type InfoPanelState = 'none' | 'weapons' | 'skills';
 
 // Fisher-Yates shuffle
@@ -52,6 +54,7 @@ export const GameComponent: React.FC = () => {
 
     const [gameState, setGameState] = useState<GameState>('start');
     const [openingChest, setOpeningChest] = useState<Chest | null>(null);
+    const [evolvedWeapon, setEvolvedWeapon] = useState<Weapon | null>(null);
     const [infoPanel, setInfoPanel] = useState<InfoPanelState>('none');
     const [playerState, setPlayerState] = useState<IPlayerState>({ hp: 0, maxHp: 1, xp: 0, xpToNext: 1, level: 1, gold: 0 });
     const [gameTime, setGameTime] = useState(0);
@@ -271,7 +274,18 @@ export const GameComponent: React.FC = () => {
 
         if (option.type === 'upgrade') {
             if ('weapon' in option) {
+                const wasMax = option.weapon.isMaxLevel();
                 option.weapon.levelUp();
+                // Check if it just became max level
+                if (!wasMax && option.weapon.isMaxLevel()) {
+                    setEvolvedWeapon(option.weapon);
+                    setGameState('evolution');
+                    // Don't break/return here immediately if we want to process other logic,
+                    // but for state transition, we return to prevent setting 'playing' below.
+                    // Reset hashes to ensure UI reflects new stats behind the modal
+                    lastWeaponsHash.current = ""; 
+                    return;
+                }
             } else { // skill
                 option.skill.levelUp(player);
             }
@@ -291,6 +305,11 @@ export const GameComponent: React.FC = () => {
         lastSkillsHash.current = "";
         setGameState('playing');
     }
+    
+    const handleEvolutionClose = () => {
+        setEvolvedWeapon(null);
+        setGameState('playing');
+    };
     
     const handleRevive = () => {
         if (gameRef.current) {
@@ -418,7 +437,7 @@ export const GameComponent: React.FC = () => {
                 />
             )}
 
-            {(gameState === 'playing' || gameState === 'paused' || gameState === 'levelUp' || gameState === 'chestOpening' || gameState === 'revive') && (
+            {(gameState === 'playing' || gameState === 'paused' || gameState === 'levelUp' || gameState === 'chestOpening' || gameState === 'revive' || gameState === 'evolution') && (
               <>
                 <HUD 
                   playerState={playerState}
@@ -427,6 +446,7 @@ export const GameComponent: React.FC = () => {
                   skills={skills}
                   onPause={() => setGameState('paused')}
                 />
+                <VirtualJoystick onMove={(x, y) => gameRef.current?.input.setJoystick(x, y)} />
                 { gameState === 'playing' &&
                     <button 
                         className="debug-button" 
@@ -439,6 +459,10 @@ export const GameComponent: React.FC = () => {
 
             {gameState === 'levelUp' && (
                 <LevelUpModal options={upgradeOptions} onSelect={handleSelectUpgrade} />
+            )}
+            
+            {gameState === 'evolution' && evolvedWeapon && (
+                <EvolutionNotification weapon={evolvedWeapon} onClose={handleEvolutionClose} />
             )}
             
             {gameState === 'revive' && gameRef.current && (

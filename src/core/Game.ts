@@ -28,6 +28,7 @@ import { CollisionSystem } from './systems/CollisionSystem';
 import { ObjectPool } from '../utils/ObjectPool';
 import { Particle } from '../entities/Particle';
 import { Vector2D } from '../utils/Vector2D';
+import { Prop } from '../entities/Prop';
 
 type AnyProjectile = Projectile | BoomerangProjectile | LaserProjectile | HomingProjectile | LightningProjectile | SlashProjectile;
 type AnyEffect = AuraEffect | PulseEffect;
@@ -35,6 +36,7 @@ type AnyEffect = AuraEffect | PulseEffect;
 export class Game {
     public player: Player;
     public enemies: Enemy[] = [];
+    public props: Prop[] = [];
     public projectiles: AnyProjectile[] = [];
     public xpOrbs: XpOrb[] = [];
     public effects: AnyEffect[] = [];
@@ -61,6 +63,7 @@ export class Game {
 
     // Pools
     public enemyPool: ObjectPool<Enemy>;
+    public propPool: ObjectPool<Prop>;
     public projectilePool: ObjectPool<Projectile>;
     public particlePool: ObjectPool<Particle>;
 
@@ -82,6 +85,7 @@ export class Game {
 
         // Initialize Object Pools
         this.enemyPool = new ObjectPool(() => new Enemy(0, 0, {} as any, 'SLIME', false));
+        this.propPool = new ObjectPool(() => new Prop(0, 0, {} as any));
         this.projectilePool = new ObjectPool(() => new Projectile(0, 0, new Vector2D(0, 0), {} as any));
         this.particlePool = new ObjectPool(() => new Particle(0, 0, '#fff'));
         
@@ -152,10 +156,18 @@ export class Game {
         
         // Update entities using zero-allocation loops
         let i = 0;
+        const flockingRadius = 50; // Distance to search for neighbors
+        
         while (i < this.enemies.length) {
             const e = this.enemies[i];
             const wasAlive = e.hp > 0;
-            e.update(dt, this.player.pos);
+            
+            // Get neighbors for flocking behavior
+            // Note: This uses the QuadTree state from the PREVIOUS frame, 
+            // which is standard practice for this type of simulation.
+            const neighbors = this.collisionSystem.getNeighbors(e.pos, flockingRadius);
+            
+            e.update(dt, this.player.pos, neighbors);
             
             if (wasAlive && e.shouldBeRemoved) {
                 this.collisionSystem.onEnemyDefeated(e);
@@ -172,6 +184,22 @@ export class Game {
                 this.enemies.pop();
             } else {
                 i++;
+            }
+        }
+
+        // Update Props
+        let k = 0;
+        while (k < this.props.length) {
+            const p = this.props[k];
+            p.update(dt);
+            if (p.shouldBeRemoved) {
+                this.collisionSystem.onPropDestroyed(p);
+                this.propPool.release(p);
+                const last = this.props[this.props.length - 1];
+                this.props[k] = last;
+                this.props.pop();
+            } else {
+                k++;
             }
         }
 
@@ -219,6 +247,7 @@ export class Game {
         ctx.save();
         this.camera.applyTransform(ctx);
         
+        this.props.forEach(p => p.draw(ctx));
         this.xpOrbs.forEach(o => o.draw(ctx));
         this.items.forEach(i => i.draw(ctx));
         this.chests.forEach(c => c.draw(ctx));

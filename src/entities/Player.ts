@@ -138,17 +138,34 @@ export class Player {
     update(dt: number, input: InputHandler, enemies: Enemy[]): { projectiles: AnyProjectile[], skillEffects: SkillEffect[] } {
         this.globalTime += dt;
         const moveVector = new Vector2D(0, 0);
+        
+        // Keyboard Input
         if (input.keys.ArrowLeft || input.keys.a) moveVector.x -= 1;
         if (input.keys.ArrowRight || input.keys.d) moveVector.x += 1;
         if (input.keys.ArrowUp || input.keys.w) moveVector.y -= 1;
         if (input.keys.ArrowDown || input.keys.s) moveVector.y += 1;
 
+        // Joystick Input (overrides/adds to keyboard)
+        if (input.joystickVector.x !== 0 || input.joystickVector.y !== 0) {
+            moveVector.x = input.joystickVector.x;
+            moveVector.y = input.joystickVector.y;
+        }
+
         if (moveVector.x !== 0 || moveVector.y !== 0) {
             this.state = 'Moving';
-            this.facingDirection = moveVector.normalize();
+            
+            // Normalize
+            const lenSq = moveVector.x * moveVector.x + moveVector.y * moveVector.y;
+            if (lenSq > 0) {
+                // If length is greater than 1 or if we want consistent speed, we normalize.
+                // We always normalize to ensure consistent speed.
+                moveVector.normalize();
+                this.facingDirection = new Vector2D(moveVector.x, moveVector.y);
+            }
+
             // Speed is integer, but position remains float for smooth physics
-            this.pos.x += this.facingDirection.x * this.speed * dt;
-            this.pos.y += this.facingDirection.y * this.speed * dt;
+            this.pos.x += moveVector.x * this.speed * dt;
+            this.pos.y += moveVector.y * this.speed * dt;
         } else {
             this.state = 'Idle';
         }

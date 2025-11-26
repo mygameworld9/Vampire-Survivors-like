@@ -1,7 +1,6 @@
 
 import { Vector2D } from "../utils/Vector2D";
 import { Weapon } from "./Weapon";
-import { Enemy } from "./Enemy";
 import { Player } from "./Player";
 import { IWeaponStatusEffect } from "../utils/types";
 
@@ -17,7 +16,6 @@ export class SlashProjectile {
     
     private lifeTimer = 0;
     private duration = 0.2; 
-    private offsetDistance = 40;
     private angle: number;
 
     constructor(owner: Player, weapon: Weapon, isFullCircle: boolean) {
@@ -30,29 +28,19 @@ export class SlashProjectile {
         // Calculate initial pos based on player facing
         this.angle = Math.atan2(owner.facingDirection.y, owner.facingDirection.x);
         
-        // If full circle, center on player. If slash, offset.
+        // Center on player, we will offset in draw if needed
+        this.pos = new Vector2D(owner.pos.x, owner.pos.y);
+        
         if (this.isFullCircle) {
-             this.pos = new Vector2D(owner.pos.x, owner.pos.y);
-             this.duration = 0.25; // Slightly longer for full spin
-        } else {
-             this.pos = new Vector2D(
-                owner.pos.x + owner.facingDirection.x * this.offsetDistance,
-                owner.pos.y + owner.facingDirection.y * this.offsetDistance
-             );
+             this.duration = 0.4; 
         }
     }
 
     update(dt: number) {
         this.lifeTimer += dt;
-        // Follow player
-        if (this.isFullCircle) {
-             this.pos.x = this.owner.pos.x;
-             this.pos.y = this.owner.pos.y;
-        } else {
-             // Keep relative position
-             this.pos.x = this.owner.pos.x + Math.cos(this.angle) * this.offsetDistance;
-             this.pos.y = this.owner.pos.y + Math.sin(this.angle) * this.offsetDistance;
-        }
+        // Follow player tightly
+        this.pos.x = this.owner.pos.x;
+        this.pos.y = this.owner.pos.y;
 
         if (this.lifeTimer >= this.duration) {
             this.shouldBeRemoved = true;
@@ -60,30 +48,107 @@ export class SlashProjectile {
     }
 
     draw(ctx: CanvasRenderingContext2D) {
-        const opacity = 1.0 - (this.lifeTimer / this.duration);
+        const progress = this.lifeTimer / this.duration;
+        // Fade out quickly at the end
+        const opacity = 1.0 - Math.pow(progress, 4); 
+        
+        ctx.save();
+        ctx.translate(this.pos.x, this.pos.y);
+        
+        if (this.isFullCircle) {
+            this.drawSpin(ctx, progress, opacity);
+        } else {
+            this.drawSlash(ctx, progress, opacity);
+        }
+        
+        ctx.restore();
+    }
+
+    private drawSlash(ctx: CanvasRenderingContext2D, progress: number, opacity: number) {
+        ctx.rotate(this.angle);
+        
+        // Visual shift forward to make it look like a projectile leaving the weapon
+        const offset = 20 + (progress * 10); 
+        ctx.translate(offset, 0);
+
+        // Scale up slightly during animation
+        const scale = 0.8 + (progress * 0.4);
+        ctx.scale(scale, scale);
+
         ctx.globalAlpha = opacity;
-        ctx.strokeStyle = '#E0F7FA'; // Cyan slash
-        ctx.lineWidth = 4;
+
+        const radius = this.range;
+
+        // 1. Main Crescent Body (Pastel Cyan/White)
+        const gradient = ctx.createRadialGradient(0, 0, radius * 0.2, 0, 0, radius);
+        gradient.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
+        gradient.addColorStop(0.6, '#B2EBF2'); // Cyan 100
+        gradient.addColorStop(1, 'rgba(79, 195, 247, 0)'); // Light Blue fade
+
+        ctx.fillStyle = gradient;
         
         ctx.beginPath();
-        if (this.isFullCircle) {
-            // Draw a spinning effect using multiple arcs
-            const spin = this.lifeTimer * 20;
-            ctx.arc(this.pos.x, this.pos.y, this.range, spin, spin + Math.PI * 1.8);
-            
-            // Add a second inner ring
-            ctx.moveTo(this.pos.x + this.range * 0.7, this.pos.y);
-            ctx.arc(this.pos.x, this.pos.y, this.range * 0.7, spin + 1, spin + 1 + Math.PI * 1.5);
-        } else {
-            // Draw regular arc
-            ctx.arc(this.pos.x, this.pos.y, this.range, this.angle - Math.PI/2, this.angle + Math.PI/2);
-        }
-        ctx.stroke();
-        
-        // Inner fill
-        ctx.fillStyle = 'rgba(224, 247, 250, 0.3)';
+        // Draw a crescent shape using arcs
+        // Outer arc
+        ctx.arc(0, 0, radius, -Math.PI/2.5, Math.PI/2.5, false);
+        // Inner curve to close the shape
+        ctx.bezierCurveTo(
+            radius * 0.2, Math.PI/4, 
+            radius * 0.2, -Math.PI/4, 
+            radius * Math.cos(-Math.PI/2.5), radius * Math.sin(-Math.PI/2.5)
+        );
         ctx.fill();
 
-        ctx.globalAlpha = 1.0;
+        // 2. Sharp Edge Line (Anime style streak)
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.lineWidth = 3;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.arc(0, 0, radius * 0.9, -Math.PI/3, Math.PI/3, false);
+        ctx.stroke();
+
+        // 3. Little sparkly bits at the edge
+        ctx.fillStyle = '#FFFFFF';
+        if (progress < 0.5) {
+            ctx.beginPath();
+            ctx.arc(radius, -10, 3, 0, Math.PI*2);
+            ctx.arc(radius * 0.9, 15, 2, 0, Math.PI*2);
+            ctx.fill();
+        }
+    }
+
+    private drawSpin(ctx: CanvasRenderingContext2D, progress: number, opacity: number) {
+        // Rotate continuously
+        const rotation = progress * Math.PI * 3; 
+        ctx.rotate(rotation);
+        
+        ctx.globalAlpha = opacity;
+        
+        const radius = this.range;
+
+        // Draw a whirlwind (3 arms)
+        for(let i=0; i<3; i++) {
+            ctx.rotate((Math.PI * 2) / 3);
+            
+            // Wind swoosh
+            ctx.fillStyle = 'rgba(128, 222, 234, 0.6)'; // Cyan 200
+            ctx.beginPath();
+            ctx.arc(0, 0, radius, 0, Math.PI * 0.6);
+            ctx.quadraticCurveTo(radius * 0.5, radius * 0.5, radius, 0);
+            ctx.fill();
+            
+            // Speed line
+            ctx.strokeStyle = '#E0F7FA';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(0, 0, radius * 0.9, 0.1, Math.PI * 0.5);
+            ctx.stroke();
+        }
+        
+        // Center glow
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.beginPath();
+        ctx.arc(0, 0, radius * 0.3, 0, Math.PI * 2);
+        ctx.fill();
     }
 }
