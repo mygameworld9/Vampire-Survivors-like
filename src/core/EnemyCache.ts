@@ -1,14 +1,31 @@
 
 import { IEnemyData } from "../utils/types";
 
+/**
+ * A static utility class for pre-rendering and caching enemy animations.
+ * This class generates a series of canvas frames for each unique enemy variant (type, elite status, color, size)
+ * to optimize rendering performance. Instead of redrawing enemies on every frame, the game can simply
+ * grab a pre-drawn canvas from this cache, significantly reducing draw calls.
+ */
 export class EnemyCache {
+    /** @private A cache storing pre-rendered animation frames. The key is a unique identifier for an enemy variant, and the value is an array of canvas elements, each representing a frame. */
     private static cache: Map<string, HTMLCanvasElement[]> = new Map();
+    /** @private The number of frames to generate for each animation loop. */
     private static readonly FRAME_COUNT = 30; // 30 frames per animation loop
+    /** @private Extra padding on the canvas to accommodate visual effects like shadows or glows that might exceed the enemy's base size. */
     private static readonly CANVAS_PADDING = 20; // Extra space for effects/shadows
 
     /**
-     * Gets the specific animation frame for an enemy type at a specific time.
-     * If the cache doesn't exist, it generates it.
+     * Retrieves a specific animation frame for an enemy based on the global game time.
+     * If the animation frames for this enemy variant are not already cached, this method
+     * triggers their generation first.
+     *
+     * @param {string} type - The type of the enemy (e.g., 'SLIME', 'BAT').
+     * @param {boolean} isElite - Whether the enemy is an elite variant.
+     * @param {string} color - The base color of the enemy (used as a fallback).
+     * @param {number} size - The base size (diameter) of the enemy.
+     * @param {number} globalTime - The total elapsed game time in seconds, used to determine the current animation frame.
+     * @returns {HTMLCanvasElement} The canvas element containing the pre-rendered frame for the current moment.
      */
     public static getFrame(type: string, isElite: boolean, color: string, size: number, globalTime: number): HTMLCanvasElement {
         const key = `${type}_${isElite}_${color}_${size}`;
@@ -18,12 +35,23 @@ export class EnemyCache {
         }
 
         const frames = this.cache.get(key)!;
-        // Calculate which frame index to show based on global time
-        // We assume 1 second per full animation loop for the cached key, speed is adjusted by frame selection rate if needed
+        // Calculate which frame index to show based on global time.
+        // The animation is designed to loop approximately every second at 30fps.
         const frameIndex = Math.floor((globalTime * 30) % this.FRAME_COUNT);
         return frames[frameIndex % frames.length];
     }
 
+    /**
+     * Generates and caches all animation frames for a specific enemy variant.
+     * It creates a canvas for each frame, draws the enemy's state at that point in the animation,
+     * and stores the canvases in the cache.
+     * @private
+     * @param {string} key - The unique cache key for this enemy variant.
+     * @param {string} type - The enemy's type.
+     * @param {boolean} isElite - The enemy's elite status.
+     * @param {string} color - The enemy's fallback color.
+     * @param {number} size - The enemy's base size.
+     */
     private static generateCache(key: string, type: string, isElite: boolean, color: string, size: number) {
         const frames: HTMLCanvasElement[] = [];
         const canvasSize = size * 2 + this.CANVAS_PADDING * 2; // Ensure enough room for squashing/stretching/glows

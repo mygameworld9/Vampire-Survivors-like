@@ -5,12 +5,23 @@ import { CHARACTER_DATA } from '../data/characterData';
 import { WEAPON_DATA } from '../data/weaponData';
 import { CharacterCache } from '../core/CharacterCache';
 
+/**
+ * Interface for the properties of the CharacterSelect component.
+ * @interface CharacterSelectProps
+ */
 interface CharacterSelectProps {
+    /**
+     * Callback function executed when a character is selected.
+     * @param {string} characterId - The ID of the selected character.
+     */
     onSelect: (characterId: string) => void;
+    /**
+     * Callback function executed when the 'Back' button is clicked.
+     */
     onBack: () => void;
 }
 
-// Visual themes mapping
+/** @private Visual theme mappings for each character card. */
 const CHAR_THEMES: {[key: string]: { color: string, secondary: string, bg: string }} = {
     KNIGHT:   { color: '#546E7A', secondary: '#B0BEC5', bg: '#ECEFF1' }, // Steel
     ROGUE:    { color: '#43A047', secondary: '#A5D6A7', bg: '#E8F5E9' }, // Forest Green
@@ -20,10 +31,23 @@ const CHAR_THEMES: {[key: string]: { color: string, secondary: string, bg: strin
     WARLOCK:  { color: '#8E24AA', secondary: '#CE93D8', bg: '#F3E5F5' }, // Void Purple
 };
 
+/**
+ * A React functional component that displays the character selection screen.
+ * It presents a grid of available characters, showing their stats, starting weapon, and a brief description.
+ *
+ * @param {CharacterSelectProps} props - The properties for the component.
+ * @returns {React.ReactElement} The rendered CharacterSelect component.
+ */
 export const CharacterSelect: React.FC<CharacterSelectProps> = ({ onSelect, onBack }) => {
     const [hoveredChar, setHoveredChar] = useState<string | null>(null);
 
-    // Helper to calculate bar percentage (Max HP ~150, Max Speed ~300 for visualization context)
+    /**
+     * Helper function to calculate the percentage width for a stat bar.
+     * @private
+     * @param {number} val - The character's stat value.
+     * @param {number} max - The maximum value for visualization context.
+     * @returns {number} The calculated percentage.
+     */
     const getStatPercent = (val: number, max: number) => Math.min(100, Math.max(10, (val / max) * 100));
 
     return (

@@ -26,10 +26,17 @@ export class SoundManager {
         1046.50 // C6
     ];
 
+    /**
+     * Creates an instance of the SoundManager.
+     * @param {object} soundData - An object containing sound effect data (currently unused as sounds are procedural).
+     */
     constructor(private soundData: { [key: string]: string }) {}
 
     /**
-     * Enables the SoundManager. This must be called after a user gesture (e.g., a click).
+     * Initializes the Web Audio API AudioContext.
+     * This must be called in response to a user gesture (e.g., a click or tap)
+     * to comply with browser autoplay policies. It also pre-generates a white noise buffer
+     * used in various sound effects.
      */
     public init() {
         if (this.isInitialized) return;
@@ -57,6 +64,10 @@ export class SoundManager {
     
     // --- Background Music System ---
 
+    /**
+     * Starts the procedural background music.
+     * The music will evolve based on the game's intensity.
+     */
     public startBGM() {
         if (!this.isInitialized || !this.audioContext) return;
         if (this.bgmEnabled) return;
@@ -67,6 +78,9 @@ export class SoundManager {
         this.scheduler();
     }
 
+    /**
+     * Stops the procedural background music.
+     */
     public stopBGM() {
         this.bgmEnabled = false;
         if (this.timerID !== null) {
@@ -75,6 +89,11 @@ export class SoundManager {
         }
     }
 
+    /**
+     * Sets the intensity of the background music.
+     * This affects the tempo, complexity, and instrumentation of the procedural BGM.
+     * @param {number} intensity - A value from 0 (calm) to 1 (intense).
+     */
     public setBGMIntensity(intensity: number) {
         // intensity is between 0 and 1
         this.bgmIntensity = Math.max(0, Math.min(1, intensity));
@@ -191,7 +210,11 @@ export class SoundManager {
     // --- End Music System ---
 
     /**
-     * Plays a sound effect identified by a key.
+     * Plays a procedurally generated sound effect based on a given key.
+     * This method acts as a router, calling the appropriate synthesizer function
+     * for the requested sound type (e.g., weapon fire, enemy hit).
+     * @param {string} key - The identifier for the sound to play (e.g., 'WEAPON_LASER', 'ENEMY_HIT').
+     * @param {number} [volume=1.0] - An optional volume multiplier for this specific sound instance.
      */
     public playSound(key: string, volume = 1.0) {
         if (!this.isInitialized || !this.audioContext) return;

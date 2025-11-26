@@ -1,10 +1,29 @@
 
 import React from 'react';
 
+/**
+ * Interface for the properties of the ChestComponent.
+ * @interface ChestProps
+ */
 interface ChestProps {
+    /**
+     * The current visual state of the chest, which determines its appearance and animations.
+     * - 'idle': The chest is closed and stationary.
+     * - 'squeeze': The chest is shaking and preparing to open.
+     * - 'exploded': The chest has opened, revealing its contents.
+     * @type {'idle' | 'squeeze' | 'exploded'}
+     */
     visualState: 'idle' | 'squeeze' | 'exploded';
 }
 
+/**
+ * A React functional component that renders the visual representation of a treasure chest.
+ * It uses SVG to draw the chest and applies CSS classes and transformations based on its `visualState`
+ * to create animations for shaking and opening.
+ *
+ * @param {ChestProps} props - The properties for the component.
+ * @returns {React.ReactElement} The rendered Chest component.
+ */
 export const ChestComponent: React.FC<ChestProps> = ({ visualState }) => {
     
     // Determine classes based on state

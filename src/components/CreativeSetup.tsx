@@ -7,20 +7,56 @@ import { UPGRADE_DATA } from '../data/upgradeData';
 import { SKILL_UPGRADE_DATA } from '../data/skillUpgradeData';
 import { CreativeLoadout } from '../utils/types';
 
+/**
+ * Interface for the properties of the CreativeSetup component.
+ * @interface CreativeSetupProps
+ */
 interface CreativeSetupProps {
+    /**
+     * Callback function executed when the 'Start' button is clicked.
+     * @param {CreativeLoadout} loadout - The custom loadout configured by the player.
+     */
     onStart: (loadout: CreativeLoadout) => void;
+    /**
+     * Callback function executed when the 'Back' button is clicked.
+     */
     onBack: () => void;
 }
 
+/**
+ * A React functional component for the Creative Mode setup screen.
+ * This screen allows players to freely choose and set the levels of their starting weapons and skills
+ * up to a defined limit, providing a sandbox-like experience.
+ *
+ * @param {CreativeSetupProps} props - The properties for the component.
+ * @returns {React.ReactElement} The rendered CreativeSetup component.
+ */
 export const CreativeSetup: React.FC<CreativeSetupProps> = ({ onStart, onBack }) => {
-    // Stores the selected level. If key exists, it is selected.
+    /** @private State to track the levels of selected weapons. The key is the weapon ID, the value is its level. */
     const [weaponLevels, setWeaponLevels] = useState<{ [id: string]: number }>({});
+    /** @private State to track the levels of selected skills. The key is the skill ID, the value is its level. */
     const [skillLevels, setSkillLevels] = useState<{ [id: string]: number }>({});
+    /** @private The maximum number of weapons or skills that can be selected. */
     const LIMIT = 6;
 
+    /**
+     * Gets the current number of selected weapons.
+     * @private
+     */
     const getWeaponCount = () => Object.keys(weaponLevels).length;
+    /**
+     * Gets the current number of selected skills.
+     * @private
+     */
     const getSkillCount = () => Object.keys(skillLevels).length;
 
+    /**
+     * Calculates the maximum possible level for a given weapon or skill.
+     * @private
+     * @param {string} id - The ID of the weapon or skill.
+     * @param {'weapon' | 'skill'} type - The type of item.
+     * @returns {number} The maximum level.
+     */
     const getMaxLevel = (id: string, type: 'weapon' | 'skill') => {
         if (type === 'weapon') {
             // Base level (1) + number of upgrades
@@ -30,6 +66,14 @@ export const CreativeSetup: React.FC<CreativeSetupProps> = ({ onStart, onBack })
         }
     };
 
+    /**
+     * Updates the level of a selected weapon or skill.
+     * Handles adding, removing, and level capping.
+     * @private
+     * @param {string} id - The ID of the item to update.
+     * @param {number} delta - The change in level (+1 or -1).
+     * @param {'weapon' | 'skill'} type - The type of item.
+     */
     const updateLevel = (id: string, delta: number, type: 'weapon' | 'skill') => {
         const setMap = type === 'weapon' ? setWeaponLevels : setSkillLevels;
         const currentMap = type === 'weapon' ? weaponLevels : skillLevels;
@@ -55,6 +99,12 @@ export const CreativeSetup: React.FC<CreativeSetupProps> = ({ onStart, onBack })
         }
     };
 
+    /**
+     * Sets the level of a weapon or skill to its maximum value.
+     * @private
+     * @param {string} id - The ID of the item.
+     * @param {'weapon' | 'skill'} type - The type of item.
+     */
     const setMaxLevel = (id: string, type: 'weapon' | 'skill') => {
         const setMap = type === 'weapon' ? setWeaponLevels : setSkillLevels;
         const count = type === 'weapon' ? getWeaponCount() : getSkillCount();
@@ -67,6 +117,16 @@ export const CreativeSetup: React.FC<CreativeSetupProps> = ({ onStart, onBack })
         setMap(prev => ({ ...prev, [id]: max }));
     };
 
+    /**
+     * Renders a single card for a weapon or skill.
+     * @private
+     * @param {string} id - The item ID.
+     * @param {string} icon - The item's icon.
+     * @param {string} nameKey - The i18n key for the item's name.
+     * @param {number} currentLevel - The currently selected level for the item.
+     * @param {'weapon' | 'skill'} type - The type of item.
+     * @returns {React.ReactElement} The rendered card component.
+     */
     const renderCard = (id: string, icon: string, nameKey: string, currentLevel: number, type: 'weapon' | 'skill') => {
         const isSelected = currentLevel > 0;
         const count = type === 'weapon' ? getWeaponCount() : getSkillCount();
@@ -114,6 +174,11 @@ export const CreativeSetup: React.FC<CreativeSetupProps> = ({ onStart, onBack })
         );
     };
 
+    /**
+     * Compiles the selected weapons and skills into a CreativeLoadout object
+     * and calls the onStart callback.
+     * @private
+     */
     const handleStart = () => {
         const loadout: CreativeLoadout = {
             weapons: Object.entries(weaponLevels).map(([id, level]) => ({ id, level: level as number })),

@@ -5,15 +5,36 @@ import { WEAPON_DATA } from '../data/weaponData';
 import { SKILL_DATA } from '../data/skillData';
 import { ENEMY_DATA } from '../data/enemyData';
 
+/**
+ * Interface for the properties of the Codex component.
+ * @interface CodexProps
+ */
 interface CodexProps {
+    /**
+     * Callback function to be executed when the codex is closed.
+     */
     onClose: () => void;
 }
 
+/** @private Represents the possible tabs in the Codex. */
 type CodexTab = 'weapons' | 'skills' | 'enemies';
 
+/**
+ * A React functional component that displays the in-game Codex.
+ * The Codex is an encyclopedia of all weapons, skills, and enemies in the game,
+ * showing their stats and descriptions.
+ *
+ * @param {CodexProps} props - The properties for the component.
+ * @returns {React.ReactElement} The rendered Codex component.
+ */
 export const Codex: React.FC<CodexProps> = ({ onClose }) => {
     const [activeTab, setActiveTab] = useState<CodexTab>('weapons');
 
+    /**
+     * Renders the list of weapon statistics.
+     * @private
+     * @returns {React.ReactElement[]} An array of JSX elements, one for each weapon.
+     */
     const renderWeaponStats = () => {
         return Object.values(WEAPON_DATA).map(w => (
             <div key={w.id} className="weapon-card">
@@ -35,6 +56,11 @@ export const Codex: React.FC<CodexProps> = ({ onClose }) => {
         ));
     };
 
+    /**
+     * Renders the list of skill statistics.
+     * @private
+     * @returns {React.ReactElement[]} An array of JSX elements, one for each skill.
+     */
     const renderSkillStats = () => {
         return Object.values(SKILL_DATA).map(s => (
             <div key={s.id} className="weapon-card">
@@ -58,6 +84,11 @@ export const Codex: React.FC<CodexProps> = ({ onClose }) => {
         ));
     };
 
+    /**
+     * Renders the list of enemy statistics.
+     * @private
+     * @returns {React.ReactElement[]} An array of JSX elements, one for each enemy.
+     */
     const renderEnemyStats = () => {
         return Object.values(ENEMY_DATA).map(e => (
             <div key={e.nameKey} className="weapon-card">

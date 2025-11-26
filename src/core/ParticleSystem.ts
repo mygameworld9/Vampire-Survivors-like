@@ -2,20 +2,31 @@
 import { Particle } from "../entities/Particle";
 import { ObjectPool } from "../utils/ObjectPool";
 
+/**
+ * Manages the creation, updating, and rendering of all particle effects in the game.
+ * It uses an object pool to efficiently reuse particle instances, minimizing garbage collection.
+ */
 export class ParticleSystem {
+    /** @private An array of all active particles currently in the system. */
     private particles: Particle[] = [];
+    /** @private The object pool used to get and release particle instances. */
     private pool: ObjectPool<Particle>;
 
+    /**
+     * Creates a new ParticleSystem.
+     * @param {ObjectPool<Particle>} pool - The object pool to use for managing particle instances.
+     */
     constructor(pool: ObjectPool<Particle>) {
         this.pool = pool;
     }
 
     /**
-     * Spawns a number of particles at a given location.
-     * @param x The x-coordinate to spawn at.
-     * @param y The y-coordinate to spawn at.
-     * @param count The number of particles to create.
-     * @param color The color of the particles.
+     * Spawns a specified number of particles at a given location with a specific color.
+     * Particles are retrieved from the object pool.
+     * @param {number} x - The x-coordinate where particles will be spawned.
+     * @param {number} y - The y-coordinate where particles will be spawned.
+     * @param {number} count - The number of particles to create.
+     * @param {string} color - The color of the particles.
      */
     emit(x: number, y: number, count: number, color: string) {
         for (let i = 0; i < count; i++) {
@@ -26,8 +37,10 @@ export class ParticleSystem {
     }
 
     /**
-     * Updates all active particles and removes expired ones.
-     * @param dt Delta time since the last frame.
+     * Updates the state of all active particles.
+     * This moves particles, decreases their lifespan, and removes them from the system
+     * once they expire by returning them to the object pool.
+     * @param {number} dt - The time elapsed since the last frame, in seconds.
      */
     update(dt: number) {
         let i = 0;
@@ -36,7 +49,7 @@ export class ParticleSystem {
             p.update(dt);
             if (p.shouldBeRemoved) {
                 this.pool.release(p);
-                // Swap remove
+                // Swap remove for performance
                 this.particles[i] = this.particles[this.particles.length - 1];
                 this.particles.pop();
             } else {
@@ -46,8 +59,8 @@ export class ParticleSystem {
     }
 
     /**
-     * Draws all active particles to the canvas.
-     * @param ctx The canvas rendering context.
+     * Renders all active particles to the screen.
+     * @param {CanvasRenderingContext2D} ctx - The canvas rendering context to draw on.
      */
     draw(ctx: CanvasRenderingContext2D) {
         for (const p of this.particles) {

@@ -1,10 +1,27 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 
+/**
+ * Interface for the properties of the VirtualJoystick component.
+ * @interface VirtualJoystickProps
+ */
 interface VirtualJoystickProps {
+    /**
+     * Callback function executed when the joystick is moved.
+     * @param {number} x - The normalized x-component of the movement vector (-1 to 1).
+     * @param {number} y - The normalized y-component of the movement vector (-1 to 1).
+     */
     onMove: (x: number, y: number) => void;
 }
 
+/**
+ * A React functional component that provides a virtual joystick for touch controls.
+ * It renders a draggable knob within a defined area and reports a normalized
+ * movement vector to its parent component via the `onMove` callback.
+ *
+ * @param {VirtualJoystickProps} props - The properties for the component.
+ * @returns {React.ReactElement} The rendered VirtualJoystick component.
+ */
 export const VirtualJoystick: React.FC<VirtualJoystickProps> = ({ onMove }) => {
     const [active, setActive] = useState(false);
     const [pos, setPos] = useState({ x: 0, y: 0 });

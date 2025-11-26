@@ -2,12 +2,27 @@
 import React from 'react';
 import { i18nManager } from '../core/i18n';
 
+/**
+ * Interface for the properties of the ReviveModal component.
+ * @interface ReviveModalProps
+ */
 interface ReviveModalProps {
+    /** The number of revives the player has remaining. */
     revivesLeft: number;
+    /** Callback function to execute when the player chooses to revive. */
     onRevive: () => void;
+    /** Callback function to execute when the player chooses to give up. */
     onGiveUp: () => void;
 }
 
+/**
+ * A React functional component that displays the Revive modal.
+ * This modal appears when the player's health reaches zero, offering them the choice
+ * to use a revive charge or end the game.
+ *
+ * @param {ReviveModalProps} props - The properties for the component.
+ * @returns {React.ReactElement} The rendered ReviveModal component.
+ */
 export const ReviveModal: React.FC<ReviveModalProps> = ({ revivesLeft, onRevive, onGiveUp }) => {
     return (
         <div className="pause-menu-backdrop">
