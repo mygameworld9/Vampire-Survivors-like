@@ -15,7 +15,6 @@ import { Weapon } from "../../entities/Weapon";
 import { Enemy } from "../../entities/Enemy";
 import { Prop } from "../../entities/Prop";
 import { LightningProjectile } from "../../entities/LightningProjectile";
-import { SlashProjectile } from "../../entities/SlashProjectile";
 import { QuadTree, Rectangle } from "../../utils/QuadTree";
 import { ITEM_DATA } from "../../data/itemData";
 import { FloatingText } from "../../entities/FloatingText";
@@ -33,6 +32,7 @@ export class CollisionSystem {
         this.rebuildQuadTree();
         this.handleProjectileToEnemy();
         this.handleProjectileToProp();
+        this.handleProjectileToChest(); // New handler
         this.handleEnemyToPlayer();
         this.handlePickups();
         this.handleEffects();
@@ -106,7 +106,7 @@ export class CollisionSystem {
                         p.hitEnemies.add(e.id);
                     }
                 }
-            } else if (p instanceof LightningProjectile || p instanceof SlashProjectile) {
+            } else if (p instanceof LightningProjectile) {
                 for (const e of candidates) {
                     if (p.hitEnemies.has(e.id)) continue;
                     const dx = p.pos.x - e.pos.x;
@@ -145,7 +145,6 @@ export class CollisionSystem {
     }
 
     private handleProjectileToProp() {
-        // Props are not in QuadTree for now (usually low count), simple iteration
         for (const p of this.game.projectiles) {
             if (p.shouldBeRemoved) continue;
 
@@ -168,30 +167,76 @@ export class CollisionSystem {
                         this.game.particleSystem.emit(prop.pos.x, prop.pos.y, 2, '#8D6E63');
                     }
                 }
-            } else {
+            } else if (p instanceof LightningProjectile) {
+                // Lightning AOE on props?
                 for (const prop of this.game.props) {
-                    // Simple Hitbox
                     const dx = p.pos.x - prop.pos.x;
                     const dy = p.pos.y - prop.pos.y;
                     const distSq = dx * dx + dy * dy;
-                    
-                    // Allow generous hit radius for props
+                    const hitDist = p.range + prop.size / 2;
+                    if (distSq < hitDist * hitDist) {
+                        prop.takeDamage(10);
+                        this.game.particleSystem.emit(prop.pos.x, prop.pos.y, 2, '#8D6E63');
+                    }
+                }
+            } else {
+                for (const prop of this.game.props) {
+                    const dx = p.pos.x - prop.pos.x;
+                    const dy = p.pos.y - prop.pos.y;
+                    const distSq = dx * dx + dy * dy;
                     const hitDist = prop.size + 10; 
 
                     if (distSq < hitDist * hitDist) {
-                         // Check special projectile types if needed, for now all damage props
-                         // Lasers and AOE are trickier without hitEnemies set logic, 
-                         // but for simplicity, let's just apply damage directly.
-                         // To avoid 60fps damage from persistent projectiles (like Aura), we can add an immunity timer to Prop or just let them break fast.
-                         
-                         prop.takeDamage(10); // Fixed damage to props for now, or use p.damage
+                         prop.takeDamage(10); 
                          this.game.particleSystem.emit(prop.pos.x, prop.pos.y, 2, '#8D6E63');
                          
-                         // If it's a standard projectile, destroy it
-                         if (!(p instanceof LightningProjectile || p instanceof SlashProjectile || p.statusEffect)) {
+                         if (!p.statusEffect) {
                              p.shouldBeRemoved = true;
                          }
                     }
+                }
+            }
+        }
+    }
+
+    private handleProjectileToChest() {
+        for (const p of this.game.projectiles) {
+            if (p.shouldBeRemoved) continue;
+
+            for (const chest of this.game.chests) {
+                if (chest.state !== 'closed') continue;
+
+                // Determine projectile position based on type
+                let px: number;
+                let py: number;
+                let hitRadius = 5;
+
+                if (p instanceof LaserProjectile) {
+                    // Simplified for laser: check if start is close or if direction points to chest
+                    px = p.p1.x;
+                    py = p.p1.y;
+                    if (p.width) hitRadius = p.width / 2;
+                } else {
+                    px = p.pos.x;
+                    py = p.pos.y;
+                    if ('size' in p) {
+                         hitRadius = (p as any).size / 2;
+                    }
+                }
+
+                const dx = px - chest.pos.x;
+                const dy = py - chest.pos.y;
+                const distSq = dx * dx + dy * dy;
+                const hitDist = chest.size / 2 + hitRadius + 10; // Generous hit box
+
+                if (distSq < hitDist * hitDist) {
+                    chest.takeDamage(1);
+                    if (chest.hp <= 0 && !chest.isBeingOpened) {
+                        chest.isBeingOpened = true;
+                        this.game.onChestOpenStart(chest);
+                        this.game.animatingEntities.push(chest);
+                    }
+                    // Crucial: Do NOT remove projectile or reduce penetration
                 }
             }
         }

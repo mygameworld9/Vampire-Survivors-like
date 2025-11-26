@@ -77,42 +77,71 @@ export class BoomerangProjectile {
         // Shadow (Draw before rotation)
         ctx.fillStyle = 'rgba(0,0,0,0.2)';
         ctx.beginPath();
-        ctx.ellipse(0, 6, 10, 3, 0, 0, Math.PI * 2);
+        ctx.ellipse(0, this.size/2 + 4, this.size/2, this.size/6, 0, 0, Math.PI * 2);
         ctx.fill();
 
         // Spin the frisbee
         ctx.rotate(this.rotationAngle);
         
-        const scale = this.size / 20; 
-        ctx.scale(scale, scale);
+        const radius = this.size / 2;
 
-        // Frisbee Body
-        ctx.fillStyle = '#76FF03'; // Light Green
+        // Main Body (Soft Pastel Pink)
+        ctx.fillStyle = '#F8BBD0'; 
         ctx.beginPath();
-        ctx.arc(0, 0, 10, 0, Math.PI * 2);
+        ctx.arc(0, 0, radius, 0, Math.PI * 2);
         ctx.fill();
 
-        // Rings
-        ctx.strokeStyle = '#33691E'; // Dark Green
-        ctx.lineWidth = 2;
+        // Rim (Vibrant Pink)
+        ctx.strokeStyle = '#E91E63';
+        ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.arc(0, 0, 10, 0, Math.PI * 2); // Outer rim
-        ctx.stroke();
-        
-        ctx.lineWidth = 1;
-        ctx.strokeStyle = '#64DD17';
-        ctx.beginPath();
-        ctx.arc(0, 0, 7, 0, Math.PI * 2); // Inner ridge
+        ctx.arc(0, 0, radius - 1.5, 0, Math.PI * 2);
         ctx.stroke();
 
-        // Pattern to show spin
-        ctx.fillStyle = '#1B5E20';
-        for(let i=0; i<3; i++) {
-            ctx.beginPath();
-            ctx.arc(6, 0, 1.5, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.rotate((Math.PI * 2) / 3);
-        }
+        // Inner Ring (Darker Pink dashed)
+        ctx.strokeStyle = '#880E4F';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        ctx.arc(0, 0, radius * 0.7, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Cute Face (Scale factor for positioning)
+        const s = radius / 16;
+
+        // Eyes (Dark Purple/Pink)
+        ctx.fillStyle = '#880E4F';
+        ctx.beginPath();
+        ctx.ellipse(-5 * s, -3 * s, 3 * s, 5 * s, 0, 0, Math.PI * 2);
+        ctx.ellipse(5 * s, -3 * s, 3 * s, 5 * s, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Highlights
+        ctx.fillStyle = 'white';
+        ctx.beginPath();
+        ctx.arc(-4 * s, -5 * s, 1.5 * s, 0, Math.PI * 2);
+        ctx.arc(6 * s, -5 * s, 1.5 * s, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Mouth (:D shape)
+        ctx.fillStyle = '#880E4F';
+        ctx.beginPath();
+        ctx.arc(0, 0, 6 * s, 0.1, Math.PI - 0.1);
+        ctx.lineTo(0, 0 + 6 * s);
+        ctx.fill();
+        // Tongue
+        ctx.fillStyle = '#FF4081';
+        ctx.beginPath();
+        ctx.arc(0, 3 * s, 3 * s, 0, Math.PI);
+        ctx.fill();
+
+        // Cheeks
+        ctx.fillStyle = 'rgba(233, 30, 99, 0.4)';
+        ctx.beginPath();
+        ctx.arc(-9 * s, 3 * s, 3.5 * s, 0, Math.PI * 2);
+        ctx.arc(9 * s, 3 * s, 3.5 * s, 0, Math.PI * 2);
+        ctx.fill();
 
         ctx.restore();
     }

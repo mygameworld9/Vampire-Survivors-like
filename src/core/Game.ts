@@ -15,7 +15,6 @@ import { ParticleSystem } from './ParticleSystem';
 import { MAP_DATA } from '../data/mapData';
 import { HomingProjectile } from '../entities/HomingProjectile';
 import { LightningProjectile } from '../entities/LightningProjectile';
-import { SlashProjectile } from '../entities/SlashProjectile';
 import { Chest } from '../entities/Chest';
 import { FloatingText } from '../entities/FloatingText';
 import { CHEST_LOOT_TABLE } from '../data/lootData';
@@ -29,6 +28,7 @@ import { ObjectPool } from '../utils/ObjectPool';
 import { Particle } from '../entities/Particle';
 import { Vector2D } from '../utils/Vector2D';
 import { Prop } from '../entities/Prop';
+import { SlashProjectile } from '../entities/SlashProjectile';
 
 type AnyProjectile = Projectile | BoomerangProjectile | LaserProjectile | HomingProjectile | LightningProjectile | SlashProjectile;
 type AnyEffect = AuraEffect | PulseEffect;
@@ -163,8 +163,6 @@ export class Game {
             const wasAlive = e.hp > 0;
             
             // Get neighbors for flocking behavior
-            // Note: This uses the QuadTree state from the PREVIOUS frame, 
-            // which is standard practice for this type of simulation.
             const neighbors = this.collisionSystem.getNeighbors(e.pos, flockingRadius);
             
             e.update(dt, this.player.pos, neighbors);

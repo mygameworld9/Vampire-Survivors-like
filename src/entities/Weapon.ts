@@ -11,10 +11,9 @@ import { Vector2D } from "../utils/Vector2D";
 import { Enemy } from "./Enemy";
 import { HomingProjectile } from "./HomingProjectile";
 import { LightningProjectile } from "./LightningProjectile";
-import { SlashProjectile } from "./SlashProjectile";
 import { ObjectPool } from "../utils/ObjectPool";
 
-type AnyProjectile = Projectile | BoomerangProjectile | LaserProjectile | HomingProjectile | LightningProjectile | SlashProjectile;
+type AnyProjectile = Projectile | BoomerangProjectile | LaserProjectile | HomingProjectile | LightningProjectile;
 
 export class Weapon {
     id: string;
@@ -132,9 +131,6 @@ export class Weapon {
             }
             targets.forEach(t => projectiles.push(new LightningProjectile(t.pos.x, t.pos.y, firingState)));
 
-        } else if (this.type === 'MELEE') {
-            projectiles.push(new SlashProjectile(player, firingState, this.firePattern === 'all_8'));
-
         } else if (this.type === 'LASER') {
             const directions: Vector2D[] = [];
             switch (this.firePattern) {
@@ -167,12 +163,28 @@ export class Weapon {
                 this.activeProjectileCount = Math.max(0, this.activeProjectileCount - 1);
             }));
         } else { // PROJECTILE
-            if (projectilePool) {
-                const p = projectilePool.get();
-                p.reset(player.pos.x, player.pos.y, player.facingDirection, firingState);
-                projectiles.push(p);
+            // Handle Katana as Projectile or standard Gun
+            if (this.firePattern === 'all_8') {
+                 // Evolution behavior for some projectiles
+                 const diagonalMagnitude = Math.sqrt(0.5);
+                 const dirs = [
+                    new Vector2D(0, 1), new Vector2D(0, -1), new Vector2D(1, 0), new Vector2D(-1, 0),
+                    new Vector2D(diagonalMagnitude, diagonalMagnitude), new Vector2D(diagonalMagnitude, -diagonalMagnitude),
+                    new Vector2D(-diagonalMagnitude, diagonalMagnitude), new Vector2D(-diagonalMagnitude, -diagonalMagnitude)
+                 ];
+                 dirs.forEach(dir => {
+                     const p = projectilePool ? projectilePool.get() : new Projectile(0,0,new Vector2D(0,0), firingState);
+                     p.reset(player.pos.x, player.pos.y, dir, firingState);
+                     projectiles.push(p);
+                 });
             } else {
-                projectiles.push(new Projectile(player.pos.x, player.pos.y, player.facingDirection, firingState));
+                if (projectilePool) {
+                    const p = projectilePool.get();
+                    p.reset(player.pos.x, player.pos.y, player.facingDirection, firingState);
+                    projectiles.push(p);
+                } else {
+                    projectiles.push(new Projectile(player.pos.x, player.pos.y, player.facingDirection, firingState));
+                }
             }
         }
 

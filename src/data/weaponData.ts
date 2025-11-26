@@ -17,7 +17,7 @@ export const WEAPON_DATA: { [key: string]: IWeaponData } = {
     BOOMERANG: {
         id: 'BOOMERANG',
         nameKey: 'weapon.boomerang.name',
-        icon: '🥏',
+        icon: '🥏', // Changed from 🐿️ to 🥏 (Frisbee) in previous step, keeping it consistent
         type: 'BOOMERANG',
         damage: 75,
         cooldown: 3000,
@@ -92,12 +92,12 @@ export const WEAPON_DATA: { [key: string]: IWeaponData } = {
         id: 'KATANA',
         nameKey: 'weapon.katana.name',
         icon: '🗡️',
-        type: 'MELEE',
+        type: 'PROJECTILE', // Changed from MELEE to PROJECTILE
         damage: 45,
-        cooldown: 1500,
-        speed: 0, 
+        cooldown: 1200,
+        speed: 500, // Speed for projectile 
         penetration: 999,
-        range: 80, // Slash radius
+        range: 700, 
         fireSound: 'WEAPON_SLASH',
     }
 };
