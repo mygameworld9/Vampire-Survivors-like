@@ -5,7 +5,6 @@ import { IChestData } from "../utils/types";
 export class Chest {
     pos: Vector2D;
     size: number;
-    hp: number = 1;
     shouldBeRemoved = false;
     state: 'closed' | 'opening' | 'opened' = 'closed';
     public isBeingOpened = false;
@@ -23,11 +22,6 @@ export class Chest {
         if (this.state === 'closed') {
             this.state = 'opening';
         }
-    }
-    
-    public takeDamage(amount: number) {
-        if (this.state !== 'closed') return;
-        this.hp -= amount;
     }
 
     update(dt: number) {
