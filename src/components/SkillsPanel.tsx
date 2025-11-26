@@ -2,11 +2,24 @@ import React from 'react';
 import { Skill } from '../entities/Skill';
 import { i18nManager } from '../core/i18n';
 
+/**
+ * Interface for the properties of the SkillsPanel component.
+ * @interface SkillsPanelProps
+ */
 interface SkillsPanelProps {
+    /** An array of the player's current skill instances. */
     skills: Skill[];
+    /** Callback function to execute when the panel is closed. */
     onClose: () => void;
 }
 
+/**
+ * A React functional component that displays a panel showing the player's current skills.
+ * It lists each skill, its level, current stats, and the description of its next upgrade.
+ *
+ * @param {SkillsPanelProps} props - The properties for the component.
+ * @returns {React.ReactElement} The rendered SkillsPanel component.
+ */
 export const SkillsPanel: React.FC<SkillsPanelProps> = ({ skills, onClose }) => {
     return (
         <div className="info-panel-backdrop">

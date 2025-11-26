@@ -3,12 +3,19 @@ import React, { useEffect, useState } from 'react';
 import { ChestComponent } from './Chest';
 import { CHEST_LOOT_TABLE } from '../data/lootData';
 
+/**
+ * Interface for the properties of the TreasureSequence component.
+ * @interface TreasureSequenceProps
+ */
 interface TreasureSequenceProps {
+    /** Callback function executed when the entire treasure opening animation sequence is complete. */
     onAnimationEnd: () => void;
 }
 
+/** @private Represents the different stages of the treasure opening animation. */
 type Phase = 'squeeze' | 'explode' | 'hover' | 'collect' | 'finished';
 
+/** @private Represents the different types of loot particles that can be generated. */
 type ParticleType = 'coin' | 'xp_small' | 'xp_medium' | 'xp_large' | 'potion' | 'main';
 
 interface VisualParticle {
@@ -20,6 +27,12 @@ interface VisualParticle {
     icon: string;
 }
 
+/**
+ * Generates a randomized set of visual loot particles based on predefined loot tables.
+ * This function determines what icons to show (coins, XP orbs, upgrades) and their initial positions.
+ * @private
+ * @returns {VisualParticle[]} An array of generated particle data.
+ */
 const generateLootParticles = () => {
     const particles: VisualParticle[] = [];
     let idCounter = 0;
@@ -85,6 +98,14 @@ const generateLootParticles = () => {
     return particles;
 };
 
+/**
+ * A React functional component that orchestrates the entire treasure chest opening animation.
+ * It manages a multi-phase sequence: the chest squeezing, exploding, loot scattering, hovering,
+ * and finally collecting. It's a purely visual component that calls back when the sequence is over.
+ *
+ * @param {TreasureSequenceProps} props - The properties for the component.
+ * @returns {React.ReactElement} The rendered TreasureSequence component.
+ */
 export const TreasureSequence: React.FC<TreasureSequenceProps> = ({ onAnimationEnd }) => {
     const [phase, setPhase] = useState<Phase>('squeeze');
     const [particles] = useState(generateLootParticles());

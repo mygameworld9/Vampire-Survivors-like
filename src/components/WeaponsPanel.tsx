@@ -2,11 +2,24 @@ import React from 'react';
 import { Weapon } from '../entities/Weapon';
 import { i18nManager } from '../core/i18n';
 
+/**
+ * Interface for the properties of the WeaponsPanel component.
+ * @interface WeaponsPanelProps
+ */
 interface WeaponsPanelProps {
+    /** An array of the player's current weapon instances. */
     weapons: Weapon[];
+    /** Callback function to execute when the panel is closed. */
     onClose: () => void;
 }
 
+/**
+ * A React functional component that displays a panel showing the player's current weapons.
+ * It lists each weapon, its level, current stats, and the description of its next upgrade.
+ *
+ * @param {WeaponsPanelProps} props - The properties for the component.
+ * @returns {React.ReactElement} The rendered WeaponsPanel component.
+ */
 export const WeaponsPanel: React.FC<WeaponsPanelProps> = ({ weapons, onClose }) => {
     return (
         <div className="info-panel-backdrop">

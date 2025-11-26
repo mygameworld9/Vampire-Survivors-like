@@ -4,10 +4,26 @@ import { i18nManager } from '../core/i18n';
 import { progressionManager } from '../core/ProgressionManager';
 import { META_UPGRADES } from '../data/metaUpgradeData';
 
+/**
+ * Interface for the properties of the Armory component.
+ * @interface ArmoryProps
+ */
 interface ArmoryProps {
+    /**
+     * Callback function to be executed when the 'Back' button is clicked.
+     * @type {() => void}
+     */
     onBack: () => void;
 }
 
+/**
+ * A React functional component that displays the armory screen.
+ * This screen allows the player to purchase permanent meta-upgrades using gold.
+ * It shows the player's current gold, a list of available upgrades, their current levels, and their costs.
+ *
+ * @param {ArmoryProps} props - The properties for the component.
+ * @returns {React.ReactElement} The rendered Armory component.
+ */
 export const Armory: React.FC<ArmoryProps> = ({ onBack }) => {
     const [gold, setGold] = useState(0);
     const [upgrades, setUpgrades] = useState<{[key: string]: number}>({});

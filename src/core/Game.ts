@@ -33,40 +33,80 @@ import { Prop } from '../entities/Prop';
 type AnyProjectile = Projectile | BoomerangProjectile | LaserProjectile | HomingProjectile | LightningProjectile | SlashProjectile;
 type AnyEffect = AuraEffect | PulseEffect;
 
+/**
+ * The main class that orchestrates the entire game logic, state, and rendering.
+ * It manages all game entities, systems (spawning, collision), and the main game loop.
+ */
 export class Game {
+    /** The player character instance. */
     public player: Player;
+    /** An array of all active enemies in the game. */
     public enemies: Enemy[] = [];
+    /** An array of all active environmental props (e.g., destructible barrels). */
     public props: Prop[] = [];
+    /** An array of all active projectiles. */
     public projectiles: AnyProjectile[] = [];
+    /** An array of all active XP orbs on the ground. */
     public xpOrbs: XpOrb[] = [];
+    /** An array of all active visual effects (e.g., auras, pulses). */
     public effects: AnyEffect[] = [];
+    /** An array of all active items on the ground. */
     public items: Item[] = [];
+    /** An array of all active chests. */
     public chests: Chest[] = [];
+    /** An array of all active floating text elements (e.g., damage numbers, "+XP"). */
     public floatingTexts: FloatingText[] = [];
+    /** An array of entities currently undergoing a special, blocking animation (e.g., a chest opening). */
     public animatingEntities: Chest[] = [];
     
+    /** The game's camera instance for managing the viewport. */
     public camera: Camera;
+    /** The handler for player input. */
     public input: InputHandler;
+    /** The system for creating and managing particle effects. */
     public particleSystem: ParticleSystem;
+    /** The total elapsed time since the game started, in seconds. */
     public gameTime = 0;
+    /** The manager for all sound effects and music. */
     public soundManager: SoundManager;
+    /** The data for the current map, including layout, colors, and spawn information. */
     public mapData: IMapData;
+    /** The width of the game canvas. */
     public width: number;
+    /** The height of the game canvas. */
     public height: number;
+    /** A callback function to be executed when the player levels up. */
     public onLevelUp: () => void;
+    /** A callback function to be executed when the player initiates opening a chest. */
     public onChestOpenStart: (chest: Chest) => void;
 
     // Subsystems
+    /** @private The renderer for the game map. */
     private mapRenderer: MapRenderer;
     private spawnSystem: SpawnSystem;
     private collisionSystem: CollisionSystem;
 
     // Pools
+    /** A pool for reusing enemy objects to improve performance. */
     public enemyPool: ObjectPool<Enemy>;
+    /** A pool for reusing prop objects. */
     public propPool: ObjectPool<Prop>;
+    /** A pool for reusing basic projectile objects. */
     public projectilePool: ObjectPool<Projectile>;
+    /** A pool for reusing particle objects. */
     public particlePool: ObjectPool<Particle>;
 
+    /**
+     * Creates an instance of the Game.
+     * @param {number} width - The width of the game canvas.
+     * @param {number} height - The height of the game canvas.
+     * @param {() => void} onLevelUp - A callback for when the player levels up.
+     * @param {(chest: Chest) => void} onChestOpenStart - A callback for when a chest opening animation starts.
+     * @param {SoundManager} soundManager - The shared sound manager instance.
+     * @param {string} characterId - The ID of the character selected by the player.
+     * @param {string} mapId - The ID of the map selected for the game.
+     * @param {CreativeLoadout} [initialLoadout] - Optional loadout for creative/debug modes.
+     */
     constructor(
         width: number, 
         height: number, 
@@ -135,10 +175,18 @@ export class Game {
         });
     }
 
+    /**
+     * Spawns a treasure chest at a random location near the player.
+     */
     public spawnChestNearPlayer() {
         this.spawnSystem.spawnChestNearPlayer();
     }
     
+    /**
+     * The main update loop for the game logic.
+     * This method is called on every frame and is responsible for updating all game entities and systems.
+     * @param {number} dt - The time elapsed since the last frame, in seconds.
+     */
     update(dt: number) {
         this.gameTime += dt;
 
@@ -233,11 +281,22 @@ export class Game {
         this.floatingTexts = this.floatingTexts.filter(t => !t.shouldBeRemoved);
     }
 
+    /**
+     * Updates entities that have special, non-gameplay animations.
+     * This is typically run separately from the main update loop to ensure animations
+     * continue even when the game is paused.
+     * @param {number} dt - The time elapsed since the last frame, in seconds.
+     */
     updateAnimations(dt: number) {
         this.animatingEntities.forEach(e => e.update(dt));
         this.chests.forEach(c => c.update(dt));
     }
 
+    /**
+     * Renders the entire game state to the canvas.
+     * This method is called every frame after the `update` loop.
+     * @param {CanvasRenderingContext2D} ctx - The canvas rendering context to draw on.
+     */
     draw(ctx: CanvasRenderingContext2D) {
         ctx.fillStyle = this.mapData.baseColors[0];
         ctx.fillRect(0, 0, this.width, this.height);
@@ -261,6 +320,11 @@ export class Game {
         ctx.restore();
     }
     
+    /**
+     * Finalizes the chest opening sequence after the animation is complete.
+     * This grants the rewards to the player and removes the chest from the animating entities list.
+     * @param {Chest} chest - The chest that has finished its opening animation.
+     */
     public finalizeChestOpening(chest: Chest) {
         this.grantChestRewards(chest);
         this.animatingEntities = this.animatingEntities.filter(e => e !== chest);

@@ -1,7 +1,20 @@
 
+/**
+ * A static utility class for generating and caching character avatar images.
+ * This cache prevents the expensive operation of re-generating an avatar every time it's needed.
+ * Avatars are generated on-the-fly as data URLs using the Canvas API.
+ */
 export class CharacterCache {
+    /** @private A cache to store generated avatar data URLs, mapping character IDs to URLs. */
     private static cache: Map<string, string> = new Map();
 
+    /**
+     * Retrieves the data URL for a character's avatar.
+     * If the avatar is already in the cache, it's returned directly.
+     * Otherwise, it's generated, cached, and then returned.
+     * @param {string} characterId - The unique identifier for the character (e.g., 'KNIGHT', 'MAGE').
+     * @returns {string} The data URL of the generated avatar image.
+     */
     public static getAvatarUrl(characterId: string): string {
         if (!this.cache.has(characterId)) {
             this.cache.set(characterId, this.generateAvatar(characterId));
@@ -9,6 +22,13 @@ export class CharacterCache {
         return this.cache.get(characterId)!;
     }
 
+    /**
+     * Generates a unique avatar for a given character ID using the Canvas API.
+     * This method contains the specific drawing logic for each character.
+     * @private
+     * @param {string} id - The character ID to generate an avatar for.
+     * @returns {string} A data URL representing the generated PNG image.
+     */
     private static generateAvatar(id: string): string {
         const size = 64;
         const canvas = document.createElement('canvas');

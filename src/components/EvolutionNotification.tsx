@@ -3,11 +3,28 @@ import React, { useEffect } from 'react';
 import { Weapon } from '../entities/Weapon';
 import { i18nManager } from '../core/i18n';
 
+/**
+ * Interface for the properties of the EvolutionNotification component.
+ * @interface EvolutionNotificationProps
+ */
 interface EvolutionNotificationProps {
+    /**
+     * The weapon instance that has just evolved.
+     */
     weapon: Weapon;
+    /**
+     * Callback function executed when the notification is closed.
+     */
     onClose: () => void;
 }
 
+/**
+ * A React functional component that displays a notification when a weapon evolves.
+ * It presents a celebratory screen showing the evolved weapon, its new stats, and an "Evolved!" tag.
+ *
+ * @param {EvolutionNotificationProps} props - The properties for the component.
+ * @returns {React.ReactElement} The rendered EvolutionNotification component.
+ */
 export const EvolutionNotification: React.FC<EvolutionNotificationProps> = ({ weapon, onClose }) => {
     
     useEffect(() => {
