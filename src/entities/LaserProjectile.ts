@@ -21,11 +21,25 @@ export class LaserProjectile {
 
     constructor(owner: Player, weapon: Weapon, direction: Vector2D) {
         this.p1 = new Vector2D(owner.pos.x, owner.pos.y);
-        this.dir = direction;
+        this.dir = new Vector2D(0, 0);
+        this.range = 0;
+        this.width = 0;
+        this.damage = 0;
+        this.reset(owner, weapon, direction);
+    }
+
+    reset(owner: Player, weapon: Weapon, direction: Vector2D) {
+        this.p1.x = owner.pos.x;
+        this.p1.y = owner.pos.y;
+        this.dir = direction; // Usually passed as a new vector or reused ref, but caller passes new usually
         this.range = weapon.range;
         this.width = weapon.width || 10;
         this.damage = weapon.damage;
         this.statusEffect = weapon.statusEffect;
+        
+        this.shouldBeRemoved = false;
+        this.hitEnemies.clear();
+        this.lifeTimer = 0;
     }
 
     update(dt: number) {

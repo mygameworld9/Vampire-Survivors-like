@@ -18,8 +18,21 @@ export class LightningProjectile {
     constructor(x: number, y: number, weapon: Weapon) {
         this.pos = new Vector2D(x, y);
         this.damage = weapon.damage;
-        this.range = weapon.range; // Explosion radius
+        this.range = weapon.range; 
         this.statusEffect = weapon.statusEffect;
+        this.reset(x, y, weapon);
+    }
+
+    reset(x: number, y: number, weapon: Weapon) {
+        this.pos.x = x;
+        this.pos.y = y;
+        this.damage = weapon.damage;
+        this.range = weapon.range;
+        this.statusEffect = weapon.statusEffect;
+        
+        this.shouldBeRemoved = false;
+        this.hitEnemies.clear();
+        this.lifeTimer = 0;
     }
 
     update(dt: number) {

@@ -1,6 +1,4 @@
 
-
-
 import React from 'react';
 import { UpgradeOption } from '../utils/types';
 import { i18nManager } from '../core/i18n';
@@ -24,11 +22,13 @@ const renderOption = (option: UpgradeOption) => {
     if (option.type === 'upgrade') {
         if ('weapon' in option) {
             icon = option.weapon.icon;
-            title = <h3>{i18nManager.t('ui.levelup.upgradeWeapon', { name: option.weapon.name, level: option.weapon.level })}</h3>;
+            // Fix Bug 4: Show next level
+            title = <h3>{i18nManager.t('ui.levelup.upgradeWeapon', { name: option.weapon.name, level: option.weapon.level + 1 })}</h3>;
             description = option.weapon.getCurrentUpgradeDescription();
         } else { // Skill
             icon = option.skill.icon;
-            title = <h3>{i18nManager.t('ui.levelup.upgradeSkill', { name: option.skill.name, level: option.skill.level })}</h3>;
+            // Fix Bug 4: Show next level
+            title = <h3>{i18nManager.t('ui.levelup.upgradeSkill', { name: option.skill.name, level: option.skill.level + 1 })}</h3>;
             description = option.skill.getCurrentUpgradeDescription();
         }
     } else if (option.type === 'new') {

@@ -1,14 +1,10 @@
 
-
-
-
-
 import { Vector2D } from "../utils/Vector2D";
 import { InputHandler } from "../core/InputHandler";
 import { PLAYER_DATA } from "../data/playerData";
 import { XP_LEVELS } from "../data/gameConfig";
 import { WEAPON_DATA } from "../data/weaponData";
-import { Weapon } from "./Weapon";
+import { Weapon, ProjectilePools } from "./Weapon";
 import { BoomerangProjectile } from "./BoomerangProjectile";
 import { LaserProjectile } from "./LaserProjectile";
 import { Projectile } from "./Projectile";
@@ -190,7 +186,7 @@ export class Player {
         return this.skills.some(s => s.id === skillId);
     }
     
-    update(dt: number, input: InputHandler, enemies: Enemy[]): { projectiles: AnyProjectile[], skillEffects: SkillEffect[] } {
+    update(dt: number, input: InputHandler, enemies: Enemy[], projectilePools?: ProjectilePools): { projectiles: AnyProjectile[], skillEffects: SkillEffect[] } {
         this.globalTime += dt;
         const moveVector = new Vector2D(0, 0);
         
@@ -236,7 +232,7 @@ export class Player {
 
         const newProjectiles: AnyProjectile[] = [];
         this.weapons.forEach(w => {
-            const projectiles = w.update(dt, this, enemies);
+            const projectiles = w.update(dt, this, enemies, projectilePools);
             if (projectiles) {
                 newProjectiles.push(...projectiles);
             }

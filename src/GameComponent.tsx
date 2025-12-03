@@ -437,7 +437,10 @@ export const GameComponent: React.FC = () => {
                     <Minimap game={gameRef.current} visible={showMinimap} />
                 )}
 
-                <VirtualJoystick onMove={(x, y) => gameRef.current?.input.setJoystick(x, y)} />
+                {/* Fix Bug 2: Only render joystick when interacting with game world */}
+                {gameState === 'playing' && (
+                    <VirtualJoystick onMove={(x, y) => gameRef.current?.input.setJoystick(x, y)} />
+                )}
               </>
             )}
 

@@ -18,6 +18,7 @@ import { HomingProjectile } from "../entities/HomingProjectile";
 import { LightningProjectile } from "../entities/LightningProjectile";
 import { SlashProjectile } from "../entities/SlashProjectile";
 import { Particle } from "../entities/Particle";
+import { ProjectilePools } from "../entities/Weapon";
 
 type AnyProjectile = Projectile | BoomerangProjectile | LaserProjectile | HomingProjectile | LightningProjectile | SlashProjectile;
 type AnyEffect = AuraEffect | PulseEffect;
@@ -38,8 +39,18 @@ export class EntityManager {
     // Pools
     public enemyPool: ObjectPool<Enemy>;
     public propPool: ObjectPool<Prop>;
-    public projectilePool: ObjectPool<Projectile>;
     public particlePool: ObjectPool<Particle>;
+    
+    // Specific Projectile Pools
+    public projectilePool: ObjectPool<Projectile>;
+    public boomerangPool: ObjectPool<BoomerangProjectile>;
+    public laserPool: ObjectPool<LaserProjectile>;
+    public homingPool: ObjectPool<HomingProjectile>;
+    public lightningPool: ObjectPool<LightningProjectile>;
+    public slashPool: ObjectPool<SlashProjectile>;
+
+    // Aggregated Pool Interface
+    public projectilePools: ProjectilePools;
 
     // Optimization
     private frameCount = 0;
@@ -48,8 +59,23 @@ export class EntityManager {
         // Initialize Object Pools
         this.enemyPool = new ObjectPool(() => new Enemy(0, 0, {} as any, 'SLIME', false));
         this.propPool = new ObjectPool(() => new Prop(0, 0, {} as any));
-        this.projectilePool = new ObjectPool(() => new Projectile(0, 0, new Vector2D(0, 0), {} as any));
         this.particlePool = new ObjectPool(() => new Particle(0, 0, '#fff'));
+
+        this.projectilePool = new ObjectPool(() => new Projectile(0, 0, new Vector2D(0,0), {} as any));
+        this.boomerangPool = new ObjectPool(() => new BoomerangProjectile(0, 0, {} as any, {} as any));
+        this.laserPool = new ObjectPool(() => new LaserProjectile({} as any, {} as any, new Vector2D(0,0)));
+        this.homingPool = new ObjectPool(() => new HomingProjectile(0, 0, new Vector2D(0,0), {} as any, {} as any));
+        this.lightningPool = new ObjectPool(() => new LightningProjectile(0, 0, {} as any));
+        this.slashPool = new ObjectPool(() => new SlashProjectile({} as any, {} as any, false));
+
+        this.projectilePools = {
+            projectile: this.projectilePool,
+            boomerang: this.boomerangPool,
+            laser: this.laserPool,
+            homing: this.homingPool,
+            lightning: this.lightningPool,
+            slash: this.slashPool
+        };
     }
 
     update(dt: number, playerPos: Vector2D, collisionSystem: CollisionSystem, onBossRemoved: (e: Enemy) => void) {
@@ -78,12 +104,6 @@ export class EntityManager {
                 collisionSystem.onEnemyDefeated(e);
             }
             
-            // Simple visual effect hook - ideally moved to a render/effect system but kept here for simplicity
-            if (e.isBurning() && Math.random() < 0.5) {
-                // Needs reference to particle system, handled in collision/render usually
-                // For now, we skip direct visual creation here to decouple, or assume burning handled in Draw
-            }
-
             if (e.shouldBeRemoved) {
                 if (e.isElite) {
                     onBossRemoved(e);
@@ -119,9 +139,14 @@ export class EntityManager {
             const p = this.projectiles[j];
             p.update(dt);
             if (p.shouldBeRemoved) {
-                if (p instanceof Projectile) {
-                    this.projectilePool.release(p);
-                }
+                // Release to correct pool
+                if (p instanceof BoomerangProjectile) this.boomerangPool.release(p);
+                else if (p instanceof LaserProjectile) this.laserPool.release(p);
+                else if (p instanceof HomingProjectile) this.homingPool.release(p);
+                else if (p instanceof LightningProjectile) this.lightningPool.release(p);
+                else if (p instanceof SlashProjectile) this.slashPool.release(p);
+                else if (p instanceof Projectile) this.projectilePool.release(p);
+
                 const last = this.projectiles[this.projectiles.length - 1];
                 this.projectiles[j] = last;
                 this.projectiles.pop();

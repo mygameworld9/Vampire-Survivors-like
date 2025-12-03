@@ -20,20 +20,29 @@ export class SlashProjectile {
 
     constructor(owner: Player, weapon: Weapon, isFullCircle: boolean) {
         this.owner = owner;
+        this.pos = new Vector2D(0, 0);
+        this.damage = 0;
+        this.range = 0;
+        this.isFullCircle = false;
+        this.angle = 0;
+        this.reset(owner, weapon, isFullCircle);
+    }
+
+    reset(owner: Player, weapon: Weapon, isFullCircle: boolean) {
+        this.owner = owner;
         this.damage = weapon.damage;
         this.range = weapon.range; 
         this.statusEffect = weapon.statusEffect;
         this.isFullCircle = isFullCircle;
         
-        // Calculate initial pos based on player facing
         this.angle = Math.atan2(owner.facingDirection.y, owner.facingDirection.x);
+        this.pos.x = owner.pos.x;
+        this.pos.y = owner.pos.y;
         
-        // Center on player, we will offset in draw if needed
-        this.pos = new Vector2D(owner.pos.x, owner.pos.y);
-        
-        if (this.isFullCircle) {
-             this.duration = 0.4; 
-        }
+        this.lifeTimer = 0;
+        this.duration = isFullCircle ? 0.4 : 0.2;
+        this.shouldBeRemoved = false;
+        this.hitEnemies.clear();
     }
 
     update(dt: number) {

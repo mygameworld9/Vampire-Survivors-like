@@ -16,72 +16,178 @@ import { Enemy } from "../../entities/Enemy";
 import { Prop } from "../../entities/Prop";
 import { LightningProjectile } from "../../entities/LightningProjectile";
 import { SlashProjectile } from "../../entities/SlashProjectile";
-import { QuadTree, Rectangle } from "../../utils/QuadTree";
 import { ITEM_DATA } from "../../data/itemData";
 import { FloatingText } from "../../entities/FloatingText";
 import { i18nManager } from "../i18n";
 
 export class CollisionSystem {
-    private enemyQuadTree: QuadTree<Enemy>;
+    // --- Local Flat Grid Config ---
+    // 40x40 grid of 100px cells = 4000x4000px active area centered on player
+    private readonly CELL_SIZE = 100;
+    private readonly GRID_COLS = 40; 
+    private readonly GRID_ROWS = 40;
+    private readonly HALF_COLS = 20;
+    private readonly HALF_ROWS = 20;
+
+    // The Flat Grid: 1D array of pre-allocated Enemy arrays
+    // Index = row * GRID_COLS + col
+    private grid: Enemy[][];
+
+    // Shared reuse buffers to reduce GC
+    private _queryResults: Enemy[] = [];
+    private _scratchVec = new Vector2D(0, 0);
 
     constructor(private game: Game) {
-        this.enemyQuadTree = new QuadTree({ x: 0, y: 0, w: 2500, h: 2500 }, 8);
+        // Initialize Grid (One-time allocation)
+        const size = this.GRID_COLS * this.GRID_ROWS;
+        this.grid = new Array(size);
+        for (let i = 0; i < size; i++) {
+            this.grid[i] = [];
+        }
     }
 
     update(dt: number) {
-        this.rebuildQuadTree();
+        this.rebuildGrid();
         this.handleProjectileToEnemy();
         this.handleProjectileToProp();
         this.handleEnemyToPlayer();
         this.handlePickups();
     }
 
-    public getNeighbors(center: Vector2D, radius: number): Enemy[] {
-        const range: Rectangle = { x: center.x, y: center.y, w: radius, h: radius };
-        return this.enemyQuadTree.query(range);
-    }
+    /**
+     * Clears and repopulates the grid based on enemies' positions relative to the player.
+     */
+    private rebuildGrid() {
+        // 1. Fast Reset (Do not deallocate arrays)
+        const size = this.grid.length;
+        for (let i = 0; i < size; i++) {
+            this.grid[i].length = 0;
+        }
 
-    private rebuildQuadTree() {
+        // 2. Populate
         const player = this.game.player;
-        this.enemyQuadTree.clear();
-        this.enemyQuadTree.boundary.x = player.pos.x;
-        this.enemyQuadTree.boundary.y = player.pos.y;
-        
-        // Access via EntityManager
-        for (const e of this.game.entityManager.enemies) {
-            this.enemyQuadTree.insert(e);
+        const px = player.pos.x;
+        const py = player.pos.y;
+        const enemies = this.game.entityManager.enemies;
+        const count = enemies.length;
+
+        for (let i = 0; i < count; i++) {
+            const e = enemies[i];
+            // Calculate grid coordinates relative to player
+            // We offset by HALF_COLS/ROWS so the player is always at [20,20]
+            const col = Math.floor((e.pos.x - px) / this.CELL_SIZE) + this.HALF_COLS;
+            const row = Math.floor((e.pos.y - py) / this.CELL_SIZE) + this.HALF_ROWS;
+
+            // Only insert if within the active physics window
+            if (col >= 0 && col < this.GRID_COLS && row >= 0 && row < this.GRID_ROWS) {
+                this.grid[row * this.GRID_COLS + col].push(e);
+            }
         }
     }
 
-    private handleProjectileToEnemy() {
-        for (const p of this.game.entityManager.projectiles) {
-            let range: Rectangle;
+    /**
+     * Populates _queryResults with enemies in the rectangular area covering the circle.
+     */
+    private queryGrid(x: number, y: number, radius: number, out: Enemy[]) {
+        const player = this.game.player;
+        const px = player.pos.x;
+        const py = player.pos.y;
 
-            if (p instanceof LaserProjectile) {
-                const midX = p.p1.x + p.dir.x * (p.range / 2);
-                const midY = p.p1.y + p.dir.y * (p.range / 2);
-                const halfSize = p.range / 2 + 50; 
-                range = { x: midX, y: midY, w: halfSize, h: halfSize };
-            } else {
-                range = { x: p.pos.x, y: p.pos.y, w: 150, h: 150 };
+        // Convert query bounds to grid coordinates
+        const minX = x - radius - px;
+        const maxX = x + radius - px;
+        const minY = y - radius - py;
+        const maxY = y + radius - py;
+
+        let startCol = Math.floor(minX / this.CELL_SIZE) + this.HALF_COLS;
+        let endCol   = Math.floor(maxX / this.CELL_SIZE) + this.HALF_COLS;
+        let startRow = Math.floor(minY / this.CELL_SIZE) + this.HALF_ROWS;
+        let endRow   = Math.floor(maxY / this.CELL_SIZE) + this.HALF_ROWS;
+
+        // Clamp to grid bounds
+        if (startCol < 0) startCol = 0;
+        if (endCol >= this.GRID_COLS) endCol = this.GRID_COLS - 1;
+        if (startRow < 0) startRow = 0;
+        if (endRow >= this.GRID_ROWS) endRow = this.GRID_ROWS - 1;
+
+        for (let r = startRow; r <= endRow; r++) {
+            const rowOffset = r * this.GRID_COLS;
+            for (let c = startCol; c <= endCol; c++) {
+                const cell = this.grid[rowOffset + c];
+                const len = cell.length;
+                // Manual loop is faster than spread/concat
+                for (let k = 0; k < len; k++) {
+                    out.push(cell[k]);
+                }
             }
+        }
+    }
+
+    public getNeighbors(center: Vector2D, radius: number): Enemy[] {
+        // Note: This returns a shared reference that changes next update/query.
+        // If caller needs persistence, they must copy it. 
+        // Current usage in Enemy.ts is immediate, so it's safe.
+        this._queryResults.length = 0;
+        this.queryGrid(center.x, center.y, radius, this._queryResults);
+        return this._queryResults;
+    }
+
+    private handleProjectileToEnemy() {
+        const projectiles = this.game.entityManager.projectiles;
+        const pLen = projectiles.length;
+
+        for (let i = 0; i < pLen; i++) {
+            const p = projectiles[i];
             
-            const candidates = this.enemyQuadTree.query(range);
+            // Determine query parameters
+            let qRadius = 0;
+            let qX = 0;
+            let qY = 0;
 
             if (p instanceof LaserProjectile) {
-                for (const e of candidates) {
+                // Check midpoint of laser
+                qRadius = p.range / 2 + 60; // Buffer
+                qX = p.p1.x + p.dir.x * (p.range / 2);
+                qY = p.p1.y + p.dir.y * (p.range / 2);
+            } else if (p instanceof LightningProjectile || p instanceof SlashProjectile) {
+                qX = p.pos.x;
+                qY = p.pos.y;
+                qRadius = p.range + 50;
+            } else {
+                qX = p.pos.x;
+                qY = p.pos.y;
+                qRadius = 80; // Generic projectile + max enemy size buffer
+            }
+
+            // 1. Query Grid
+            this._queryResults.length = 0;
+            this.queryGrid(qX, qY, qRadius, this._queryResults);
+            const candidates = this._queryResults;
+            const cLen = candidates.length;
+
+            if (cLen === 0) continue;
+
+            // 2. Narrow Phase
+            if (p instanceof LaserProjectile) {
+                for (let j = 0; j < cLen; j++) {
+                    const e = candidates[j];
                     if (p.hitEnemies.has(e.id)) continue;
 
-                    const V = new Vector2D(e.pos.x - p.p1.x, e.pos.y - p.p1.y);
+                    // Scratch Vector Projection
+                    this._scratchVec.set(e.pos.x, e.pos.y).sub(p.p1);
+                    const V = this._scratchVec;
                     const D = p.dir;
-                    let t = Math.max(0, Math.min(p.range, V.x * D.x + V.y * D.y));
+                    
+                    // Project V onto D
+                    let t = V.x * D.x + V.y * D.y;
+                    t = t < 0 ? 0 : (t > p.range ? p.range : t);
+                    
                     const closestX = p.p1.x + t * D.x;
                     const closestY = p.p1.y + t * D.y;
                     
                     const dx = e.pos.x - closestX;
                     const dy = e.pos.y - closestY;
                     const distSq = dx * dx + dy * dy;
-                    
                     const hitRad = e.size / 2 + p.width / 2;
 
                     if (distSq < hitRad * hitRad) {
@@ -91,7 +197,8 @@ export class CollisionSystem {
                     }
                 }
             } else if (p instanceof LightningProjectile || p instanceof SlashProjectile) {
-                for (const e of candidates) {
+                for (let j = 0; j < cLen; j++) {
+                    const e = candidates[j];
                     if (p.hitEnemies.has(e.id)) continue;
                     const dx = p.pos.x - e.pos.x;
                     const dy = p.pos.y - e.pos.y;
@@ -105,7 +212,8 @@ export class CollisionSystem {
                     }
                 }
             } else { 
-                for (const e of candidates) {
+                for (let j = 0; j < cLen; j++) {
+                    const e = candidates[j];
                     if (p.hitEnemies.has(e.id)) continue;
                     const dx = p.pos.x - e.pos.x;
                     const dy = p.pos.y - e.pos.y;
@@ -116,6 +224,8 @@ export class CollisionSystem {
                         this.applyDamageToEnemy(e, p.damage, p.statusEffect);
                         this.game.particleSystem.emit(p.pos.x, p.pos.y, 5, e.color);
                         
+                        // Handle penetration
+                        // All types here (Projectile, Boomerang, Homing) are guaranteed to have penetration
                         p.penetration--;
                         p.hitEnemies.add(e.id);
                         if (p.penetration <= 0) {
@@ -129,21 +239,26 @@ export class CollisionSystem {
     }
 
     private handleProjectileToProp() {
-        for (const p of this.game.entityManager.projectiles) {
+        // Props are sparse, linear check is fine
+        const projectiles = this.game.entityManager.projectiles;
+        const props = this.game.entityManager.props;
+        
+        for (const p of projectiles) {
             if (p.shouldBeRemoved) continue;
 
             if (p instanceof LaserProjectile) {
-                 for (const prop of this.game.entityManager.props) {
-                    const V = new Vector2D(prop.pos.x - p.p1.x, prop.pos.y - p.p1.y);
+                 for (const prop of props) {
+                    this._scratchVec.set(prop.pos.x, prop.pos.y).sub(p.p1);
+                    const V = this._scratchVec;
                     const D = p.dir;
-                    let t = Math.max(0, Math.min(p.range, V.x * D.x + V.y * D.y));
+                    let t = V.x * D.x + V.y * D.y;
+                    t = t < 0 ? 0 : (t > p.range ? p.range : t);
                     const closestX = p.p1.x + t * D.x;
                     const closestY = p.p1.y + t * D.y;
                     
                     const dx = prop.pos.x - closestX;
                     const dy = prop.pos.y - closestY;
                     const distSq = dx * dx + dy * dy;
-                    
                     const hitDist = prop.size + p.width / 2;
 
                     if (distSq < hitDist * hitDist) {
@@ -152,7 +267,7 @@ export class CollisionSystem {
                     }
                 }
             } else {
-                for (const prop of this.game.entityManager.props) {
+                for (const prop of props) {
                     const dx = p.pos.x - prop.pos.x;
                     const dy = p.pos.y - prop.pos.y;
                     const distSq = dx * dx + dy * dy;
@@ -162,8 +277,15 @@ export class CollisionSystem {
                          prop.takeDamage(10); 
                          this.game.particleSystem.emit(prop.pos.x, prop.pos.y, 2, '#8D6E63');
                          
-                         if (!(p instanceof LightningProjectile || p instanceof SlashProjectile || p.statusEffect)) {
-                             p.shouldBeRemoved = true;
+                         if (p instanceof LightningProjectile || p instanceof SlashProjectile) {
+                             // AOE don't stop
+                         } else if ('penetration' in p) {
+                             p.penetration--;
+                             if (p.penetration <= 0) {
+                                 p.shouldBeRemoved = true;
+                             }
+                         } else {
+                             (p as any).shouldBeRemoved = true;
                          }
                     }
                 }
@@ -173,8 +295,10 @@ export class CollisionSystem {
 
     private handleEnemyToPlayer() {
         const player = this.game.player;
-        const range: Rectangle = { x: player.pos.x, y: player.pos.y, w: 100, h: 100 };
-        const candidates = this.enemyQuadTree.query(range);
+        // Only check enemies near player
+        this._queryResults.length = 0;
+        this.queryGrid(player.pos.x, player.pos.y, 100, this._queryResults);
+        const candidates = this._queryResults;
 
         for (const e of candidates) {
             const dx = e.pos.x - player.pos.x;
@@ -344,10 +468,11 @@ export class CollisionSystem {
             this.game.entityManager.effects.push(new AuraEffect(this.game.player, weapon.range, false));
         }
 
-        const range: Rectangle = { x: this.game.player.pos.x, y: this.game.player.pos.y, w: weapon.range + 50, h: weapon.range + 50 };
+        // Use Grid for Aura collision
+        this._queryResults.length = 0;
+        this.queryGrid(this.game.player.pos.x, this.game.player.pos.y, weapon.range + 50, this._queryResults);
         
-        const candidates = this.enemyQuadTree.query(range);
-        for (const e of candidates) {
+        for (const e of this._queryResults) {
             const dx = this.game.player.pos.x - e.pos.x;
             const dy = this.game.player.pos.y - e.pos.y;
             const distSq = dx * dx + dy * dy;
@@ -363,6 +488,7 @@ export class CollisionSystem {
             }
         }
 
+        // Props
         for (const prop of this.game.entityManager.props) {
             const dx = this.game.player.pos.x - prop.pos.x;
             const dy = this.game.player.pos.y - prop.pos.y;
@@ -383,10 +509,11 @@ export class CollisionSystem {
             case 'PULSE':
                 this.game.entityManager.effects.push(new PulseEffect(this.game.player.pos, effect.range));
                 
-                const range: Rectangle = { x: this.game.player.pos.x, y: this.game.player.pos.y, w: effect.range + 50, h: effect.range + 50 };
-                const candidates = this.enemyQuadTree.query(range);
+                // Use Grid
+                this._queryResults.length = 0;
+                this.queryGrid(this.game.player.pos.x, this.game.player.pos.y, effect.range + 50, this._queryResults);
                 
-                for (const e of candidates) {
+                for (const e of this._queryResults) {
                     const dx = this.game.player.pos.x - e.pos.x;
                     const dy = this.game.player.pos.y - e.pos.y;
                     const distSq = dx * dx + dy * dy;

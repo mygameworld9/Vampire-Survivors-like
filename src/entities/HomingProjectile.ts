@@ -17,18 +17,37 @@ export class HomingProjectile {
     hitEnemies: Set<number> = new Set();
     statusEffect?: IWeaponStatusEffect;
 
-    private target: Enemy;
+    private target!: Enemy;
     private rotation = 0;
+    
+    // Scratch object for calculation
+    private _tempVector = new Vector2D(0, 0);
 
     constructor(x: number, y: number, direction: Vector2D, weapon: Weapon, target: Enemy) {
         this.pos = new Vector2D(x, y);
-        this.direction = direction; // Initial direction
+        this.direction = direction;
+        this.speed = weapon.speed;
+        this.damage = weapon.damage;
+        this.penetration = weapon.penetration;
+        this.range = weapon.range;
+        this.reset(x, y, direction, weapon, target);
+    }
+
+    reset(x: number, y: number, direction: Vector2D, weapon: Weapon, target: Enemy) {
+        this.pos.x = x;
+        this.pos.y = y;
+        this.direction = direction;
         this.speed = weapon.speed;
         this.damage = weapon.damage;
         this.penetration = weapon.penetration;
         this.range = weapon.range;
         this.statusEffect = weapon.statusEffect;
         this.target = target;
+        
+        this.distanceTraveled = 0;
+        this.rotation = 0;
+        this.shouldBeRemoved = false;
+        this.hitEnemies.clear();
     }
 
     update(dt: number) {
@@ -37,8 +56,13 @@ export class HomingProjectile {
         // If the target is still valid, home in on it.
         // Check target.id as extra safety although ref checks work if instance is alive
         if (this.target && !this.target.shouldBeRemoved) {
-            const newDirection = new Vector2D(this.target.pos.x - this.pos.x, this.target.pos.y - this.pos.y).normalize();
-            this.direction = newDirection;
+            // Use scratch vector to avoid creating new Vector2D every frame
+            this._tempVector.set(this.target.pos.x, this.target.pos.y)
+                .sub(this.pos)
+                .normalize();
+            
+            // Update direction in place
+            this.direction.copy(this._tempVector);
         }
         
         const moveDist = this.speed * dt;

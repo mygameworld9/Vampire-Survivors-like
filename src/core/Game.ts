@@ -139,7 +139,8 @@ export class Game {
 
         this.spawnSystem.update(dt);
 
-        const { projectiles, skillEffects } = this.player.update(dt, this.input, this.entityManager.enemies);
+        // Pass projectilePools to player update
+        const { projectiles, skillEffects } = this.player.update(dt, this.input, this.entityManager.enemies, this.entityManager.projectilePools);
         this.entityManager.projectiles.push(...projectiles);
         skillEffects.forEach(effect => this.collisionSystem.handleSkillEffect(effect));
         

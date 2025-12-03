@@ -16,6 +16,15 @@ import { ObjectPool } from "../utils/ObjectPool";
 
 type AnyProjectile = Projectile | BoomerangProjectile | LaserProjectile | HomingProjectile | LightningProjectile | SlashProjectile;
 
+export interface ProjectilePools {
+    projectile: ObjectPool<Projectile>;
+    boomerang: ObjectPool<BoomerangProjectile>;
+    laser: ObjectPool<LaserProjectile>;
+    homing: ObjectPool<HomingProjectile>;
+    lightning: ObjectPool<LightningProjectile>;
+    slash: ObjectPool<SlashProjectile>;
+}
+
 export class Weapon {
     id: string;
     nameKey: string;
@@ -63,7 +72,7 @@ export class Weapon {
         return this.baseDamage;
     }
 
-    update(dt: number, player: Player, enemies: Enemy[], projectilePool?: ObjectPool<Projectile>): AnyProjectile[] | null {
+    update(dt: number, player: Player, enemies: Enemy[], projectilePools?: ProjectilePools): AnyProjectile[] | null {
         // Boomerang Logic: If the squirrel is out (active), do not cool down.
         // The cooldown should start *after* it returns.
         if (this.type === 'BOOMERANG' && this.activeProjectileCount > 0) {
@@ -92,12 +101,12 @@ export class Weapon {
                 this.onFireAura?.(boostedWeapon);
                 return null;
             }
-            return this.fire(player, enemies, projectilePool);
+            return this.fire(player, enemies, projectilePools);
         }
         return null;
     }
 
-    fire(player: Player, enemies: Enemy[], projectilePool?: ObjectPool<Projectile>): AnyProjectile[] {
+    fire(player: Player, enemies: Enemy[], projectilePools?: ProjectilePools): AnyProjectile[] {
         const projectiles: AnyProjectile[] = [];
         const effectiveDamage = this.baseDamage * player.damageMultiplier;
         
@@ -116,7 +125,13 @@ export class Weapon {
             }
             if (nearestEnemy) {
                 const initialDirection = new Vector2D(nearestEnemy.pos.x - player.pos.x, nearestEnemy.pos.y - player.pos.y).normalize();
-                projectiles.push(new HomingProjectile(player.pos.x, player.pos.y, initialDirection, firingState, nearestEnemy));
+                if (projectilePools) {
+                    const p = projectilePools.homing.get();
+                    p.reset(player.pos.x, player.pos.y, initialDirection, firingState, nearestEnemy);
+                    projectiles.push(p);
+                } else {
+                    projectiles.push(new HomingProjectile(player.pos.x, player.pos.y, initialDirection, firingState, nearestEnemy));
+                }
             }
         } else if (this.type === 'LIGHTNING') {
             // Find random enemies to strike
@@ -130,10 +145,24 @@ export class Weapon {
                 targets.push(available[idx]);
                 available.splice(idx, 1);
             }
-            targets.forEach(t => projectiles.push(new LightningProjectile(t.pos.x, t.pos.y, firingState)));
+            targets.forEach(t => {
+                if (projectilePools) {
+                    const p = projectilePools.lightning.get();
+                    p.reset(t.pos.x, t.pos.y, firingState);
+                    projectiles.push(p);
+                } else {
+                    projectiles.push(new LightningProjectile(t.pos.x, t.pos.y, firingState));
+                }
+            });
 
         } else if (this.type === 'MELEE') {
-            projectiles.push(new SlashProjectile(player, firingState, this.firePattern === 'all_8'));
+            if (projectilePools) {
+                const p = projectilePools.slash.get();
+                p.reset(player, firingState, this.firePattern === 'all_8');
+                projectiles.push(p);
+            } else {
+                projectiles.push(new SlashProjectile(player, firingState, this.firePattern === 'all_8'));
+            }
 
         } else if (this.type === 'LASER') {
             const directions: Vector2D[] = [];
@@ -159,16 +188,29 @@ export class Weapon {
                     break;
             }
             for (const dir of directions) {
-                projectiles.push(new LaserProjectile(player, firingState, dir));
+                if (projectilePools) {
+                    const p = projectilePools.laser.get();
+                    p.reset(player, firingState, dir);
+                    projectiles.push(p);
+                } else {
+                    projectiles.push(new LaserProjectile(player, firingState, dir));
+                }
             }
         } else if (this.type === 'BOOMERANG') {
             this.activeProjectileCount++;
-            projectiles.push(new BoomerangProjectile(player.pos.x, player.pos.y, player, firingState, () => {
+            const onReturn = () => {
                 this.activeProjectileCount = Math.max(0, this.activeProjectileCount - 1);
-            }));
+            };
+            if (projectilePools) {
+                const p = projectilePools.boomerang.get();
+                p.reset(player.pos.x, player.pos.y, player, firingState, onReturn);
+                projectiles.push(p);
+            } else {
+                projectiles.push(new BoomerangProjectile(player.pos.x, player.pos.y, player, firingState, onReturn));
+            }
         } else { // PROJECTILE
-            if (projectilePool) {
-                const p = projectilePool.get();
+            if (projectilePools) {
+                const p = projectilePools.projectile.get();
                 p.reset(player.pos.x, player.pos.y, player.facingDirection, firingState);
                 projectiles.push(p);
             } else {

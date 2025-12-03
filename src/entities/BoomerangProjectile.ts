@@ -16,7 +16,7 @@ export class BoomerangProjectile {
     hitEnemies: Set<number> = new Set(); // Stores Enemy IDs
     statusEffect?: IWeaponStatusEffect;
     
-    private owner: Player;
+    private owner!: Player; // Definite assignment via reset
     private state: 'outward' | 'returning' = 'outward';
     private distanceTraveled = 0;
     private direction: Vector2D;
@@ -26,19 +26,37 @@ export class BoomerangProjectile {
 
     constructor(x: number, y: number, owner: Player, weapon: Weapon, onReturn?: () => void) {
         this.pos = new Vector2D(x, y);
+        this.direction = new Vector2D(0, 0);
+        this.reset(x, y, owner, weapon, onReturn);
+    }
+
+    reset(x: number, y: number, owner: Player, weapon: Weapon, onReturn?: () => void) {
+        this.pos.x = x;
+        this.pos.y = y;
         this.owner = owner;
         this.onReturn = onReturn;
+        
         // Ensure valid direction
         if (Math.abs(owner.facingDirection.x) < 0.01 && Math.abs(owner.facingDirection.y) < 0.01) {
-            this.direction = new Vector2D(1, 0);
+            this.direction.x = 1;
+            this.direction.y = 0;
         } else {
-            this.direction = new Vector2D(owner.facingDirection.x, owner.facingDirection.y);
+            this.direction.x = owner.facingDirection.x;
+            this.direction.y = owner.facingDirection.y;
         }
+        
         this.damage = weapon.damage;
         this.speed = weapon.speed;
         this.penetration = weapon.penetration;
         this.range = weapon.range;
         this.statusEffect = weapon.statusEffect;
+        
+        this.state = 'outward';
+        this.distanceTraveled = 0;
+        this.rotationAngle = 0;
+        this.catchCooldown = 0.2;
+        this.shouldBeRemoved = false;
+        this.hitEnemies.clear();
     }
 
     update(dt: number) {
