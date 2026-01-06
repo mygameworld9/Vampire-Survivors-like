@@ -8,19 +8,22 @@ export const CHARACTER_DATA: { [key: string]: ICharacterData } = {
         descriptionKey: 'character.knight.desc',
         startingWeaponId: 'BULLET',
         startingSkillId: 'TOUGHNESS',
+        stats: {
+            damageMultiplier: 1.1 // +10% damage bonus
+        },
         // --- Animation System Data (Kept for frame timing in Player.ts, but spritesheet ignored for avatars) ---
         spriteSheet: '',
         spriteWidth: 32,
         spriteHeight: 32,
         animations: {
-            walkDown:      { frameY: 0, maxFrames: 4 },
-            walkUp:        { frameY: 1, maxFrames: 4 },
-            walkLeft:      { frameY: 2, maxFrames: 4 },
-            walkRight:     { frameY: 3, maxFrames: 4 },
+            walkDown: { frameY: 0, maxFrames: 4 },
+            walkUp: { frameY: 1, maxFrames: 4 },
+            walkLeft: { frameY: 2, maxFrames: 4 },
+            walkRight: { frameY: 3, maxFrames: 4 },
             walkDownRight: { frameY: 4, maxFrames: 4 },
-            walkDownLeft:  { frameY: 5, maxFrames: 4 },
-            walkUpRight:   { frameY: 6, maxFrames: 4 },
-            walkUpLeft:    { frameY: 7, maxFrames: 4 },
+            walkDownLeft: { frameY: 5, maxFrames: 4 },
+            walkUpRight: { frameY: 6, maxFrames: 4 },
+            walkUpLeft: { frameY: 7, maxFrames: 4 },
         }
     },
     ROGUE: {
@@ -37,14 +40,14 @@ export const CHARACTER_DATA: { [key: string]: ICharacterData } = {
         spriteWidth: 32,
         spriteHeight: 32,
         animations: {
-            walkDown:      { frameY: 0, maxFrames: 4 },
-            walkUp:        { frameY: 1, maxFrames: 4 },
-            walkLeft:      { frameY: 2, maxFrames: 4 },
-            walkRight:     { frameY: 3, maxFrames: 4 },
+            walkDown: { frameY: 0, maxFrames: 4 },
+            walkUp: { frameY: 1, maxFrames: 4 },
+            walkLeft: { frameY: 2, maxFrames: 4 },
+            walkRight: { frameY: 3, maxFrames: 4 },
             walkDownRight: { frameY: 4, maxFrames: 4 },
-            walkDownLeft:  { frameY: 5, maxFrames: 4 },
-            walkUpRight:   { frameY: 6, maxFrames: 4 },
-            walkUpLeft:    { frameY: 7, maxFrames: 4 },
+            walkDownLeft: { frameY: 5, maxFrames: 4 },
+            walkUpRight: { frameY: 6, maxFrames: 4 },
+            walkUpLeft: { frameY: 7, maxFrames: 4 },
         }
     },
     MAGE: {
@@ -53,23 +56,23 @@ export const CHARACTER_DATA: { [key: string]: ICharacterData } = {
         descriptionKey: 'character.mage.desc',
         startingWeaponId: 'SUNFIRE',
         startingSkillId: 'REGENERATION',
-         stats: {
+        stats: {
             hp: 90,
             speed: 180, // 10% slower
-            hpRegen: 1.0
+            hpRegen: 1.5 // Balanced: Increased to emphasize sustain playstyle
         },
         spriteSheet: '',
         spriteWidth: 32,
         spriteHeight: 32,
         animations: {
-            walkDown:      { frameY: 0, maxFrames: 4 },
-            walkUp:        { frameY: 1, maxFrames: 4 },
-            walkLeft:      { frameY: 2, maxFrames: 4 },
-            walkRight:     { frameY: 3, maxFrames: 4 },
+            walkDown: { frameY: 0, maxFrames: 4 },
+            walkUp: { frameY: 1, maxFrames: 4 },
+            walkLeft: { frameY: 2, maxFrames: 4 },
+            walkRight: { frameY: 3, maxFrames: 4 },
             walkDownRight: { frameY: 4, maxFrames: 4 },
-            walkDownLeft:  { frameY: 5, maxFrames: 4 },
-            walkUpRight:   { frameY: 6, maxFrames: 4 },
-            walkUpLeft:    { frameY: 7, maxFrames: 4 },
+            walkDownLeft: { frameY: 5, maxFrames: 4 },
+            walkUpRight: { frameY: 6, maxFrames: 4 },
+            walkUpLeft: { frameY: 7, maxFrames: 4 },
         }
     },
     CLERIC: {
@@ -78,7 +81,7 @@ export const CHARACTER_DATA: { [key: string]: ICharacterData } = {
         descriptionKey: 'character.cleric.desc',
         startingWeaponId: 'MAGIC_MISSILE',
         startingSkillId: 'REGENERATION',
-         stats: {
+        stats: {
             hp: 110,
             hpRegen: 1.0
         },
@@ -86,14 +89,14 @@ export const CHARACTER_DATA: { [key: string]: ICharacterData } = {
         spriteWidth: 32,
         spriteHeight: 32,
         animations: {
-            walkDown:      { frameY: 0, maxFrames: 4 },
-            walkUp:        { frameY: 1, maxFrames: 4 },
-            walkLeft:      { frameY: 2, maxFrames: 4 },
-            walkRight:     { frameY: 3, maxFrames: 4 },
+            walkDown: { frameY: 0, maxFrames: 4 },
+            walkUp: { frameY: 1, maxFrames: 4 },
+            walkLeft: { frameY: 2, maxFrames: 4 },
+            walkRight: { frameY: 3, maxFrames: 4 },
             walkDownRight: { frameY: 4, maxFrames: 4 },
-            walkDownLeft:  { frameY: 5, maxFrames: 4 },
-            walkUpRight:   { frameY: 6, maxFrames: 4 },
-            walkUpLeft:    { frameY: 7, maxFrames: 4 },
+            walkDownLeft: { frameY: 5, maxFrames: 4 },
+            walkUpRight: { frameY: 6, maxFrames: 4 },
+            walkUpLeft: { frameY: 7, maxFrames: 4 },
         }
     },
     HUNTRESS: {
@@ -102,7 +105,7 @@ export const CHARACTER_DATA: { [key: string]: ICharacterData } = {
         descriptionKey: 'character.huntress.desc',
         startingWeaponId: 'BOOMERANG',
         startingSkillId: 'SWIFTNESS',
-         stats: {
+        stats: {
             hp: 90,
             speed: 230
         },
@@ -110,14 +113,14 @@ export const CHARACTER_DATA: { [key: string]: ICharacterData } = {
         spriteWidth: 32,
         spriteHeight: 32,
         animations: {
-            walkDown:      { frameY: 0, maxFrames: 4 },
-            walkUp:        { frameY: 1, maxFrames: 4 },
-            walkLeft:      { frameY: 2, maxFrames: 4 },
-            walkRight:     { frameY: 3, maxFrames: 4 },
+            walkDown: { frameY: 0, maxFrames: 4 },
+            walkUp: { frameY: 1, maxFrames: 4 },
+            walkLeft: { frameY: 2, maxFrames: 4 },
+            walkRight: { frameY: 3, maxFrames: 4 },
             walkDownRight: { frameY: 4, maxFrames: 4 },
-            walkDownLeft:  { frameY: 5, maxFrames: 4 },
-            walkUpRight:   { frameY: 6, maxFrames: 4 },
-            walkUpLeft:    { frameY: 7, maxFrames: 4 },
+            walkDownLeft: { frameY: 5, maxFrames: 4 },
+            walkUpRight: { frameY: 6, maxFrames: 4 },
+            walkUpLeft: { frameY: 7, maxFrames: 4 },
         }
     },
     WARLOCK: {
@@ -126,21 +129,22 @@ export const CHARACTER_DATA: { [key: string]: ICharacterData } = {
         descriptionKey: 'character.warlock.desc',
         startingWeaponId: 'ICE_SHARD',
         startingSkillId: 'TOUGHNESS',
-         stats: {
+        stats: {
             hp: 75,
+            statusEffectDuration: 1.5 // +50% status duration as compensation for low HP
         },
         spriteSheet: '',
         spriteWidth: 32,
         spriteHeight: 32,
         animations: {
-            walkDown:      { frameY: 0, maxFrames: 4 },
-            walkUp:        { frameY: 1, maxFrames: 4 },
-            walkLeft:      { frameY: 2, maxFrames: 4 },
-            walkRight:     { frameY: 3, maxFrames: 4 },
+            walkDown: { frameY: 0, maxFrames: 4 },
+            walkUp: { frameY: 1, maxFrames: 4 },
+            walkLeft: { frameY: 2, maxFrames: 4 },
+            walkRight: { frameY: 3, maxFrames: 4 },
             walkDownRight: { frameY: 4, maxFrames: 4 },
-            walkDownLeft:  { frameY: 5, maxFrames: 4 },
-            walkUpRight:   { frameY: 6, maxFrames: 4 },
-            walkUpLeft:    { frameY: 7, maxFrames: 4 },
+            walkDownLeft: { frameY: 5, maxFrames: 4 },
+            walkUpRight: { frameY: 6, maxFrames: 4 },
+            walkUpLeft: { frameY: 7, maxFrames: 4 },
         }
     }
 };

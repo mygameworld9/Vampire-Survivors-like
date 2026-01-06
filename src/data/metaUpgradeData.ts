@@ -11,7 +11,7 @@ export const META_UPGRADES: { [key: string]: IMetaUpgradeData } = {
         baseCost: 200,
         costMultiplier: 1.5,
         stat: 'damage',
-        valuePerLevel: 0.05 // +5% damage per level
+        valuePerLevel: 0.08 // Balanced: +8% damage per level (was 5%)
     },
     ARMOR: {
         id: 'ARMOR',
@@ -63,7 +63,7 @@ export const META_UPGRADES: { [key: string]: IMetaUpgradeData } = {
         descriptionKey: 'meta.revival.desc',
         icon: '⚰️',
         maxLevel: 1,
-        baseCost: 2000,
+        baseCost: 1500, // Balanced: Reduced from 2000 for accessibility
         costMultiplier: 2,
         stat: 'revives',
         valuePerLevel: 1 // +1 revive

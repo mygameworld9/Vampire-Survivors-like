@@ -81,7 +81,7 @@ export const ENEMY_DATA: { [key: string]: IEnemyData } = {
         descriptionKey: 'enemy.mushroom.desc',
         icon: '🍄',
         hp: 60,
-        speed: 60,
+        speed: 50, // Balanced: Slower tank role, easier to kite
         damage: 12,
         size: 28,
         xpOrbType: 'MEDIUM',
@@ -129,7 +129,7 @@ export const ENEMY_DATA: { [key: string]: IEnemyData } = {
         nameKey: 'enemy.golem.name',
         descriptionKey: 'enemy.golem.desc',
         icon: '🗿',
-        hp: 150,
+        hp: 200, // Balanced: Increased to 200 for proper boss-tier TTK
         speed: 65, // Increased from 50 to prevent easy kiting
         damage: 25,
         size: 40,
@@ -178,7 +178,7 @@ export const ENEMY_DATA: { [key: string]: IEnemyData } = {
         nameKey: 'enemy.goblin.name',
         descriptionKey: 'enemy.goblin.desc',
         icon: '👺',
-        hp: 100, // Tanky
+        hp: 150, // Balanced: Increased to 150 for more chase time
         speed: 130,
         damage: 0, // Doesn't attack
         size: 20,

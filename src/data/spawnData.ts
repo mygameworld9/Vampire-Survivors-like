@@ -6,8 +6,8 @@ export const SPAWN_SCHEDULES: { [key: string]: ISpawnSchedule } = {
         id: 'FOREST_NORMAL',
         events: [
             // Phase 1: Only Slimes for the first minute
-            { time: 0, enemyType: 'SLIME', rate: 500 },
-            { time: 30, enemyType: 'SLIME', rate: 400 },
+            { time: 0, enemyType: 'SLIME', rate: 800 }, // Balanced: Slower start for new players
+            { time: 30, enemyType: 'SLIME', rate: 600 },
 
             // Phase 1.5: Spiders appear (Fast swarms)
             { time: 45, enemyType: 'SPIDER', rate: 600 },
@@ -17,7 +17,7 @@ export const SPAWN_SCHEDULES: { [key: string]: ISpawnSchedule } = {
 
             // Phase 3: Introduce Bats
             { time: 90, enemyType: 'BAT', rate: 600 },
-            
+
             // Phase 3.5: Mushrooms appear (Tanky blockers)
             { time: 100, enemyType: 'MUSHROOM', rate: 1500 },
 
@@ -26,12 +26,12 @@ export const SPAWN_SCHEDULES: { [key: string]: ISpawnSchedule } = {
             { time: 120, enemyType: 'SKELETON', rate: 1000 },
 
             // Phase 5: Introduce Golems
-            { time: 150, enemyType: 'GOLEM', rate: 5000 },
+            { time: 180, enemyType: 'GOLEM', rate: 5000 }, // Balanced: Delayed to 3min for more upgrade time
 
             // Phase 6: Faster Swarms
-            { time: 180, enemyType: 'GHOST', rate: 500 },
-            { time: 180, enemyType: 'BAT', rate: 400 },
-            { time: 180, enemyType: 'SPIDER', rate: 300 },
+            { time: 210, enemyType: 'GHOST', rate: 600 }, // Balanced: Moved to 3.5min, slower rates
+            { time: 210, enemyType: 'BAT', rate: 500 },
+            { time: 210, enemyType: 'SPIDER', rate: 500 },
 
             // Phase 7: More Elites
             { time: 240, enemyType: 'GOLEM', rate: 3000 },
@@ -43,7 +43,7 @@ export const SPAWN_SCHEDULES: { [key: string]: ISpawnSchedule } = {
             // Harder start
             { time: 0, enemyType: 'SKELETON', rate: 2000 },
             { time: 0, enemyType: 'BAT', rate: 1000 },
-            
+
             // Phase 1: Spiders + Ghosts
             { time: 30, enemyType: 'SPIDER', rate: 500 },
             { time: 45, enemyType: 'GHOST', rate: 800 },

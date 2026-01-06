@@ -32,15 +32,16 @@ export class Player {
     level = 1;
     revives = PLAYER_DATA.revives;
     gold = 0;
-    
+
     // Build Control Resources
     rerolls = 1;
     banishes = 1;
     skips = 1;
-    
-    // Multipliers from Meta Progression
+
+    // Multipliers from Meta Progression and Character
     public damageMultiplier = 1.0;
     public goldMultiplier = 1.0;
+    public statusEffectDurationMultiplier = 1.0; // Affects duration of applied status effects
 
     // Tag Bonuses
     public tagDamageMultipliers: Map<string, number> = new Map();
@@ -70,10 +71,10 @@ export class Player {
     private globalTime = 0;
 
     constructor(
-        x: number, 
-        y: number, 
-        onAuraDamage: (weapon: Weapon) => void, 
-        soundManager: SoundManager, 
+        x: number,
+        y: number,
+        onAuraDamage: (weapon: Weapon) => void,
+        soundManager: SoundManager,
         characterId: string,
         onStatsChange?: (stats: Partial<IPlayerState>) => void
     ) {
@@ -82,12 +83,12 @@ export class Player {
         this.soundManager = soundManager;
         this.characterId = characterId;
         this.onStatsChange = onStatsChange;
-        
+
         const charData = CHARACTER_DATA[characterId];
         if (!charData) {
             throw new Error(`Character data not found for ID: ${characterId}`);
         }
-        
+
         // Load visual assets from character data
         this.image = new Image();
         this.image.src = charData.spriteSheet;
@@ -95,7 +96,7 @@ export class Player {
         this.spriteHeight = charData.spriteHeight;
         this.animations = charData.animations;
         this.maxFrames = this.animations.walkDown.maxFrames;
-        
+
         // Apply base stats
         this.maxHp = PLAYER_DATA.hp;
         this.hp = PLAYER_DATA.hp;
@@ -107,10 +108,12 @@ export class Player {
         if (charData.stats?.hp) this.maxHp = this.hp = charData.stats.hp;
         if (charData.stats?.speed) this.speed = charData.stats.speed;
         if (charData.stats?.hpRegen) this.hpRegen = charData.stats.hpRegen;
+        if (charData.stats?.damageMultiplier) this.damageMultiplier *= charData.stats.damageMultiplier;
+        if (charData.stats?.statusEffectDuration) this.statusEffectDurationMultiplier *= charData.stats.statusEffectDuration;
 
         // --- Apply Meta Progression Bonuses ---
         const metaBonuses = progressionManager.getPlayerBonuses();
-        
+
         this.maxHp += metaBonuses.maxHpAdd;
         this.hp = this.maxHp; // Fill up new max HP
         this.speed *= (1 + metaBonuses.speedMultiplier);
@@ -118,7 +121,7 @@ export class Player {
         this.revives += metaBonuses.revivesAdd;
         this.damageMultiplier += metaBonuses.damageMultiplier;
         this.goldMultiplier += metaBonuses.goldMultiplier;
-        
+
         // Ensure speed is integer from start
         this.speed = Math.round(this.speed);
 
@@ -156,7 +159,7 @@ export class Player {
             this.weapons.push(newWeapon);
         }
     }
-    
+
     evolveWeapon(baseWeaponId: string, evolvedWeaponId: string) {
         const index = this.weapons.findIndex(w => w.id === baseWeaponId);
         if (index !== -1) {
@@ -185,15 +188,15 @@ export class Player {
             }
         }
     }
-    
+
     hasSkill(skillId: string): boolean {
         return this.skills.some(s => s.id === skillId);
     }
-    
+
     update(dt: number, input: InputHandler, enemies: Enemy[], projectilePools?: ProjectilePools): { projectiles: AnyProjectile[], skillEffects: SkillEffect[] } {
         this.globalTime += dt;
         const moveVector = new Vector2D(0, 0);
-        
+
         // Keyboard Input
         if (input.keys.ArrowLeft || input.keys.a) moveVector.x -= 1;
         if (input.keys.ArrowRight || input.keys.d) moveVector.x += 1;
@@ -208,7 +211,7 @@ export class Player {
 
         if (moveVector.x !== 0 || moveVector.y !== 0) {
             this.state = 'Moving';
-            
+
             // Normalize
             const lenSq = moveVector.x * moveVector.x + moveVector.y * moveVector.y;
             if (lenSq > 0) {
@@ -224,7 +227,7 @@ export class Player {
         }
 
         this.updateAnimation(dt);
-        
+
         // Health Regeneration
         if (this.hp > 0 && this.hp < this.maxHp) {
             this.hp += this.hpRegen * dt;
@@ -276,12 +279,12 @@ export class Player {
         } else if (angle > -3 * PI_8 && angle <= -PI_8) {
             anim = this.animations.walkUpRight;
         }
-        
+
         this.frameY = anim.frameY;
         this.maxFrames = anim.maxFrames;
 
         if (this.state === 'Moving') {
-             this.frameTimer += dt * 1000;
+            this.frameTimer += dt * 1000;
             if (this.frameTimer > this.frameInterval) {
                 this.frameTimer = 0;
                 this.frameX = (this.frameX + 1) % this.maxFrames;
@@ -296,12 +299,12 @@ export class Player {
         this.soundManager.playSound('PLAYER_HURT');
         this.hp = Math.max(0, this.hp - amount);
         this.notifyStatsChange();
-        
+
         if (this.hp === 0) {
-             if (this.revives <= 0) {
-                 this.soundManager.playSound('GAME_OVER');
-                 this.state = 'Dead';
-             }
+            if (this.revives <= 0) {
+                this.soundManager.playSound('GAME_OVER');
+                this.state = 'Dead';
+            }
         } else {
             this.setInvincible(500);
         }
@@ -321,7 +324,7 @@ export class Player {
         this.isInvincible = true;
         setTimeout(() => this.isInvincible = false, duration);
     }
-    
+
     heal(percent: number) {
         const healAmount = this.maxHp * percent;
         this.hp = Math.min(this.maxHp, this.hp + healAmount);
@@ -331,7 +334,7 @@ export class Player {
     gainXp(amount: number) {
         this.xp += amount;
         this.notifyStatsChange();
-        
+
         if (this.xp >= XP_LEVELS[this.level - 1]) {
             this.level++;
             this.xp = 0;
@@ -353,7 +356,7 @@ export class Player {
         const oldMaxHp = this.maxHp;
         for (const key in effects) {
             const effect = effects[key];
-            
+
             // Check for Tag Bonuses (e.g. damage_FIRE, penetration_PROJECTILE)
             if (key.startsWith('damage_')) {
                 const tag = key.split('_')[1];
@@ -369,20 +372,20 @@ export class Player {
                 continue;
             }
 
-            switch(key) {
+            switch (key) {
                 case 'maxHp':
                     if (effect.op === 'multiply') this.maxHp *= effect.value;
                     if (effect.op === 'add') this.maxHp += effect.value;
                     break;
                 case 'speed':
-                     if (effect.op === 'multiply') this.speed *= effect.value;
-                     if (effect.op === 'add') this.speed += effect.value;
-                     this.speed = Math.round(this.speed);
-                     break;
+                    if (effect.op === 'multiply') this.speed *= effect.value;
+                    if (effect.op === 'add') this.speed += effect.value;
+                    this.speed = Math.round(this.speed);
+                    break;
                 case 'hpRegen':
-                     if (effect.op === 'multiply') this.hpRegen *= effect.value;
-                     if (effect.op === 'add') this.hpRegen += effect.value;
-                     break;
+                    if (effect.op === 'multiply') this.hpRegen *= effect.value;
+                    if (effect.op === 'add') this.hpRegen += effect.value;
+                    break;
             }
         }
         // Heal the player by the amount of HP they gained
@@ -434,10 +437,10 @@ export class Player {
         const drawX = x;
         const radius = this.size / 2;
         const isLeft = this.facingDirection.x < 0;
-        
+
         ctx.save();
         ctx.translate(drawX, drawY);
-        
+
         // Flip horizontally if facing left
         if (isLeft) {
             ctx.scale(-1, 1);
@@ -447,15 +450,15 @@ export class Player {
         const drawEyes = (xOffset: number, yOffset: number, color: string = '#333') => {
             // Blinking logic
             if (Math.floor(this.globalTime * 2) % 5 === 0 && Math.random() > 0.9) {
-                 // Blink (closed line)
-                 ctx.strokeStyle = color;
-                 ctx.lineWidth = 2;
-                 ctx.beginPath();
-                 ctx.moveTo(xOffset, yOffset);
-                 ctx.lineTo(xOffset + 6, yOffset);
-                 ctx.moveTo(xOffset + 10, yOffset);
-                 ctx.lineTo(xOffset + 16, yOffset);
-                 ctx.stroke();
+                // Blink (closed line)
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(xOffset, yOffset);
+                ctx.lineTo(xOffset + 6, yOffset);
+                ctx.moveTo(xOffset + 10, yOffset);
+                ctx.lineTo(xOffset + 16, yOffset);
+                ctx.stroke();
             } else {
                 // Open (dots/ovals)
                 ctx.fillStyle = color;
@@ -465,12 +468,12 @@ export class Player {
                 ctx.beginPath();
                 ctx.ellipse(xOffset + 13, yOffset, 2.5, 3.5, 0, 0, Math.PI * 2); // Right
                 ctx.fill();
-                
+
                 // Shine
                 ctx.fillStyle = 'white';
                 ctx.beginPath();
-                ctx.arc(xOffset + 4, yOffset - 1, 1, 0, Math.PI*2);
-                ctx.arc(xOffset + 14, yOffset - 1, 1, 0, Math.PI*2);
+                ctx.arc(xOffset + 4, yOffset - 1, 1, 0, Math.PI * 2);
+                ctx.arc(xOffset + 14, yOffset - 1, 1, 0, Math.PI * 2);
                 ctx.fill();
             }
         };
@@ -478,7 +481,7 @@ export class Player {
         switch (this.characterId) {
             case 'KNIGHT':
                 // Body (Silver Armor - Pastel)
-                ctx.fillStyle = '#CFD8DC'; 
+                ctx.fillStyle = '#CFD8DC';
                 ctx.beginPath();
                 ctx.arc(0, 0, radius, 0, Math.PI * 2);
                 ctx.fill();
@@ -513,10 +516,10 @@ export class Player {
                 // Bandana Mask
                 ctx.fillStyle = '#4CAF50';
                 ctx.beginPath();
-                ctx.moveTo(-radius*0.7, 2);
-                ctx.quadraticCurveTo(0, 8, radius*0.7, 2);
-                ctx.lineTo(radius*0.7, radius*0.6);
-                ctx.quadraticCurveTo(0, radius, -radius*0.7, radius*0.6);
+                ctx.moveTo(-radius * 0.7, 2);
+                ctx.quadraticCurveTo(0, 8, radius * 0.7, 2);
+                ctx.lineTo(radius * 0.7, radius * 0.6);
+                ctx.quadraticCurveTo(0, radius, -radius * 0.7, radius * 0.6);
                 ctx.fill();
                 // Fierce Eyes
                 drawEyes(-3, -2, '#FFF');
@@ -545,12 +548,12 @@ export class Player {
                 // Star on Hat
                 ctx.fillStyle = '#FFEB3B';
                 ctx.beginPath();
-                ctx.arc(0, -20, 3, 0, Math.PI*2);
+                ctx.arc(0, -20, 3, 0, Math.PI * 2);
                 ctx.fill();
                 // Hat Rim
                 ctx.fillStyle = '#1565C0';
                 ctx.beginPath();
-                ctx.ellipse(0, -8, 18, 5, 0, 0, Math.PI*2);
+                ctx.ellipse(0, -8, 18, 5, 0, 0, Math.PI * 2);
                 ctx.fill();
                 break;
 
@@ -569,7 +572,7 @@ export class Player {
                 // Gold Symbol (Ankh-like)
                 ctx.fillStyle = '#FFB74D';
                 ctx.beginPath();
-                ctx.arc(0, -6, 4, 0, Math.PI*2); // Top loop
+                ctx.arc(0, -6, 4, 0, Math.PI * 2); // Top loop
                 ctx.fill();
                 ctx.fillRect(-2, -4, 4, 10); // Vertical
                 ctx.fillRect(-6, 0, 12, 4); // Horizontal
@@ -591,7 +594,7 @@ export class Player {
                 // Feather
                 ctx.fillStyle = '#FFAB91';
                 ctx.beginPath();
-                ctx.ellipse(-8, -15, 4, 10, -Math.PI/5, 0, Math.PI*2);
+                ctx.ellipse(-8, -15, 4, 10, -Math.PI / 5, 0, Math.PI * 2);
                 ctx.fill();
                 // Quiver strap
                 ctx.strokeStyle = '#8D6E63';

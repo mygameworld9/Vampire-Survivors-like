@@ -25,7 +25,7 @@ export class CollisionSystem {
     // --- Local Flat Grid Config ---
     // 40x40 grid of 100px cells = 4000x4000px active area centered on player
     private readonly CELL_SIZE = 100;
-    private readonly GRID_COLS = 40; 
+    private readonly GRID_COLS = 40;
     private readonly GRID_ROWS = 40;
     private readonly HALF_COLS = 20;
     private readonly HALF_ROWS = 20;
@@ -108,9 +108,9 @@ export class CollisionSystem {
         const maxY = y + radius - py;
 
         let startCol = Math.floor(minX / this.CELL_SIZE) + this.HALF_COLS;
-        let endCol   = Math.floor(maxX / this.CELL_SIZE) + this.HALF_COLS;
+        let endCol = Math.floor(maxX / this.CELL_SIZE) + this.HALF_COLS;
         let startRow = Math.floor(minY / this.CELL_SIZE) + this.HALF_ROWS;
-        let endRow   = Math.floor(maxY / this.CELL_SIZE) + this.HALF_ROWS;
+        let endRow = Math.floor(maxY / this.CELL_SIZE) + this.HALF_ROWS;
 
         // Clamp to grid bounds
         if (startCol < 0) startCol = 0;
@@ -150,7 +150,7 @@ export class CollisionSystem {
         for (let i = 0; i < pLen; i++) {
             const p = projectiles[i];
             if (!p) continue;
-            
+
             // Determine query parameters
             let qRadius = 0;
             let qX = 0;
@@ -190,14 +190,14 @@ export class CollisionSystem {
                     this._scratchVec.set(e.pos.x, e.pos.y).sub(p.p1);
                     const V = this._scratchVec;
                     const D = p.dir;
-                    
+
                     // Project V onto D
                     let t = V.x * D.x + V.y * D.y;
                     t = t < 0 ? 0 : (t > p.range ? p.range : t);
-                    
+
                     const closestX = p.p1.x + t * D.x;
                     const closestY = p.p1.y + t * D.y;
-                    
+
                     const dx = e.pos.x - closestX;
                     const dy = e.pos.y - closestY;
                     const distSq = dx * dx + dy * dy;
@@ -220,12 +220,12 @@ export class CollisionSystem {
                     const hitDist = p.range + e.size / 2;
 
                     if (distSq < hitDist * hitDist) {
-                         this.applyDamageToEnemy(e, p.damage, p.statusEffect, p.tags);
-                         this.game.particleSystem.emit(e.pos.x, e.pos.y, 4, '#fff');
-                         p.hitEnemies.add(e.id);
+                        this.applyDamageToEnemy(e, p.damage, p.statusEffect, p.tags);
+                        this.game.particleSystem.emit(e.pos.x, e.pos.y, 4, '#fff');
+                        p.hitEnemies.add(e.id);
                     }
                 }
-            } else { 
+            } else {
                 for (let j = 0; j < cLen; j++) {
                     const e = candidates[j];
                     if (!e) continue;
@@ -238,14 +238,14 @@ export class CollisionSystem {
                     if (distSq < hitDist * hitDist) {
                         this.applyDamageToEnemy(e, p.damage, p.statusEffect, p.tags);
                         this.game.particleSystem.emit(p.pos.x, p.pos.y, 5, e.color);
-                        
+
                         // Handle penetration
                         // All types here (Projectile, Boomerang, Homing) are guaranteed to have penetration
                         p.penetration--;
                         p.hitEnemies.add(e.id);
                         if (p.penetration <= 0) {
                             p.shouldBeRemoved = true;
-                            break; 
+                            break;
                         }
                     }
                 }
@@ -257,12 +257,12 @@ export class CollisionSystem {
         // Props are sparse, linear check is fine
         const projectiles = this.game.entityManager.projectiles;
         const props = this.game.entityManager.props;
-        
+
         for (const p of projectiles) {
             if (!p || p.shouldBeRemoved) continue;
 
             if (p instanceof LaserProjectile) {
-                 for (const prop of props) {
+                for (const prop of props) {
                     if (!prop) continue;
                     this._scratchVec.set(prop.pos.x, prop.pos.y).sub(p.p1);
                     const V = this._scratchVec;
@@ -271,7 +271,7 @@ export class CollisionSystem {
                     t = t < 0 ? 0 : (t > p.range ? p.range : t);
                     const closestX = p.p1.x + t * D.x;
                     const closestY = p.p1.y + t * D.y;
-                    
+
                     const dx = prop.pos.x - closestX;
                     const dy = prop.pos.y - closestY;
                     const distSq = dx * dx + dy * dy;
@@ -288,22 +288,22 @@ export class CollisionSystem {
                     const dx = p.pos.x - prop.pos.x;
                     const dy = p.pos.y - prop.pos.y;
                     const distSq = dx * dx + dy * dy;
-                    const hitDist = prop.size + 10; 
+                    const hitDist = prop.size + 10;
 
                     if (distSq < hitDist * hitDist) {
-                         prop.takeDamage(10); 
-                         this.game.particleSystem.emit(prop.pos.x, prop.pos.y, 2, '#8D6E63');
-                         
-                         if (p instanceof LightningProjectile || p instanceof SlashProjectile) {
-                             // AOE don't stop
-                         } else if ('penetration' in p) {
-                             p.penetration--;
-                             if (p.penetration <= 0) {
-                                 p.shouldBeRemoved = true;
-                             }
-                         } else {
-                             (p as any).shouldBeRemoved = true;
-                         }
+                        prop.takeDamage(10);
+                        this.game.particleSystem.emit(prop.pos.x, prop.pos.y, 2, '#8D6E63');
+
+                        if (p instanceof LightningProjectile || p instanceof SlashProjectile) {
+                            // AOE don't stop
+                        } else if ('penetration' in p) {
+                            p.penetration--;
+                            if (p.penetration <= 0) {
+                                p.shouldBeRemoved = true;
+                            }
+                        } else {
+                            (p as any).shouldBeRemoved = true;
+                        }
                     }
                 }
             }
@@ -338,34 +338,34 @@ export class CollisionSystem {
 
         // XP Orbs
         for (const orb of this.game.entityManager.xpOrbs) {
-             if (!orb) continue;
-             const dx = orb.pos.x - player.pos.x;
-             const dy = orb.pos.y - player.pos.y;
-             const distSq = dx * dx + dy * dy;
-             const pickupRange = orb.size + player.size / 2 + 50;
+            if (!orb) continue;
+            const dx = orb.pos.x - player.pos.x;
+            const dy = orb.pos.y - player.pos.y;
+            const distSq = dx * dx + dy * dy;
+            const pickupRange = orb.size + player.size / 2 + 50;
 
-             if (distSq < pickupRange * pickupRange) { 
+            if (distSq < pickupRange * pickupRange) {
                 if (player.gainXp(orb.value)) {
                     this.game.soundManager.playSound('LEVEL_UP');
                     this.game.onLevelUp();
                 }
                 orb.shouldBeRemoved = true;
-             }
+            }
         }
 
         // Items
         for (const item of this.game.entityManager.items) {
-             if (!item) continue;
-             const dx = item.pos.x - player.pos.x;
-             const dy = item.pos.y - player.pos.y;
-             const distSq = dx * dx + dy * dy;
-             const hitDist = item.size / 2 + player.size / 2;
+            if (!item) continue;
+            const dx = item.pos.x - player.pos.x;
+            const dy = item.pos.y - player.pos.y;
+            const distSq = dx * dx + dy * dy;
+            const hitDist = item.size / 2 + player.size / 2;
 
-             if (distSq < hitDist * hitDist) {
+            if (distSq < hitDist * hitDist) {
                 this.applyItemEffect(player, item);
                 this.game.soundManager.playSound('ITEM_PICKUP');
                 item.shouldBeRemoved = true;
-             }
+            }
         }
 
         // Chests
@@ -394,9 +394,9 @@ export class CollisionSystem {
             if (distSq < hitDist * hitDist) {
                 point.shouldBeRemoved = true;
                 this.game.soundManager.playSound('CHEST_OPEN');
-                
+
                 player.heal(1.0);
-                if(player.gainXp(500)) {
+                if (player.gainXp(500)) {
                     this.game.onLevelUp();
                 }
                 const goldReward = 250;
@@ -411,7 +411,7 @@ export class CollisionSystem {
     applyDamageToEnemy(e: Enemy, damage: number, statusEffect?: any, tags: WeaponTag[] = []) {
         if (!e) return;
         const wasAlive = e.hp > 0;
-        
+
         // --- Chain Reaction Logic ---
         if (wasAlive) {
             // Overload: LIGHTNING on Burning Enemy
@@ -421,7 +421,7 @@ export class CollisionSystem {
                 // AOE Blast
                 this.game.particleSystem.emit(e.pos.x, e.pos.y, 10, '#FFEB3B');
                 this.game.entityManager.effects.push(new PulseEffect(e.pos, 80));
-                
+
                 // Damage neighbors
                 const blastRadius = 80;
                 const neighbors = this.getNeighbors(e.pos, blastRadius);
@@ -442,20 +442,26 @@ export class CollisionSystem {
                 // Clear burn (TODO: Need method on Enemy to clear status, for now just deal huge damage)
                 this.game.particleSystem.emit(e.pos.x, e.pos.y, 15, '#E0F7FA'); // Steam
                 this.game.entityManager.floatingTexts.push(new FloatingText(e.pos.x, e.pos.y - 30, "THERMAL SHOCK!", '#E0F7FA', 1.5));
-            } 
+            }
             // Normal Damage
             else {
                 e.takeDamage(damage);
             }
         } else {
-             // Already dead (edge case), just apply damage
-             e.takeDamage(damage);
+            // Already dead (edge case), just apply damage
+            e.takeDamage(damage);
         }
 
-        if (statusEffect) e.applyStatusEffect(statusEffect);
-        
+        if (statusEffect) {
+            // Apply player's status effect duration multiplier (e.g., WARLOCK bonus)
+            const modifiedEffect = this.game.player.statusEffectDurationMultiplier !== 1.0
+                ? { ...statusEffect, duration: statusEffect.duration * this.game.player.statusEffectDurationMultiplier }
+                : statusEffect;
+            e.applyStatusEffect(modifiedEffect);
+        }
+
         if (wasAlive) this.game.soundManager.playSound('ENEMY_HIT', 0.5);
-        
+
         if (wasAlive && e.shouldBeRemoved) {
             this.onEnemyDefeated(e);
         }
@@ -465,7 +471,7 @@ export class CollisionSystem {
         if (!enemy) return;
         this.game.soundManager.playSound('ENEMY_DIE');
         this.game.particleSystem.emit(enemy.pos.x, enemy.pos.y, 15, enemy.color);
-        
+
         const orbData = XP_ORB_DATA[enemy.xpOrbType];
         if (orbData) {
             this.game.entityManager.xpOrbs.push(new XpOrb(enemy.pos.x, enemy.pos.y, orbData.value, orbData.size, orbData.color));
@@ -478,7 +484,7 @@ export class CollisionSystem {
                 this.game.player.gainGold(amount);
             }
         }
-        
+
         if (enemy.chestDropChance && Math.random() < enemy.chestDropChance) {
             this.game.entityManager.chests.push(new Chest(enemy.pos.x, enemy.pos.y, CHEST_DATA));
         }
@@ -486,20 +492,20 @@ export class CollisionSystem {
 
     onPropDestroyed(prop: Prop) {
         if (!prop) return;
-        this.game.soundManager.playSound('ENEMY_HIT'); 
-        this.game.particleSystem.emit(prop.pos.x, prop.pos.y, 10, '#8D6E63'); 
+        this.game.soundManager.playSound('ENEMY_HIT');
+        this.game.particleSystem.emit(prop.pos.x, prop.pos.y, 10, '#8D6E63');
 
         const dropRoll = Math.random();
         let cumulative = 0;
-        
+
         for (const drop of prop.data.dropTable) {
             cumulative += drop.chance;
             if (dropRoll <= cumulative) {
                 const itemData = ITEM_DATA[drop.itemId];
                 if (itemData) {
-                     this.game.entityManager.items.push(new Item(prop.pos.x, prop.pos.y, itemData));
+                    this.game.entityManager.items.push(new Item(prop.pos.x, prop.pos.y, itemData));
                 }
-                break; 
+                break;
             }
         }
     }
@@ -523,7 +529,7 @@ export class CollisionSystem {
 
     applyAuraDamage(weapon: Weapon) {
         const isMax = weapon.isMaxLevel();
-        
+
         if (isMax) {
             const persistentAura = this.game.entityManager.effects.find(e => e instanceof AuraEffect && e.isPersistent) as AuraEffect | undefined;
             if (!persistentAura) {
@@ -538,7 +544,7 @@ export class CollisionSystem {
         // Use Grid for Aura collision
         this._queryResults.length = 0;
         this.queryGrid(this.game.player.pos.x, this.game.player.pos.y, weapon.range + 50, this._queryResults);
-        
+
         for (const e of this._queryResults) {
             if (!e) continue;
             const dx = this.game.player.pos.x - e.pos.x;
@@ -552,7 +558,7 @@ export class CollisionSystem {
                 if (!isMax) {
                     this.game.particleSystem.emit(e.pos.x, e.pos.y, 2, e.color);
                 } else if (Math.random() > 0.7) {
-                     this.game.particleSystem.emit(e.pos.x, e.pos.y, 1, '#FFCC80');
+                    this.game.particleSystem.emit(e.pos.x, e.pos.y, 1, '#FFCC80');
                 }
             }
         }
@@ -566,9 +572,9 @@ export class CollisionSystem {
             const hitDist = weapon.range + prop.size / 2;
 
             if (distSq < hitDist * hitDist) {
-                prop.takeDamage(weapon.damage * 0.1); 
+                prop.takeDamage(weapon.damage * 0.1);
                 if (Math.random() > 0.9) {
-                     this.game.particleSystem.emit(prop.pos.x, prop.pos.y, 1, '#8D6E63');
+                    this.game.particleSystem.emit(prop.pos.x, prop.pos.y, 1, '#8D6E63');
                 }
             }
         }
@@ -578,11 +584,11 @@ export class CollisionSystem {
         switch (effect.type) {
             case 'PULSE':
                 this.game.entityManager.effects.push(new PulseEffect(this.game.player.pos, effect.range));
-                
+
                 // Use Grid
                 this._queryResults.length = 0;
                 this.queryGrid(this.game.player.pos.x, this.game.player.pos.y, effect.range + 50, this._queryResults);
-                
+
                 for (const e of this._queryResults) {
                     if (!e) continue;
                     const dx = this.game.player.pos.x - e.pos.x;

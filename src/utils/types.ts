@@ -202,8 +202,11 @@ export interface ICharacterData {
         hp?: number;
         speed?: number;
         hpRegen?: number;
+        damageMultiplier?: number;        // +% damage bonus
+        statusEffectDuration?: number;    // Status effect duration multiplier
     };
 }
+
 
 // Spawn System Types
 export interface ISpawnEvent {

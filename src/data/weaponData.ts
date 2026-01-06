@@ -21,7 +21,7 @@ export const WEAPON_DATA: { [key: string]: IWeaponData } = {
         icon: '🦾',
         type: 'PROJECTILE',
         damage: 40,
-        cooldown: 100, // Very fast
+        cooldown: 150, // Balanced: ~267 DPS (was 400 DPS at 100ms)
         speed: 550,
         penetration: 2,
         range: 900,
@@ -34,7 +34,7 @@ export const WEAPON_DATA: { [key: string]: IWeaponData } = {
         icon: '👹',
         type: 'PROJECTILE',
         damage: 150,
-        cooldown: 80, // Extreme speed
+        cooldown: 800, // BUGFIX: Was 80ms (design error), now proper Tier 3 (~188 DPS)
         speed: 700,
         penetration: 5,
         range: 1200,
@@ -50,7 +50,7 @@ export const WEAPON_DATA: { [key: string]: IWeaponData } = {
         cooldown: 3000,
         speed: 350,
         penetration: 4, // Nerfed from 999 (infinite) to require upgrades
-        range: 400, 
+        range: 400,
         fireSound: 'WEAPON_BOOMERANG',
         tags: ['PROJECTILE', 'PHYSICAL']
     },
@@ -72,7 +72,7 @@ export const WEAPON_DATA: { [key: string]: IWeaponData } = {
         nameKey: 'weapon.voideater.name',
         icon: '🌌',
         type: 'BOOMERANG',
-        damage: 250,
+        damage: 180, // Balanced: Tier 3 should be ~2.5x Tier 2, not 3x
         cooldown: 1500,
         speed: 500,
         penetration: 999,
@@ -124,7 +124,7 @@ export const WEAPON_DATA: { [key: string]: IWeaponData } = {
         icon: '🕳️',
         type: 'AURA',
         damage: 100,
-        cooldown: 250, // Ultra fast tick
+        cooldown: 400, // Balanced: ~250 DPS (was 400 DPS at 250ms)
         range: 250,
         speed: 0,
         penetration: 999,
@@ -145,8 +145,8 @@ export const WEAPON_DATA: { [key: string]: IWeaponData } = {
         firePattern: 'forward',
         damage: 12, // Buffed (effective damage due to hit scan) to ensuring hits against Bats
         cooldown: 1200,
-        speed: 0, 
-        penetration: 999, 
+        speed: 0,
+        penetration: 999,
         range: 600,
         width: 10,
         fireSound: 'WEAPON_LASER',
@@ -191,7 +191,7 @@ export const WEAPON_DATA: { [key: string]: IWeaponData } = {
         type: 'MELEE',
         damage: 45,
         cooldown: 1500,
-        speed: 0, 
+        speed: 0,
         penetration: 999,
         range: 80, // Slash radius
         fireSound: 'WEAPON_SLASH',
