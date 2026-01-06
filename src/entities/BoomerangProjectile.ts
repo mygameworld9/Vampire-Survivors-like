@@ -3,7 +3,7 @@ import { Vector2D } from "../utils/Vector2D";
 import { Weapon } from "./Weapon";
 import { Enemy } from "./Enemy";
 import { Player } from "./Player";
-import { IWeaponStatusEffect } from "../utils/types";
+import { IWeaponStatusEffect, WeaponTag } from "../utils/types";
 
 export class BoomerangProjectile {
     pos: Vector2D;
@@ -15,6 +15,7 @@ export class BoomerangProjectile {
     shouldBeRemoved = false;
     hitEnemies: Set<number> = new Set(); // Stores Enemy IDs
     statusEffect?: IWeaponStatusEffect;
+    tags: WeaponTag[] = [];
     
     private owner!: Player; // Definite assignment via reset
     private state: 'outward' | 'returning' = 'outward';
@@ -37,12 +38,15 @@ export class BoomerangProjectile {
         this.onReturn = onReturn;
         
         // Ensure valid direction
-        if (Math.abs(owner.facingDirection.x) < 0.01 && Math.abs(owner.facingDirection.y) < 0.01) {
+        if (owner.facingDirection && Math.abs(owner.facingDirection.x) < 0.01 && Math.abs(owner.facingDirection.y) < 0.01) {
             this.direction.x = 1;
             this.direction.y = 0;
-        } else {
+        } else if (owner.facingDirection) {
             this.direction.x = owner.facingDirection.x;
             this.direction.y = owner.facingDirection.y;
+        } else {
+            this.direction.x = 1;
+            this.direction.y = 0;
         }
         
         this.damage = weapon.damage;
@@ -50,6 +54,7 @@ export class BoomerangProjectile {
         this.penetration = weapon.penetration;
         this.range = weapon.range;
         this.statusEffect = weapon.statusEffect;
+        this.tags = weapon.tags;
         
         this.state = 'outward';
         this.distanceTraveled = 0;
@@ -75,6 +80,12 @@ export class BoomerangProjectile {
                 this.penetration = 999; // Reset penetration for return trip
             }
         } else { // returning
+            if (!this.owner || !this.owner.pos) {
+                this.shouldBeRemoved = true;
+                if (this.onReturn) this.onReturn();
+                return;
+            }
+            
             const returnDirection = new Vector2D(this.owner.pos.x - this.pos.x, this.owner.pos.y - this.pos.y).normalize();
             const returnSpeed = this.speed * 1.5; // Comes back faster
             this.pos.x += returnDirection.x * returnSpeed * dt;

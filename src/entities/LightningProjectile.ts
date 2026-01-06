@@ -2,7 +2,7 @@
 import { Vector2D } from "../utils/Vector2D";
 import { Weapon } from "./Weapon";
 import { Enemy } from "./Enemy";
-import { IWeaponStatusEffect } from "../utils/types";
+import { IWeaponStatusEffect, WeaponTag } from "../utils/types";
 
 export class LightningProjectile {
     pos: Vector2D; // Target position
@@ -11,6 +11,7 @@ export class LightningProjectile {
     shouldBeRemoved = false;
     hitEnemies: Set<number> = new Set();
     statusEffect?: IWeaponStatusEffect;
+    tags: WeaponTag[] = [];
     
     private lifeTimer = 0;
     private duration = 0.3; // Visual duration
@@ -20,6 +21,7 @@ export class LightningProjectile {
         this.damage = weapon.damage;
         this.range = weapon.range; 
         this.statusEffect = weapon.statusEffect;
+        this.tags = weapon.tags;
         this.reset(x, y, weapon);
     }
 
@@ -29,6 +31,7 @@ export class LightningProjectile {
         this.damage = weapon.damage;
         this.range = weapon.range;
         this.statusEffect = weapon.statusEffect;
+        this.tags = weapon.tags;
         
         this.shouldBeRemoved = false;
         this.hitEnemies.clear();

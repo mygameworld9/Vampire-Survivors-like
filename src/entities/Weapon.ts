@@ -1,5 +1,5 @@
 
-import { AnyUpgradeEffect, IWeaponData, IWeaponStatusEffect } from "../utils/types";
+import { AnyUpgradeEffect, IWeaponData, IWeaponStatusEffect, WeaponTag } from "../utils/types";
 import { BoomerangProjectile } from "./BoomerangProjectile";
 import { LaserProjectile } from "./LaserProjectile";
 import { Player } from "./Player";
@@ -39,6 +39,7 @@ export class Weapon {
     width?: number;
     statusEffect?: IWeaponStatusEffect;
     firePattern: 'forward' | 'forward_backward' | 'cardinal' | 'all_8';
+    tags: WeaponTag[];
 
     private cooldownTimer = 0;
     private activeProjectileCount = 0; // Track projectiles for mechanics like Boomerang return
@@ -60,6 +61,7 @@ export class Weapon {
         this.fireSound = data.fireSound;
         this.statusEffect = data.statusEffect;
         this.firePattern = data.firePattern || 'forward';
+        this.tags = data.tags || [];
         this.soundManager = soundManager;
         this.cooldownTimer = this.cooldown; // Fire immediately
     }
@@ -93,9 +95,11 @@ export class Weapon {
             }
 
             if (this.type === 'AURA') {
+                // Aura damage also needs to calculate effective damage
+                const tagMult = player.getTagDamageMultiplier(this.tags);
                 const boostedWeapon = { 
                     ...this, 
-                    damage: this.baseDamage * player.damageMultiplier,
+                    damage: this.baseDamage * player.damageMultiplier * tagMult,
                     isMaxLevel: this.isMaxLevel.bind(this)
                 } as any as Weapon;
                 this.onFireAura?.(boostedWeapon);
@@ -108,9 +112,20 @@ export class Weapon {
 
     fire(player: Player, enemies: Enemy[], projectilePools?: ProjectilePools): AnyProjectile[] {
         const projectiles: AnyProjectile[] = [];
-        const effectiveDamage = this.baseDamage * player.damageMultiplier;
         
-        const firingState = { ...this, damage: effectiveDamage } as any as Weapon;
+        // Calculate Effective Damage with Tag Multipliers
+        const tagMult = player.getTagDamageMultiplier(this.tags);
+        const effectiveDamage = this.baseDamage * player.damageMultiplier * tagMult;
+        
+        // Calculate Penetration Bonus
+        const penBonus = player.getTagPenetrationBonus(this.tags);
+        const effectivePenetration = this.penetration + penBonus;
+
+        const firingState = { 
+            ...this, 
+            damage: effectiveDamage,
+            penetration: effectivePenetration
+        } as any as Weapon;
 
         if (this.type === 'HOMING_PROJECTILE') {
             let nearestEnemy: Enemy | null = null;
@@ -138,7 +153,7 @@ export class Weapon {
             const targets: Enemy[] = [];
             const available = [...enemies];
             // Use penetration as target count
-            const count = this.penetration || 1;
+            const count = firingState.penetration || 1;
             for(let i=0; i<count; i++) {
                 if (available.length === 0) break;
                 const idx = Math.floor(Math.random() * available.length);

@@ -3,7 +3,7 @@ import { Vector2D } from "../utils/Vector2D";
 import { Weapon } from "./Weapon";
 import { Enemy } from "./Enemy";
 import { Player } from "./Player";
-import { IWeaponStatusEffect } from "../utils/types";
+import { IWeaponStatusEffect, WeaponTag } from "../utils/types";
 
 export class LaserProjectile {
     p1: Vector2D;         // Start point (player pos)
@@ -12,6 +12,7 @@ export class LaserProjectile {
     width: number;
     damage: number;
     statusEffect?: IWeaponStatusEffect;
+    tags: WeaponTag[] = [];
     
     shouldBeRemoved = false;
     hitEnemies: Set<number> = new Set();
@@ -36,6 +37,7 @@ export class LaserProjectile {
         this.width = weapon.width || 10;
         this.damage = weapon.damage;
         this.statusEffect = weapon.statusEffect;
+        this.tags = weapon.tags;
         
         this.shouldBeRemoved = false;
         this.hitEnemies.clear();

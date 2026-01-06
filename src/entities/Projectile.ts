@@ -2,7 +2,7 @@
 import { Vector2D } from "../utils/Vector2D";
 import { Weapon } from "./Weapon";
 import { Enemy } from "./Enemy";
-import { IWeaponStatusEffect } from "../utils/types";
+import { IWeaponStatusEffect, WeaponTag } from "../utils/types";
 
 export class Projectile {
     pos: Vector2D;
@@ -16,6 +16,7 @@ export class Projectile {
     shouldBeRemoved = false;
     hitEnemies: Set<number> = new Set(); // Store Enemy IDs
     statusEffect?: IWeaponStatusEffect;
+    tags: WeaponTag[] = [];
 
     constructor(x: number, y: number, direction: Vector2D, weapon: Weapon) {
         this.pos = new Vector2D(x, y);
@@ -25,6 +26,7 @@ export class Projectile {
         this.penetration = weapon.penetration;
         this.range = weapon.range;
         this.statusEffect = weapon.statusEffect;
+        this.tags = weapon.tags;
     }
 
     reset(x: number, y: number, direction: Vector2D, weapon: Weapon) {
@@ -37,6 +39,7 @@ export class Projectile {
         this.penetration = weapon.penetration;
         this.range = weapon.range;
         this.statusEffect = weapon.statusEffect;
+        this.tags = weapon.tags;
         
         this.distanceTraveled = 0;
         this.shouldBeRemoved = false;

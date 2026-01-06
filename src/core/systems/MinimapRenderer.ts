@@ -40,6 +40,7 @@ export class MinimapRenderer {
         // 1. Exploration Points
         ctx.fillStyle = '#00BCD4';
         for (const p of game.entityManager.explorationPoints) {
+            if (!p || !p.pos) continue;
             const m = toMap(p.pos.x, p.pos.y);
             let drawX = m.x;
             let drawY = m.y;
@@ -63,7 +64,7 @@ export class MinimapRenderer {
         // 2. Chests
         ctx.fillStyle = '#FFD700';
         for (const c of game.entityManager.chests) {
-            if (c.isBeingOpened) continue;
+            if (!c || !c.pos || c.isBeingOpened) continue;
             const m = toMap(c.pos.x, c.pos.y);
             if (m.distSq < maxDistSq) {
                 ctx.fillRect(m.x - 2, m.y - 2, 4, 4);
@@ -72,6 +73,7 @@ export class MinimapRenderer {
 
         // 3. Enemies
         for (const e of game.entityManager.enemies) {
+            if (!e || !e.pos) continue;
             const m = toMap(e.pos.x, e.pos.y);
             if (m.distSq < maxDistSq) {
                 if (e.isElite) {

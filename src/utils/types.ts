@@ -44,6 +44,8 @@ export interface IStatusEffect extends IWeaponStatusEffect {
 
 export type FirePattern = 'forward' | 'forward_backward' | 'cardinal' | 'all_8';
 
+export type WeaponTag = 'PROJECTILE' | 'AREA' | 'MELEE' | 'LASER' | 'FIRE' | 'ICE' | 'LIGHTNING' | 'DARK' | 'PHYSICAL' | 'MAGIC' | 'EXPLOSIVE';
+
 export interface IWeaponData {
     id: string;
     nameKey: string;
@@ -58,6 +60,7 @@ export interface IWeaponData {
     fireSound?: string;
     statusEffect?: IWeaponStatusEffect;
     firePattern?: FirePattern;
+    tags?: WeaponTag[];
 }
 
 export type SkillType = 'ACTIVE' | 'PASSIVE';
@@ -78,6 +81,7 @@ export interface ISkillData {
     }
 }
 
+export type EnemyAIBehavior = 'CHASE' | 'FLEE';
 
 export interface IEnemyData {
     nameKey: string;
@@ -96,6 +100,7 @@ export interface IEnemyData {
     animation?: {
         maxFrames: number;
     };
+    aiBehavior?: EnemyAIBehavior; // Default is CHASE
     chestDropChance?: number; // Chance from 0 to 1
     elite?: {
         hpMultiplier: number;

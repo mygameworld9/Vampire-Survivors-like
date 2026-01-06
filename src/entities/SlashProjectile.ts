@@ -2,7 +2,7 @@
 import { Vector2D } from "../utils/Vector2D";
 import { Weapon } from "./Weapon";
 import { Player } from "./Player";
-import { IWeaponStatusEffect } from "../utils/types";
+import { IWeaponStatusEffect, WeaponTag } from "../utils/types";
 
 export class SlashProjectile {
     pos: Vector2D;
@@ -13,6 +13,7 @@ export class SlashProjectile {
     shouldBeRemoved = false;
     hitEnemies: Set<number> = new Set();
     statusEffect?: IWeaponStatusEffect;
+    tags: WeaponTag[] = [];
     
     private lifeTimer = 0;
     private duration = 0.2; 
@@ -34,6 +35,7 @@ export class SlashProjectile {
         this.range = weapon.range; 
         this.statusEffect = weapon.statusEffect;
         this.isFullCircle = isFullCircle;
+        this.tags = weapon.tags;
         
         this.angle = Math.atan2(owner.facingDirection.y, owner.facingDirection.x);
         this.pos.x = owner.pos.x;

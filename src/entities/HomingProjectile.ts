@@ -2,7 +2,7 @@
 import { Vector2D } from "../utils/Vector2D";
 import { Weapon } from "./Weapon";
 import { Enemy } from "./Enemy";
-import { IWeaponStatusEffect } from "../utils/types";
+import { IWeaponStatusEffect, WeaponTag } from "../utils/types";
 
 export class HomingProjectile {
     pos: Vector2D;
@@ -16,6 +16,7 @@ export class HomingProjectile {
     shouldBeRemoved = false;
     hitEnemies: Set<number> = new Set();
     statusEffect?: IWeaponStatusEffect;
+    tags: WeaponTag[] = [];
 
     private target!: Enemy;
     private rotation = 0;
@@ -42,6 +43,7 @@ export class HomingProjectile {
         this.penetration = weapon.penetration;
         this.range = weapon.range;
         this.statusEffect = weapon.statusEffect;
+        this.tags = weapon.tags;
         this.target = target;
         
         this.distanceTraveled = 0;
@@ -55,7 +57,7 @@ export class HomingProjectile {
 
         // If the target is still valid, home in on it.
         // Check target.id as extra safety although ref checks work if instance is alive
-        if (this.target && !this.target.shouldBeRemoved) {
+        if (this.target && !this.target.shouldBeRemoved && this.target.pos) {
             // Use scratch vector to avoid creating new Vector2D every frame
             this._tempVector.set(this.target.pos.x, this.target.pos.y)
                 .sub(this.pos)

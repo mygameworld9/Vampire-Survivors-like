@@ -19,6 +19,7 @@ import { SlashProjectile } from "../../entities/SlashProjectile";
 import { ITEM_DATA } from "../../data/itemData";
 import { FloatingText } from "../../entities/FloatingText";
 import { i18nManager } from "../i18n";
+import { WeaponTag } from "../../utils/types";
 
 export class CollisionSystem {
     // --- Local Flat Grid Config ---
@@ -66,6 +67,8 @@ export class CollisionSystem {
 
         // 2. Populate
         const player = this.game.player;
+        if (!player) return; // Safety check
+
         const px = player.pos.x;
         const py = player.pos.y;
         const enemies = this.game.entityManager.enemies;
@@ -73,6 +76,9 @@ export class CollisionSystem {
 
         for (let i = 0; i < count; i++) {
             const e = enemies[i];
+            // Safety check: ensure enemy exists before accessing properties
+            if (!e || !e.pos) continue;
+
             // Calculate grid coordinates relative to player
             // We offset by HALF_COLS/ROWS so the player is always at [20,20]
             const col = Math.floor((e.pos.x - px) / this.CELL_SIZE) + this.HALF_COLS;
@@ -90,6 +96,8 @@ export class CollisionSystem {
      */
     private queryGrid(x: number, y: number, radius: number, out: Enemy[]) {
         const player = this.game.player;
+        if (!player) return;
+
         const px = player.pos.x;
         const py = player.pos.y;
 
@@ -114,10 +122,13 @@ export class CollisionSystem {
             const rowOffset = r * this.GRID_COLS;
             for (let c = startCol; c <= endCol; c++) {
                 const cell = this.grid[rowOffset + c];
+                if (!cell) continue;
                 const len = cell.length;
                 // Manual loop is faster than spread/concat
                 for (let k = 0; k < len; k++) {
-                    out.push(cell[k]);
+                    if (cell[k]) {
+                        out.push(cell[k]);
+                    }
                 }
             }
         }
@@ -138,6 +149,7 @@ export class CollisionSystem {
 
         for (let i = 0; i < pLen; i++) {
             const p = projectiles[i];
+            if (!p) continue;
             
             // Determine query parameters
             let qRadius = 0;
@@ -171,6 +183,7 @@ export class CollisionSystem {
             if (p instanceof LaserProjectile) {
                 for (let j = 0; j < cLen; j++) {
                     const e = candidates[j];
+                    if (!e) continue;
                     if (p.hitEnemies.has(e.id)) continue;
 
                     // Scratch Vector Projection
@@ -191,7 +204,7 @@ export class CollisionSystem {
                     const hitRad = e.size / 2 + p.width / 2;
 
                     if (distSq < hitRad * hitRad) {
-                        this.applyDamageToEnemy(e, p.damage, p.statusEffect);
+                        this.applyDamageToEnemy(e, p.damage, p.statusEffect, p.tags);
                         this.game.particleSystem.emit(closestX, closestY, 3, e.color);
                         p.hitEnemies.add(e.id);
                     }
@@ -199,6 +212,7 @@ export class CollisionSystem {
             } else if (p instanceof LightningProjectile || p instanceof SlashProjectile) {
                 for (let j = 0; j < cLen; j++) {
                     const e = candidates[j];
+                    if (!e) continue;
                     if (p.hitEnemies.has(e.id)) continue;
                     const dx = p.pos.x - e.pos.x;
                     const dy = p.pos.y - e.pos.y;
@@ -206,7 +220,7 @@ export class CollisionSystem {
                     const hitDist = p.range + e.size / 2;
 
                     if (distSq < hitDist * hitDist) {
-                         this.applyDamageToEnemy(e, p.damage, p.statusEffect);
+                         this.applyDamageToEnemy(e, p.damage, p.statusEffect, p.tags);
                          this.game.particleSystem.emit(e.pos.x, e.pos.y, 4, '#fff');
                          p.hitEnemies.add(e.id);
                     }
@@ -214,6 +228,7 @@ export class CollisionSystem {
             } else { 
                 for (let j = 0; j < cLen; j++) {
                     const e = candidates[j];
+                    if (!e) continue;
                     if (p.hitEnemies.has(e.id)) continue;
                     const dx = p.pos.x - e.pos.x;
                     const dy = p.pos.y - e.pos.y;
@@ -221,7 +236,7 @@ export class CollisionSystem {
                     const hitDist = p.size / 2 + e.size / 2;
 
                     if (distSq < hitDist * hitDist) {
-                        this.applyDamageToEnemy(e, p.damage, p.statusEffect);
+                        this.applyDamageToEnemy(e, p.damage, p.statusEffect, p.tags);
                         this.game.particleSystem.emit(p.pos.x, p.pos.y, 5, e.color);
                         
                         // Handle penetration
@@ -244,10 +259,11 @@ export class CollisionSystem {
         const props = this.game.entityManager.props;
         
         for (const p of projectiles) {
-            if (p.shouldBeRemoved) continue;
+            if (!p || p.shouldBeRemoved) continue;
 
             if (p instanceof LaserProjectile) {
                  for (const prop of props) {
+                    if (!prop) continue;
                     this._scratchVec.set(prop.pos.x, prop.pos.y).sub(p.p1);
                     const V = this._scratchVec;
                     const D = p.dir;
@@ -268,6 +284,7 @@ export class CollisionSystem {
                 }
             } else {
                 for (const prop of props) {
+                    if (!prop) continue;
                     const dx = p.pos.x - prop.pos.x;
                     const dy = p.pos.y - prop.pos.y;
                     const distSq = dx * dx + dy * dy;
@@ -295,12 +312,15 @@ export class CollisionSystem {
 
     private handleEnemyToPlayer() {
         const player = this.game.player;
+        if (!player) return;
+
         // Only check enemies near player
         this._queryResults.length = 0;
         this.queryGrid(player.pos.x, player.pos.y, 100, this._queryResults);
         const candidates = this._queryResults;
 
         for (const e of candidates) {
+            if (!e) continue;
             const dx = e.pos.x - player.pos.x;
             const dy = e.pos.y - player.pos.y;
             const distSq = dx * dx + dy * dy;
@@ -314,9 +334,11 @@ export class CollisionSystem {
 
     private handlePickups() {
         const player = this.game.player;
+        if (!player) return;
 
         // XP Orbs
         for (const orb of this.game.entityManager.xpOrbs) {
+             if (!orb) continue;
              const dx = orb.pos.x - player.pos.x;
              const dy = orb.pos.y - player.pos.y;
              const distSq = dx * dx + dy * dy;
@@ -333,6 +355,7 @@ export class CollisionSystem {
 
         // Items
         for (const item of this.game.entityManager.items) {
+             if (!item) continue;
              const dx = item.pos.x - player.pos.x;
              const dy = item.pos.y - player.pos.y;
              const distSq = dx * dx + dy * dy;
@@ -347,7 +370,7 @@ export class CollisionSystem {
 
         // Chests
         for (const chest of this.game.entityManager.chests) {
-            if (chest.isBeingOpened) continue;
+            if (!chest || chest.isBeingOpened) continue;
             const dx = chest.pos.x - player.pos.x;
             const dy = chest.pos.y - player.pos.y;
             const distSq = dx * dx + dy * dy;
@@ -362,6 +385,7 @@ export class CollisionSystem {
 
         // Exploration Points
         for (const point of this.game.entityManager.explorationPoints) {
+            if (!point) continue;
             const dx = point.pos.x - player.pos.x;
             const dy = point.pos.y - player.pos.y;
             const distSq = dx * dx + dy * dy;
@@ -384,9 +408,50 @@ export class CollisionSystem {
         }
     }
 
-    applyDamageToEnemy(e: Enemy, damage: number, statusEffect?: any) {
+    applyDamageToEnemy(e: Enemy, damage: number, statusEffect?: any, tags: WeaponTag[] = []) {
+        if (!e) return;
         const wasAlive = e.hp > 0;
-        e.takeDamage(damage);
+        
+        // --- Chain Reaction Logic ---
+        if (wasAlive) {
+            // Overload: LIGHTNING on Burning Enemy
+            if (tags.includes('LIGHTNING') && e.isBurning()) {
+                const overloadDmg = damage * 2;
+                e.takeDamage(overloadDmg);
+                // AOE Blast
+                this.game.particleSystem.emit(e.pos.x, e.pos.y, 10, '#FFEB3B');
+                this.game.entityManager.effects.push(new PulseEffect(e.pos, 80));
+                
+                // Damage neighbors
+                const blastRadius = 80;
+                const neighbors = this.getNeighbors(e.pos, blastRadius);
+                for (const neighbor of neighbors) {
+                    if (neighbor && neighbor !== e) {
+                        const dSq = neighbor.pos.distSq(e.pos);
+                        if (dSq < blastRadius * blastRadius) {
+                            neighbor.takeDamage(damage * 0.5);
+                        }
+                    }
+                }
+                this.game.entityManager.floatingTexts.push(new FloatingText(e.pos.x, e.pos.y - 30, "OVERLOAD!", '#FFEB3B', 1.5));
+            }
+            // Thermal Shock: ICE on Burning Enemy
+            else if (tags.includes('ICE') && e.isBurning()) {
+                const shockDamage = damage * 3;
+                e.takeDamage(shockDamage);
+                // Clear burn (TODO: Need method on Enemy to clear status, for now just deal huge damage)
+                this.game.particleSystem.emit(e.pos.x, e.pos.y, 15, '#E0F7FA'); // Steam
+                this.game.entityManager.floatingTexts.push(new FloatingText(e.pos.x, e.pos.y - 30, "THERMAL SHOCK!", '#E0F7FA', 1.5));
+            } 
+            // Normal Damage
+            else {
+                e.takeDamage(damage);
+            }
+        } else {
+             // Already dead (edge case), just apply damage
+             e.takeDamage(damage);
+        }
+
         if (statusEffect) e.applyStatusEffect(statusEffect);
         
         if (wasAlive) this.game.soundManager.playSound('ENEMY_HIT', 0.5);
@@ -397,6 +462,7 @@ export class CollisionSystem {
     }
 
     onEnemyDefeated(enemy: Enemy) {
+        if (!enemy) return;
         this.game.soundManager.playSound('ENEMY_DIE');
         this.game.particleSystem.emit(enemy.pos.x, enemy.pos.y, 15, enemy.color);
         
@@ -419,6 +485,7 @@ export class CollisionSystem {
     }
 
     onPropDestroyed(prop: Prop) {
+        if (!prop) return;
         this.game.soundManager.playSound('ENEMY_HIT'); 
         this.game.particleSystem.emit(prop.pos.x, prop.pos.y, 10, '#8D6E63'); 
 
@@ -473,13 +540,15 @@ export class CollisionSystem {
         this.queryGrid(this.game.player.pos.x, this.game.player.pos.y, weapon.range + 50, this._queryResults);
         
         for (const e of this._queryResults) {
+            if (!e) continue;
             const dx = this.game.player.pos.x - e.pos.x;
             const dy = this.game.player.pos.y - e.pos.y;
             const distSq = dx * dx + dy * dy;
             const hitDist = weapon.range + e.size / 2;
 
             if (distSq < hitDist * hitDist) {
-                this.applyDamageToEnemy(e, weapon.damage, weapon.statusEffect);
+                // Pass tags to aura damage
+                this.applyDamageToEnemy(e, weapon.damage, weapon.statusEffect, weapon.tags);
                 if (!isMax) {
                     this.game.particleSystem.emit(e.pos.x, e.pos.y, 2, e.color);
                 } else if (Math.random() > 0.7) {
@@ -490,6 +559,7 @@ export class CollisionSystem {
 
         // Props
         for (const prop of this.game.entityManager.props) {
+            if (!prop) continue;
             const dx = this.game.player.pos.x - prop.pos.x;
             const dy = this.game.player.pos.y - prop.pos.y;
             const distSq = dx * dx + dy * dy;
@@ -514,6 +584,7 @@ export class CollisionSystem {
                 this.queryGrid(this.game.player.pos.x, this.game.player.pos.y, effect.range + 50, this._queryResults);
                 
                 for (const e of this._queryResults) {
+                    if (!e) continue;
                     const dx = this.game.player.pos.x - e.pos.x;
                     const dy = this.game.player.pos.y - e.pos.y;
                     const distSq = dx * dx + dy * dy;
@@ -526,6 +597,7 @@ export class CollisionSystem {
                 }
 
                 for (const prop of this.game.entityManager.props) {
+                    if (!prop) continue;
                     const dx = this.game.player.pos.x - prop.pos.x;
                     const dy = this.game.player.pos.y - prop.pos.y;
                     const distSq = dx * dx + dy * dy;

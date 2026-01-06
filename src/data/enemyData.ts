@@ -6,7 +6,7 @@ export const ENEMY_DATA: { [key: string]: IEnemyData } = {
         nameKey: 'enemy.slime.name',
         descriptionKey: 'enemy.slime.desc',
         icon: '🟢',
-        hp: 30,
+        hp: 20, // Reduced from 30 for better TTK (2-shot with new Bullet)
         speed: 100,
         damage: 10,
         size: 24,
@@ -55,7 +55,7 @@ export const ENEMY_DATA: { [key: string]: IEnemyData } = {
         nameKey: 'enemy.bat.name',
         descriptionKey: 'enemy.bat.desc',
         icon: '🦇',
-        hp: 20,
+        hp: 15, // Reduced from 20 to ensure high-mobility enemies are fragile
         speed: 150,
         damage: 5,
         size: 20,
@@ -130,7 +130,7 @@ export const ENEMY_DATA: { [key: string]: IEnemyData } = {
         descriptionKey: 'enemy.golem.desc',
         icon: '🗿',
         hp: 150,
-        speed: 50,
+        speed: 65, // Increased from 50 to prevent easy kiting
         damage: 25,
         size: 40,
         xpOrbType: 'MEDIUM',
@@ -172,6 +172,33 @@ export const ENEMY_DATA: { [key: string]: IEnemyData } = {
             sizeMultiplier: 1.15,
             xpOrbType: 'MEDIUM',
             goldDrop: [8, 15]
+        }
+    },
+    TREASURE_GOBLIN: {
+        nameKey: 'enemy.goblin.name',
+        descriptionKey: 'enemy.goblin.desc',
+        icon: '👺',
+        hp: 100, // Tanky
+        speed: 130,
+        damage: 0, // Doesn't attack
+        size: 20,
+        xpOrbType: 'LARGE',
+        color: '#FFD700', // Gold
+        goldDrop: [50, 100],
+        aiBehavior: 'FLEE',
+        chestDropChance: 0.8,
+        spriteSheet: './enemies/goblin.png',
+        spriteWidth: 24,
+        spriteHeight: 24,
+        animation: { maxFrames: 4 },
+        elite: { // Mega Goblin
+            hpMultiplier: 3.0,
+            damageMultiplier: 1.0,
+            sizeMultiplier: 1.5,
+            color: '#FF6F00',
+            xpOrbType: 'LARGE',
+            goldDrop: [200, 500],
+            chestDropChance: 1.0
         }
     }
 };

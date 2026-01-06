@@ -158,13 +158,19 @@ export class Game {
         
         if (this.activeBosses.length > 0) {
             const closestBoss = this.activeBosses[0]; 
-            const bossData: BossData = {
-                id: closestBoss.id,
-                name: i18nManager.t(closestBoss.data.nameKey),
-                hp: Math.ceil(closestBoss.hp),
-                maxHp: Math.ceil(closestBoss.data.hp * (closestBoss.data.elite?.hpMultiplier || 1))
-            };
-            this.events.emit('boss-update', bossData);
+            // Safety check for closestBoss before accessing ID
+            if (closestBoss && closestBoss.data) {
+                const bossData: BossData = {
+                    id: closestBoss.id,
+                    name: i18nManager.t(closestBoss.data.nameKey),
+                    hp: Math.ceil(closestBoss.hp),
+                    maxHp: Math.ceil(closestBoss.data.hp * (closestBoss.data.elite?.hpMultiplier || 1))
+                };
+                this.events.emit('boss-update', bossData);
+            } else {
+                // If the array has empty/invalid slots, clean it up or don't emit
+                this.events.emit('boss-update', null);
+            }
         } else {
             this.events.emit('boss-update', null);
         }
@@ -193,13 +199,15 @@ export class Game {
     // --- Meta / Build Controls ---
 
     public registerActiveBoss(enemy: Enemy) {
+        if (!enemy) return;
         this.activeBosses.push(enemy);
         this.soundManager.playSound('GAME_OVER'); // Use heavy sound
         this.entityManager.floatingTexts.push(new FloatingText(this.player.pos.x, this.player.pos.y - 100, "WARNING!", "#FF0000", 3));
     }
 
     public removeActiveBoss(enemy: Enemy) {
-        this.activeBosses = this.activeBosses.filter(b => b.id !== enemy.id);
+        // Safe filter
+        this.activeBosses = this.activeBosses.filter(b => b && b.id !== enemy.id);
     }
 
     public generateUpgradeOptions(): UpgradeOption[] {
@@ -240,7 +248,7 @@ export class Game {
             }
         }
 
-        const optionsPool = [
+        let optionsPool = [
             ...availableWeaponUpgrades,
             ...availableNewWeapons,
             ...availableSkillUpgrades,
@@ -254,11 +262,71 @@ export class Game {
             ];
         }
 
-        for (let i = optionsPool.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [optionsPool[i], optionsPool[j]] = [optionsPool[j], optionsPool[i]];
+        // --- Tag Synergy Weighted Selection ---
+        // 1. Calculate Tag Profile
+        const currentTags = new Set<string>();
+        player.weapons.forEach(w => w.tags.forEach(t => currentTags.add(t)));
+        
+        // 2. Weight Options
+        // Standard weight = 1
+        // Match tag = +2 weight
+        const weightedPool: UpgradeOption[] = [];
+        
+        for (const opt of optionsPool) {
+            let weight = 1;
+            
+            // Analyze option tags
+            let optTags: string[] = [];
+            if (opt.type === 'new' && 'weaponData' in opt) {
+                optTags = opt.weaponData.tags || [];
+            } else if (opt.type === 'upgrade' && 'weapon' in opt) {
+                // Upgrades to existing weapons are naturally synergistic
+                weight += 2;
+            } else if (opt.type === 'new' && 'skillData' in opt) {
+                // Check if skill benefits current tags
+                // Basic heuristic: check if skill name/desc or hardcoded logic relates
+                // For now, let's rely on manual mapping or just simple logic
+                if (opt.skillData.id === 'ELEMENTAL_MASTERY') weight += 3; // Always good if elements present?
+                if (opt.skillData.id === 'BALLISTICS') {
+                    if (player.weapons.some(w => w.tags.includes('PROJECTILE'))) weight += 3;
+                }
+            }
+
+            if (optTags.length > 0) {
+                for (const t of optTags) {
+                    if (currentTags.has(t)) weight += 1;
+                }
+            }
+
+            // Add to pool 'weight' times
+            for(let k=0; k<weight; k++) {
+                weightedPool.push(opt);
+            }
         }
-        return optionsPool.slice(0, 3);
+
+        // Shuffle weighted pool
+        for (let i = weightedPool.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [weightedPool[i], weightedPool[j]] = [weightedPool[j], weightedPool[i]];
+        }
+        
+        // De-duplicate results while picking top 3
+        const results: UpgradeOption[] = [];
+        const selectedIds = new Set<string>();
+
+        for (const opt of weightedPool) {
+            let id = '';
+            if (opt.type === 'new') id = ('weaponData' in opt) ? opt.weaponData.id : opt.skillData.id;
+            else if (opt.type === 'upgrade') id = ('weapon' in opt) ? opt.weapon.id : opt.skill.id;
+            
+            if (!selectedIds.has(id)) {
+                results.push(opt);
+                selectedIds.add(id);
+            }
+            if (results.length >= 3) break;
+        }
+
+        return results;
     }
 
     public performReroll(): UpgradeOption[] | null {

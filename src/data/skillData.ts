@@ -1,3 +1,4 @@
+
 import { ISkillData } from "../utils/types";
 
 export const SKILL_DATA: { [key: string]: ISkillData } = {
@@ -50,5 +51,27 @@ export const SKILL_DATA: { [key: string]: ISkillData } = {
         damage: 10,
         cooldown: 8000, // 8 seconds
         range: 250,
+    },
+    ELEMENTAL_MASTERY: {
+        id: 'ELEMENTAL_MASTERY',
+        nameKey: 'skill.elemental.name',
+        type: 'PASSIVE',
+        descriptionKey: 'skill.elemental.desc',
+        icon: '🔥',
+        effects: {
+            damage_FIRE: { op: 'multiply', value: 1.5 },
+            damage_ICE: { op: 'multiply', value: 1.5 },
+            damage_LIGHTNING: { op: 'multiply', value: 1.5 }
+        }
+    },
+    BALLISTICS: {
+        id: 'BALLISTICS',
+        nameKey: 'skill.ballistics.name',
+        type: 'PASSIVE',
+        descriptionKey: 'skill.ballistics.desc',
+        icon: '🎯',
+        effects: {
+            penetration_PROJECTILE: { op: 'add', value: 1 }
+        }
     }
 };

@@ -1,3 +1,4 @@
+
 /* --- NEW MODERN START SCREEN (CANDY POP THEME) --- */
 .start-screen-container {
     position: absolute;
@@ -142,10 +143,20 @@
 }
 
 .hero-mascot {
-    font-size: 25rem; /* Huge! */
+    width: 450px;
+    height: 450px;
     filter: drop-shadow(0 20px 0 rgba(0,0,0,0.1));
     animation: breatheMascot 4s infinite ease-in-out;
     transform-origin: bottom center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.mascot-svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
 }
 
 /* Language Switcher */

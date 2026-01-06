@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { i18nManager } from '../core/i18n';
 
@@ -66,7 +67,49 @@ export const StartScreen: React.FC<StartScreenProps> = ({
                 </div>
 
                 <div className="start-right-panel">
-                        <div className="hero-mascot">🛡️</div>
+                        {/* Custom Kawaii Star Mascot SVG */}
+                        <div className="hero-mascot">
+                            <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" className="mascot-svg">
+                                <defs>
+                                    <linearGradient id="starGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                        <stop offset="0%" stopColor="#FFF176" />
+                                        <stop offset="100%" stopColor="#FFD54F" />
+                                    </linearGradient>
+                                    <filter id="stickerShadow" x="-20%" y="-20%" width="140%" height="140%">
+                                        <feDropShadow dx="0" dy="8" stdDeviation="2" floodColor="rgba(0,0,0,0.15)"/>
+                                    </filter>
+                                </defs>
+                                
+                                {/* Sticker Outline */}
+                                <g transform="translate(100, 100)" filter="url(#stickerShadow)">
+                                    {/* White Stroke Background */}
+                                    <path d="M0 -85 L23 -35 L78 -35 L40 5 L55 60 L0 30 L-55 60 L-40 5 L-78 -35 L-23 -35 Z" 
+                                          fill="white" stroke="white" strokeWidth="18" strokeLinejoin="round"/>
+                                    
+                                    {/* Main Star Body */}
+                                    <path d="M0 -85 L23 -35 L78 -35 L40 5 L55 60 L0 30 L-55 60 L-40 5 L-78 -35 L-23 -35 Z" 
+                                          fill="url(#starGradient)" stroke="#F57F17" strokeWidth="3" strokeLinejoin="round"/>
+                                    
+                                    {/* Face */}
+                                    <g transform="translate(0, 5)">
+                                        {/* Left Eye */}
+                                        <ellipse cx="-20" cy="-5" rx="6" ry="10" fill="#3E2723" />
+                                        <circle cx="-18" cy="-10" r="3" fill="white" />
+                                        
+                                        {/* Right Eye */}
+                                        <ellipse cx="20" cy="-5" rx="6" ry="10" fill="#3E2723" />
+                                        <circle cx="22" cy="-10" r="3" fill="white" />
+                                        
+                                        {/* Cheeks */}
+                                        <ellipse cx="-32" cy="5" rx="5" ry="3" fill="#FF8A80" opacity="0.6" />
+                                        <ellipse cx="32" cy="5" rx="5" ry="3" fill="#FF8A80" opacity="0.6" />
+                                        
+                                        {/* Mouth */}
+                                        <path d="M-5 5 Q0 10 5 5" stroke="#3E2723" strokeWidth="2" fill="none" strokeLinecap="round" />
+                                    </g>
+                                </g>
+                            </svg>
+                        </div>
                 </div>
             </div>
         </div>

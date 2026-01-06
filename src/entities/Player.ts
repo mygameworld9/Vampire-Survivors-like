@@ -11,7 +11,7 @@ import { Projectile } from "./Projectile";
 import { SoundManager } from "../core/SoundManager";
 import { Skill, SkillEffect } from "./Skill";
 import { SKILL_DATA } from "../data/skillData";
-import { UpgradeEffect, AnimationState, IPlayerState } from "../utils/types";
+import { UpgradeEffect, AnimationState, IPlayerState, WeaponTag } from "../utils/types";
 import { CHARACTER_DATA } from "../data/characterData";
 import { HomingProjectile } from "./HomingProjectile";
 import { Enemy } from "./Enemy";
@@ -41,6 +41,10 @@ export class Player {
     // Multipliers from Meta Progression
     public damageMultiplier = 1.0;
     public goldMultiplier = 1.0;
+
+    // Tag Bonuses
+    public tagDamageMultipliers: Map<string, number> = new Map();
+    public tagPenetrationBonuses: Map<string, number> = new Map();
 
     state: 'Idle' | 'Moving' | 'Damaged' | 'Dead' = 'Idle';
     facingDirection = new Vector2D(0, 1);
@@ -349,6 +353,22 @@ export class Player {
         const oldMaxHp = this.maxHp;
         for (const key in effects) {
             const effect = effects[key];
+            
+            // Check for Tag Bonuses (e.g. damage_FIRE, penetration_PROJECTILE)
+            if (key.startsWith('damage_')) {
+                const tag = key.split('_')[1];
+                const current = this.tagDamageMultipliers.get(tag) || 1.0;
+                if (effect.op === 'multiply') this.tagDamageMultipliers.set(tag, current * effect.value);
+                if (effect.op === 'add') this.tagDamageMultipliers.set(tag, current + effect.value);
+                continue;
+            }
+            if (key.startsWith('penetration_')) {
+                const tag = key.split('_')[1];
+                const current = this.tagPenetrationBonuses.get(tag) || 0;
+                if (effect.op === 'add') this.tagPenetrationBonuses.set(tag, current + effect.value);
+                continue;
+            }
+
             switch(key) {
                 case 'maxHp':
                     if (effect.op === 'multiply') this.maxHp *= effect.value;
@@ -373,6 +393,24 @@ export class Player {
         this.hp = Math.round(this.hp);
         this.maxHp = Math.round(this.maxHp);
         this.notifyStatsChange();
+    }
+
+    getTagDamageMultiplier(tags: WeaponTag[]): number {
+        let mult = 1.0;
+        if (!tags) return mult;
+        for (const tag of tags) {
+            mult *= (this.tagDamageMultipliers.get(tag) || 1.0);
+        }
+        return mult;
+    }
+
+    getTagPenetrationBonus(tags: WeaponTag[]): number {
+        let bonus = 0;
+        if (!tags) return bonus;
+        for (const tag of tags) {
+            bonus += (this.tagPenetrationBonuses.get(tag) || 0);
+        }
+        return bonus;
     }
 
     draw(ctx: CanvasRenderingContext2D) {

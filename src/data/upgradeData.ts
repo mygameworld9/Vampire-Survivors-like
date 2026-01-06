@@ -1,6 +1,4 @@
 
-
-
 import { UpgradeLevel } from "../utils/types";
 
 export const UPGRADE_DATA: { [key: string]: UpgradeLevel[] } = {
@@ -10,16 +8,16 @@ export const UPGRADE_DATA: { [key: string]: UpgradeLevel[] } = {
       { "descriptionKey": "upgrade.bullet.3", "effects": { "cooldown": { "op": "multiply", "value": 0.9 } } },
       { "descriptionKey": "upgrade.bullet.4", "effects": { "damage": { "op": "add", "value": 10 } } },
       { "descriptionKey": "upgrade.bullet.5", "effects": { "penetration": { "op": "add", "value": 1 } } },
-      { "descriptionKey": "upgrade.bullet.6", "effects": { "cooldown": { "op": "multiply", "value": 0.85 } } },
+      { "descriptionKey": "upgrade.bullet.6", "effects": { "damage": { "op": "add", "value": 20 } } }, // Replaced CD reduction with heavy Damage buff (Lvl 7)
       { "descriptionKey": "upgrade.bullet.7", "effects": { "damage": { "op": "add", "value": 15 } } },
       { "descriptionKey": "upgrade.max.stats", "effects": { "damage": { "op": "multiply", "value": 1.2 } } } 
     ],
     BOOMERANG: [
-      { "descriptionKey": "upgrade.boomerang.1", "effects": { "damage": { "op": "add", "value": 10 } } },
-      { "descriptionKey": "upgrade.boomerang.2", "effects": { "cooldown": { "op": "multiply", "value": 0.85 } } },
-      { "descriptionKey": "upgrade.boomerang.3", "effects": { "range": { "op": "multiply", "value": 1.2 } } },
-      { "descriptionKey": "upgrade.boomerang.4", "effects": { "damage": { "op": "add", "value": 15 } } },
-      { "descriptionKey": "upgrade.boomerang.5", "effects": { "cooldown": { "op": "multiply", "value": 0.80 } } },
+      { "descriptionKey": "upgrade.boomerang.1", "effects": { "penetration": { "op": "add", "value": 2 } } }, // Lvl 2: Compensate base nerf
+      { "descriptionKey": "upgrade.boomerang.2", "effects": { "damage": { "op": "add", "value": 10 } } }, // Lvl 3: Dmg
+      { "descriptionKey": "upgrade.boomerang.3", "effects": { "range": { "op": "multiply", "value": 1.25 } } }, // Lvl 4: Range
+      { "descriptionKey": "upgrade.boomerang.4", "effects": { "penetration": { "op": "add", "value": 999 } } }, // Lvl 5: Infinite Pen Spike
+      { "descriptionKey": "upgrade.boomerang.5", "effects": { "cooldown": { "op": "multiply", "value": 0.80 } } }, // Lvl 6: CD
       { "descriptionKey": "upgrade.max.stats", "effects": { "damage": { "op": "multiply", "value": 1.2 } } }
     ],
     SUNFIRE: [
@@ -33,7 +31,7 @@ export const UPGRADE_DATA: { [key: string]: UpgradeLevel[] } = {
       { "descriptionKey": "upgrade.sunfire.8", "effects": { "damage": { "op": "add", "value": 15 } } },
       { "descriptionKey": "upgrade.max.stats", "effects": { "damage": { "op": "multiply", "value": 1.2 } } }
     ],
-    // --- TIER 2 UPGRADES (To allow reaching Level 6 for Tier 3 evolution) ---
+    // --- TIER 2 UPGRADES ---
     GATLING_GUN: [
         { "descriptionKey": "upgrade.gatling.1", "effects": { "damage": { "op": "add", "value": 10 } } },
         { "descriptionKey": "upgrade.gatling.2", "effects": { "penetration": { "op": "add", "value": 1 } } },

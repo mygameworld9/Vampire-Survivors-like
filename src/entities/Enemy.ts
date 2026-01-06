@@ -1,8 +1,6 @@
 
-
-
 import { Vector2D } from "../utils/Vector2D";
-import { IEnemyData, IStatusEffect, IWeaponStatusEffect, StatusEffectType } from "../utils/types";
+import { IEnemyData, IStatusEffect, IWeaponStatusEffect, StatusEffectType, EnemyAIBehavior } from "../utils/types";
 import { EnemyCache } from "../core/EnemyCache";
 
 export class Enemy {
@@ -24,6 +22,7 @@ export class Enemy {
     private originalSpeed: number;
     private activeStatusEffects: Map<StatusEffectType, IStatusEffect> = new Map();
     private type: string;
+    private aiBehavior: EnemyAIBehavior;
 
     // Flocking Optimization
     private cachedSeparation: Vector2D = new Vector2D(0, 0);
@@ -45,6 +44,7 @@ export class Enemy {
         this.color = data.color;
         this.chestDropChance = 0;
         this.originalSpeed = data.speed;
+        this.aiBehavior = data.aiBehavior || 'CHASE';
         
         // Initialize logic
         this.reset(x, y, data, type, isElite);
@@ -68,6 +68,7 @@ export class Enemy {
         this.xpOrbType = data.xpOrbType;
         this.goldDrop = data.goldDrop;
         this.chestDropChance = data.chestDropChance || 0;
+        this.aiBehavior = data.aiBehavior || 'CHASE';
         
         // Apply elite modifiers
         if (isElite && data.elite) {
@@ -111,7 +112,7 @@ export class Enemy {
             const separationThreshold = this.size * 1.5; // Avoidance radius
             
             for (const neighbor of neighbors) {
-                if (neighbor.id === this.id) continue;
+                if (!neighbor || !neighbor.pos || neighbor.id === this.id) continue;
                 
                 const dx = this.pos.x - neighbor.pos.x;
                 const dy = this.pos.y - neighbor.pos.y;
@@ -131,35 +132,45 @@ export class Enemy {
             this.cachedSeparation.y = sepY;
         }
 
-        // 2. Seek: Calculate vector towards player (Always update this for responsiveness)
-        const dx = playerPos.x - this.pos.x;
-        const dy = playerPos.y - this.pos.y;
-        const distToPlayer = Math.sqrt(dx * dx + dy * dy);
-        let dirX = 0;
-        let dirY = 0;
-        if (distToPlayer > 0) {
-            dirX = dx / distToPlayer;
-            dirY = dy / distToPlayer;
-        }
+        // 2. Goal: Calculate vector based on AI Behavior
+        // Safety check for playerPos
+        if (playerPos) {
+            const dx = playerPos.x - this.pos.x;
+            const dy = playerPos.y - this.pos.y;
+            const distToPlayer = Math.sqrt(dx * dx + dy * dy);
+            let dirX = 0;
+            let dirY = 0;
 
-        // 3. Blend Forces
-        // We check if we have any separation force cached
-        if (this.cachedSeparation.x !== 0 || this.cachedSeparation.y !== 0) {
-            const separationWeight = 2.0; // Tuning: How much they prefer space over chasing
-            
-            dirX += this.cachedSeparation.x * separationWeight;
-            dirY += this.cachedSeparation.y * separationWeight;
-            
-            // Re-normalize blended direction
-            const totalLen = Math.sqrt(dirX * dirX + dirY * dirY);
-            if (totalLen > 0) {
-                dirX /= totalLen;
-                dirY /= totalLen;
+            if (distToPlayer > 0) {
+                if (this.aiBehavior === 'FLEE') {
+                    // Run AWAY from player
+                    dirX = -(dx / distToPlayer);
+                    dirY = -(dy / distToPlayer);
+                } else {
+                    // CHASE (Default)
+                    dirX = dx / distToPlayer;
+                    dirY = dy / distToPlayer;
+                }
             }
-        }
 
-        this.pos.x += dirX * this.speed * dt;
-        this.pos.y += dirY * this.speed * dt;
+            // 3. Blend Forces
+            if (this.cachedSeparation.x !== 0 || this.cachedSeparation.y !== 0) {
+                const separationWeight = 2.0; // Tuning: How much they prefer space over goal
+                
+                dirX += this.cachedSeparation.x * separationWeight;
+                dirY += this.cachedSeparation.y * separationWeight;
+                
+                // Re-normalize blended direction
+                const totalLen = Math.sqrt(dirX * dirX + dirY * dirY);
+                if (totalLen > 0) {
+                    dirX /= totalLen;
+                    dirY /= totalLen;
+                }
+            }
+
+            this.pos.x += dirX * this.speed * dt;
+            this.pos.y += dirY * this.speed * dt;
+        }
     }
     
     takeDamage(amount: number) {
@@ -211,13 +222,12 @@ export class Enemy {
         const frame = EnemyCache.getFrame(this.type, this.isElite, this.color, this.size, this.globalTime);
         
         // The cache includes padding, so we need to center it based on its width/height
-        // Removed Math.round to fix jitter relative to camera
         const drawX = this.pos.x - frame.width / 2;
         const drawY = this.pos.y - frame.height / 2;
 
         ctx.drawImage(frame, drawX, drawY);
 
-        // Draw overlays for status effects (Simple primitives are fine to keep dynamic)
+        // Draw overlays for status effects
         if (this.activeStatusEffects.size > 0) {
             const radius = this.size / 2;
             const cx = this.pos.x;

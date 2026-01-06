@@ -1,6 +1,4 @@
 
-
-
 import { IWeaponData } from "../utils/types";
 
 export const WEAPON_DATA: { [key: string]: IWeaponData } = {
@@ -9,12 +7,13 @@ export const WEAPON_DATA: { [key: string]: IWeaponData } = {
         nameKey: 'weapon.bullet.name',
         icon: '🔫',
         type: 'PROJECTILE',
-        damage: 36,
+        damage: 12, // Buffed to ensure 2-shot kill on Slimes (20HP)
         cooldown: 800, // ms
         speed: 400,
         penetration: 1,
         range: 800,
         fireSound: 'WEAPON_BULLET',
+        tags: ['PROJECTILE', 'PHYSICAL']
     },
     GATLING_GUN: {
         id: 'GATLING_GUN',
@@ -27,6 +26,7 @@ export const WEAPON_DATA: { [key: string]: IWeaponData } = {
         penetration: 2,
         range: 900,
         fireSound: 'WEAPON_BULLET',
+        tags: ['PROJECTILE', 'PHYSICAL']
     },
     DOOM_CANNON: {
         id: 'DOOM_CANNON',
@@ -39,6 +39,7 @@ export const WEAPON_DATA: { [key: string]: IWeaponData } = {
         penetration: 5,
         range: 1200,
         fireSound: 'WEAPON_BULLET',
+        tags: ['PROJECTILE', 'PHYSICAL', 'EXPLOSIVE']
     },
     BOOMERANG: {
         id: 'BOOMERANG',
@@ -48,9 +49,10 @@ export const WEAPON_DATA: { [key: string]: IWeaponData } = {
         damage: 75,
         cooldown: 3000,
         speed: 350,
-        penetration: 999, // Can hit many enemies
-        range: 400, // Half a screen's width approx
+        penetration: 4, // Nerfed from 999 (infinite) to require upgrades
+        range: 400, 
         fireSound: 'WEAPON_BOOMERANG',
+        tags: ['PROJECTILE', 'PHYSICAL']
     },
     SONIC_DISC: {
         id: 'SONIC_DISC',
@@ -63,6 +65,7 @@ export const WEAPON_DATA: { [key: string]: IWeaponData } = {
         penetration: 999,
         range: 600,
         fireSound: 'WEAPON_BOOMERANG',
+        tags: ['PROJECTILE', 'PHYSICAL', 'AREA']
     },
     VOID_EATER: {
         id: 'VOID_EATER',
@@ -75,6 +78,7 @@ export const WEAPON_DATA: { [key: string]: IWeaponData } = {
         penetration: 999,
         range: 800,
         fireSound: 'WEAPON_BOOMERANG',
+        tags: ['PROJECTILE', 'MAGIC', 'DARK', 'AREA']
     },
     SUNFIRE: {
         id: 'SUNFIRE',
@@ -92,7 +96,8 @@ export const WEAPON_DATA: { [key: string]: IWeaponData } = {
             chance: 1.0,
             duration: 3000, // 3 seconds
             magnitude: 5, // 5 dps
-        }
+        },
+        tags: ['AREA', 'MAGIC', 'FIRE']
     },
     SUPERNOVA: {
         id: 'SUPERNOVA',
@@ -110,7 +115,8 @@ export const WEAPON_DATA: { [key: string]: IWeaponData } = {
             chance: 1.0,
             duration: 4000,
             magnitude: 20,
-        }
+        },
+        tags: ['AREA', 'MAGIC', 'FIRE']
     },
     BLACK_HOLE: {
         id: 'BLACK_HOLE',
@@ -128,7 +134,8 @@ export const WEAPON_DATA: { [key: string]: IWeaponData } = {
             chance: 1.0,
             duration: 1000,
             magnitude: 0.2, // 80% slow
-        }
+        },
+        tags: ['AREA', 'MAGIC', 'DARK']
     },
     ICE_SHARD: {
         id: 'ICE_SHARD',
@@ -136,10 +143,10 @@ export const WEAPON_DATA: { [key: string]: IWeaponData } = {
         icon: '❄️',
         type: 'LASER',
         firePattern: 'forward',
-        damage: 24,
+        damage: 12, // Buffed (effective damage due to hit scan) to ensuring hits against Bats
         cooldown: 1200,
-        speed: 0, // Lasers are instant
-        penetration: 999, // "all"
+        speed: 0, 
+        penetration: 999, 
         range: 600,
         width: 10,
         fireSound: 'WEAPON_LASER',
@@ -148,7 +155,8 @@ export const WEAPON_DATA: { [key: string]: IWeaponData } = {
             chance: 1.0,
             duration: 2000, // 2 seconds
             magnitude: 0.5, // 50% speed
-        }
+        },
+        tags: ['LASER', 'MAGIC', 'ICE']
     },
     MAGIC_MISSILE: {
         id: 'MAGIC_MISSILE',
@@ -161,6 +169,7 @@ export const WEAPON_DATA: { [key: string]: IWeaponData } = {
         penetration: 1,
         range: 5000, // Failsafe range
         fireSound: 'WEAPON_LASER', // Reusing sound for now
+        tags: ['PROJECTILE', 'MAGIC']
     },
     THUNDER_STAFF: {
         id: 'THUNDER_STAFF',
@@ -173,6 +182,7 @@ export const WEAPON_DATA: { [key: string]: IWeaponData } = {
         penetration: 1, // Number of targets
         range: 100, // Explosion Radius
         fireSound: 'WEAPON_LIGHTNING',
+        tags: ['AREA', 'MAGIC', 'LIGHTNING']
     },
     KATANA: {
         id: 'KATANA',
@@ -185,5 +195,6 @@ export const WEAPON_DATA: { [key: string]: IWeaponData } = {
         penetration: 999,
         range: 80, // Slash radius
         fireSound: 'WEAPON_SLASH',
+        tags: ['MELEE', 'PHYSICAL']
     }
 };
