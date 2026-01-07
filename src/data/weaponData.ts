@@ -196,5 +196,269 @@ export const WEAPON_DATA: { [key: string]: IWeaponData } = {
         range: 80, // Slash radius
         fireSound: 'WEAPON_SLASH',
         tags: ['MELEE', 'PHYSICAL']
+    },
+
+    // ========== NEW WEAPONS v2.0 ==========
+
+    // === 毒系武器线 (Poison Line) ===
+    POISON_DAGGER: {
+        id: 'POISON_DAGGER',
+        nameKey: 'weapon.poisondagger.name',
+        icon: '🗡️',
+        type: 'MELEE',
+        damage: 25,
+        cooldown: 1200,
+        speed: 0,
+        penetration: 3,
+        range: 60,
+        fireSound: 'WEAPON_SLASH',
+        statusEffect: {
+            type: 'POISON',
+            chance: 1.0,
+            duration: 4000,
+            magnitude: 3, // 3 DPS
+        },
+        tags: ['MELEE', 'PHYSICAL', 'POISON']
+    },
+    VENOM_FANG: {
+        id: 'VENOM_FANG',
+        nameKey: 'weapon.venomfang.name',
+        icon: '🐍',
+        type: 'MELEE',
+        damage: 65, // Adjusted from 50 per numerical verification
+        cooldown: 900, // Adjusted from 1000 per numerical verification
+        speed: 0,
+        penetration: 6,
+        range: 90,
+        fireSound: 'WEAPON_SLASH',
+        statusEffect: {
+            type: 'POISON',
+            chance: 1.0,
+            duration: 5000,
+            magnitude: 8, // 8 DPS, stacks up to 3
+        },
+        tags: ['MELEE', 'PHYSICAL', 'POISON']
+    },
+    PLAGUE_SCYTHE: {
+        id: 'PLAGUE_SCYTHE',
+        nameKey: 'weapon.plaguescythe.name',
+        icon: '☠️',
+        type: 'MELEE',
+        damage: 120, // Adjusted from 100 per numerical verification
+        cooldown: 700, // Adjusted from 800 per numerical verification
+        speed: 0,
+        penetration: 999,
+        range: 140,
+        fireSound: 'WEAPON_SLASH',
+        statusEffect: {
+            type: 'POISON',
+            chance: 1.0,
+            duration: 6000,
+            magnitude: 15, // 15 DPS, spreads on kill
+        },
+        tags: ['MELEE', 'MAGIC', 'POISON', 'AREA']
+    },
+
+    // === 召唤系武器线 (Summoning Line) ===
+    SPIRIT_ORB: {
+        id: 'SPIRIT_ORB',
+        nameKey: 'weapon.spiritorb.name',
+        icon: '👻',
+        type: 'ORBITING',
+        damage: 10, // Adjusted from 15 per numerical verification
+        cooldown: 600, // Adjusted from 500 per numerical verification
+        speed: 90, // Rotation speed in degrees/sec
+        penetration: 999,
+        range: 80, // Orbit radius
+        fireSound: 'WEAPON_AURA',
+        tags: ['AREA', 'MAGIC', 'SUMMON']
+    },
+    PHANTOM_GUARD: {
+        id: 'PHANTOM_GUARD',
+        nameKey: 'weapon.phantomguard.name',
+        icon: '👁️',
+        type: 'ORBITING',
+        damage: 30,
+        cooldown: 400,
+        speed: 120,
+        penetration: 999,
+        range: 120,
+        fireSound: 'WEAPON_AURA',
+        tags: ['AREA', 'MAGIC', 'SUMMON']
+    },
+    SOUL_VORTEX: {
+        id: 'SOUL_VORTEX',
+        nameKey: 'weapon.soulvortex.name',
+        icon: '🌀',
+        type: 'ORBITING',
+        damage: 35, // Adjusted from 50 per numerical verification
+        cooldown: 400, // Adjusted from 300 per numerical verification
+        speed: 180,
+        penetration: 999,
+        range: 180,
+        fireSound: 'WEAPON_AURA',
+        tags: ['AREA', 'MAGIC', 'DARK', 'SUMMON']
+    },
+
+    // === 链式武器线 (Chain Line) ===
+    CHAIN_BOLT: {
+        id: 'CHAIN_BOLT',
+        nameKey: 'weapon.chainbolt.name',
+        icon: '⛓️',
+        type: 'CHAIN',
+        damage: 20,
+        cooldown: 2000,
+        speed: 400,
+        penetration: 2, // Bounce count
+        range: 150, // Bounce range
+        fireSound: 'WEAPON_LIGHTNING',
+        tags: ['PROJECTILE', 'MAGIC']
+    },
+    SHOCK_CHAIN: {
+        id: 'SHOCK_CHAIN',
+        nameKey: 'weapon.shockchain.name',
+        icon: '⚡',
+        type: 'CHAIN',
+        damage: 55, // Adjusted from 45 per numerical verification
+        cooldown: 1500,
+        speed: 500,
+        penetration: 4, // Bounce count
+        range: 200, // Bounce range
+        fireSound: 'WEAPON_LIGHTNING',
+        statusEffect: {
+            type: 'STUN',
+            chance: 1.0,
+            duration: 300,
+            magnitude: 1,
+        },
+        tags: ['PROJECTILE', 'MAGIC', 'LIGHTNING']
+    },
+    STORM_WEAVER: {
+        id: 'STORM_WEAVER',
+        nameKey: 'weapon.stormweaver.name',
+        icon: '🌩️',
+        type: 'CHAIN',
+        damage: 60, // Adjusted from 80 per numerical verification
+        cooldown: 1200,
+        speed: 600,
+        penetration: 5, // Adjusted from 8 per numerical verification
+        range: 250,
+        fireSound: 'WEAPON_LIGHTNING',
+        statusEffect: {
+            type: 'STUN',
+            chance: 1.0,
+            duration: 500,
+            magnitude: 1,
+        },
+        tags: ['PROJECTILE', 'MAGIC', 'LIGHTNING', 'AREA']
+    },
+
+    // === 陷阱系武器线 (Trap Line) ===
+    SPIKE_TRAP: {
+        id: 'SPIKE_TRAP',
+        nameKey: 'weapon.spiketrap.name',
+        icon: '📌',
+        type: 'TRAP',
+        damage: 30,
+        cooldown: 3000, // Place interval
+        speed: 0,
+        penetration: 5, // Max traps on field
+        range: 40, // Trap radius
+        fireSound: 'WEAPON_SLASH',
+        tags: ['TRAP', 'PHYSICAL']
+    },
+    FROST_MINE: {
+        id: 'FROST_MINE',
+        nameKey: 'weapon.frostmine.name',
+        icon: '💎',
+        type: 'TRAP',
+        damage: 50,
+        cooldown: 2500,
+        speed: 0,
+        penetration: 6, // Max traps
+        range: 60, // Trap radius, 100px explosion
+        fireSound: 'WEAPON_LASER',
+        statusEffect: {
+            type: 'SLOW',
+            chance: 1.0,
+            duration: 3000,
+            magnitude: 0.4, // 60% slow
+        },
+        tags: ['TRAP', 'MAGIC', 'ICE', 'AREA']
+    },
+    VOID_RIFT: {
+        id: 'VOID_RIFT',
+        nameKey: 'weapon.voidrift.name',
+        icon: '🌑',
+        type: 'TRAP',
+        damage: 25, // Per second DOT
+        cooldown: 4000,
+        speed: 30, // Pull strength
+        penetration: 3, // Max rifts
+        range: 100, // Rift radius
+        fireSound: 'WEAPON_AURA',
+        tags: ['TRAP', 'MAGIC', 'DARK', 'AREA']
+    },
+
+    // === 独立武器进化 (Independent Evolutions) ===
+    FROST_STORM: {
+        id: 'FROST_STORM',
+        nameKey: 'weapon.froststorm.name',
+        icon: '🌨️',
+        type: 'LASER',
+        firePattern: 'forward', // Will shoot 3 lasers
+        damage: 30,
+        cooldown: 800,
+        speed: 0,
+        penetration: 999,
+        range: 800,
+        width: 10,
+        fireSound: 'WEAPON_LASER',
+        statusEffect: {
+            type: 'SLOW',
+            chance: 1.0,
+            duration: 3000,
+            magnitude: 0.3, // 70% slow
+        },
+        tags: ['LASER', 'MAGIC', 'ICE']
+    },
+    ARCANE_SWARM: {
+        id: 'ARCANE_SWARM',
+        nameKey: 'weapon.arcaneswarm.name',
+        icon: '💫',
+        type: 'HOMING_PROJECTILE',
+        damage: 25,
+        cooldown: 800,
+        speed: 350,
+        penetration: 2,
+        range: 5000,
+        fireSound: 'WEAPON_LASER',
+        tags: ['PROJECTILE', 'MAGIC']
+    },
+    CHAIN_LIGHTNING: {
+        id: 'CHAIN_LIGHTNING',
+        nameKey: 'weapon.chainlightning.name',
+        icon: '🌩️',
+        type: 'LIGHTNING',
+        damage: 80,
+        cooldown: 2000,
+        speed: 0,
+        penetration: 5, // Chain targets
+        range: 150, // Explosion radius
+        fireSound: 'WEAPON_LIGHTNING',
+        tags: ['AREA', 'MAGIC', 'LIGHTNING']
+    },
+    SHADOW_BLADE: {
+        id: 'SHADOW_BLADE',
+        nameKey: 'weapon.shadowblade.name',
+        icon: '⚔️',
+        type: 'MELEE',
+        damage: 90,
+        cooldown: 800,
+        speed: 0,
+        penetration: 999,
+        range: 120,
+        fireSound: 'WEAPON_SLASH',
+        tags: ['MELEE', 'PHYSICAL', 'DARK']
     }
 };

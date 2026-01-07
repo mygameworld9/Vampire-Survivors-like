@@ -29,7 +29,7 @@ export interface EvolutionRecipe {
     evolvedWeaponId: string;
 }
 
-export type StatusEffectType = 'BURN' | 'SLOW';
+export type StatusEffectType = 'BURN' | 'SLOW' | 'POISON' | 'STUN' | 'FREEZE';
 
 export interface IWeaponStatusEffect {
     type: StatusEffectType;
@@ -44,13 +44,13 @@ export interface IStatusEffect extends IWeaponStatusEffect {
 
 export type FirePattern = 'forward' | 'forward_backward' | 'cardinal' | 'all_8';
 
-export type WeaponTag = 'PROJECTILE' | 'AREA' | 'MELEE' | 'LASER' | 'FIRE' | 'ICE' | 'LIGHTNING' | 'DARK' | 'PHYSICAL' | 'MAGIC' | 'EXPLOSIVE';
+export type WeaponTag = 'PROJECTILE' | 'AREA' | 'MELEE' | 'LASER' | 'FIRE' | 'ICE' | 'LIGHTNING' | 'DARK' | 'PHYSICAL' | 'MAGIC' | 'EXPLOSIVE' | 'POISON' | 'SUMMON' | 'TRAP';
 
 export interface IWeaponData {
     id: string;
     nameKey: string;
     icon: string;
-    type?: 'PROJECTILE' | 'BOOMERANG' | 'AURA' | 'LASER' | 'HOMING_PROJECTILE' | 'LIGHTNING' | 'MELEE';
+    type?: 'PROJECTILE' | 'BOOMERANG' | 'AURA' | 'LASER' | 'HOMING_PROJECTILE' | 'LIGHTNING' | 'MELEE' | 'ORBITING' | 'CHAIN' | 'TRAP';
     damage: number;
     cooldown: number;
     speed: number;

@@ -18,7 +18,7 @@ export class Enemy {
     data: IEnemyData;
     public isElite: boolean;
     public chestDropChance: number;
-    
+
     private originalSpeed: number;
     private activeStatusEffects: Map<StatusEffectType, IStatusEffect> = new Map();
     private type: string;
@@ -45,7 +45,7 @@ export class Enemy {
         this.chestDropChance = 0;
         this.originalSpeed = data.speed;
         this.aiBehavior = data.aiBehavior || 'CHASE';
-        
+
         // Initialize logic
         this.reset(x, y, data, type, isElite);
     }
@@ -58,7 +58,7 @@ export class Enemy {
         this.type = type;
         this.isElite = isElite;
         this.shouldBeRemoved = false;
-        
+
         // Default stats
         this.hp = data.hp;
         this.speed = data.speed;
@@ -69,7 +69,7 @@ export class Enemy {
         this.goldDrop = data.goldDrop;
         this.chestDropChance = data.chestDropChance || 0;
         this.aiBehavior = data.aiBehavior || 'CHASE';
-        
+
         // Apply elite modifiers
         if (isElite && data.elite) {
             const eliteData = data.elite;
@@ -86,12 +86,12 @@ export class Enemy {
         this.originalSpeed = this.speed;
         this.activeStatusEffects.clear();
         this.globalTime = Math.random() * 10; // Random start frame
-        
+
         // Reset Cached vectors
         this.cachedSeparation.x = 0;
         this.cachedSeparation.y = 0;
     }
-    
+
     /**
      * Updates enemy logic.
      * @param dt Delta time
@@ -101,29 +101,29 @@ export class Enemy {
     update(dt: number, playerPos: Vector2D, neighbors: Enemy[] | null = null) {
         this.globalTime += dt;
         this.handleStatusEffects(dt);
-        
+
         // --- Flocking Behavior ---
-        
+
         // 1. Separation: Calculate vector away from nearby neighbors
         // Optimization: Only recalculate if neighbors are provided (Staggered Update)
         if (neighbors) {
             let sepX = 0;
             let sepY = 0;
             const separationThreshold = this.size * 1.5; // Avoidance radius
-            
+
             for (const neighbor of neighbors) {
                 if (!neighbor || !neighbor.pos || neighbor.id === this.id) continue;
-                
+
                 const dx = this.pos.x - neighbor.pos.x;
                 const dy = this.pos.y - neighbor.pos.y;
                 const distSq = dx * dx + dy * dy;
-                
+
                 // If too close
                 if (distSq > 0 && distSq < separationThreshold * separationThreshold) {
                     const dist = Math.sqrt(distSq);
                     // The closer they are, the stronger the push (linear falloff)
                     const strength = 1.0 - (dist / separationThreshold);
-                    
+
                     sepX += (dx / dist) * strength;
                     sepY += (dy / dist) * strength;
                 }
@@ -156,10 +156,10 @@ export class Enemy {
             // 3. Blend Forces
             if (this.cachedSeparation.x !== 0 || this.cachedSeparation.y !== 0) {
                 const separationWeight = 2.0; // Tuning: How much they prefer space over goal
-                
+
                 dirX += this.cachedSeparation.x * separationWeight;
                 dirY += this.cachedSeparation.y * separationWeight;
-                
+
                 // Re-normalize blended direction
                 const totalLen = Math.sqrt(dirX * dirX + dirY * dirY);
                 if (totalLen > 0) {
@@ -172,7 +172,7 @@ export class Enemy {
             this.pos.y += dirY * this.speed * dt;
         }
     }
-    
+
     takeDamage(amount: number) {
         this.hp -= amount;
         if (this.hp <= 0) {
@@ -208,19 +208,43 @@ export class Enemy {
                 case 'SLOW':
                     this.speed *= effect.magnitude;
                     break;
+                case 'POISON':
+                    // Similar to burn but green visual, magnitude = DPS
+                    this.takeDamage(effect.magnitude * dt);
+                    break;
+                case 'STUN':
+                    // Complete movement stop
+                    this.speed = 0;
+                    break;
+                case 'FREEZE':
+                    // Complete stop + ice visual
+                    this.speed = 0;
+                    break;
             }
         }
     }
-    
+
     public isBurning(): boolean {
         return this.activeStatusEffects.has('BURN');
+    }
+
+    public isPoisoned(): boolean {
+        return this.activeStatusEffects.has('POISON');
+    }
+
+    public isStunned(): boolean {
+        return this.activeStatusEffects.has('STUN');
+    }
+
+    public isFrozen(): boolean {
+        return this.activeStatusEffects.has('FREEZE');
     }
 
     draw(ctx: CanvasRenderingContext2D) {
         // Use the Cache System for performance
         // This returns a pre-rendered canvas element
         const frame = EnemyCache.getFrame(this.type, this.isElite, this.color, this.size, this.globalTime);
-        
+
         // The cache includes padding, so we need to center it based on its width/height
         const drawX = this.pos.x - frame.width / 2;
         const drawY = this.pos.y - frame.height / 2;
@@ -247,8 +271,49 @@ export class Enemy {
             if (this.activeStatusEffects.has('SLOW')) {
                 ctx.fillStyle = 'rgba(129, 212, 250, 0.4)';
                 ctx.beginPath();
-                ctx.arc(cx, cy, radius, 0, Math.PI*2);
+                ctx.arc(cx, cy, radius, 0, Math.PI * 2);
                 ctx.fill();
+            }
+            // POISON: Green bubbles rising
+            if (this.activeStatusEffects.has('POISON')) {
+                ctx.fillStyle = '#4caf50';
+                for (let i = 0; i < 4; i++) {
+                    const bubbleY = cy - (this.globalTime * 30 + i * 10) % (radius * 2);
+                    const bubbleX = cx + Math.sin(this.globalTime * 3 + i) * (radius * 0.5);
+                    ctx.beginPath();
+                    ctx.arc(bubbleX, bubbleY, 2 + i % 2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+            // STUN: Yellow stars orbiting
+            if (this.activeStatusEffects.has('STUN')) {
+                ctx.fillStyle = '#ffeb3b';
+                for (let i = 0; i < 3; i++) {
+                    const angle = this.globalTime * 8 + i * (Math.PI * 2 / 3);
+                    const starX = cx + Math.cos(angle) * (radius + 5);
+                    const starY = cy - radius * 0.8 + Math.sin(angle) * 5;
+                    // Draw star shape
+                    ctx.beginPath();
+                    ctx.arc(starX, starY, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+            // FREEZE: Ice crystal overlay
+            if (this.activeStatusEffects.has('FREEZE')) {
+                ctx.fillStyle = 'rgba(179, 229, 252, 0.6)';
+                ctx.beginPath();
+                ctx.arc(cx, cy, radius * 1.1, 0, Math.PI * 2);
+                ctx.fill();
+                // Ice crystals
+                ctx.strokeStyle = '#4fc3f7';
+                ctx.lineWidth = 2;
+                for (let i = 0; i < 6; i++) {
+                    const angle = i * (Math.PI / 3);
+                    ctx.beginPath();
+                    ctx.moveTo(cx, cy);
+                    ctx.lineTo(cx + Math.cos(angle) * radius, cy + Math.sin(angle) * radius);
+                    ctx.stroke();
+                }
             }
         }
     }

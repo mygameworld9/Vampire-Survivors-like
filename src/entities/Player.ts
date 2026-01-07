@@ -47,6 +47,30 @@ export class Player {
     public tagDamageMultipliers: Map<string, number> = new Map();
     public tagPenetrationBonuses: Map<string, number> = new Map();
 
+    // === NEW v2.0 SYSTEMS ===
+    // Critical Strike System
+    public critChance = 0; // 0-1
+    public critMultiplier = 1.0; // 1.0 = no bonus
+
+    // Shield System
+    public shieldCharges = 0;
+    private shieldMaxCharges = 0;
+    private shieldInterval = 0; // ms
+    private shieldTimer = 0;
+
+    // Momentum System
+    public momentumStacks = 0;
+    private momentumMaxStacks = 0;
+    private momentumDamagePerStack = 0;
+    private momentumRadius = 0;
+    private wasMovingLastFrame = false;
+
+    // Vampirism System
+    public onKillHealPercent = 0; // % of max HP healed per kill
+
+    // Gold Multiplier from skills
+    private skillGoldMultiplier = 1.0;
+
     state: 'Idle' | 'Moving' | 'Damaged' | 'Dead' = 'Idle';
     facingDirection = new Vector2D(0, 1);
     isInvincible = false;
@@ -237,6 +261,12 @@ export class Player {
             // this.notifyStatsChange(); 
         }
 
+        // v2.0 Systems Update
+        this.updateShield(dt);
+        const isMoving = moveVector.x !== 0 || moveVector.y !== 0;
+        this.updateMomentum(isMoving, dt);
+        // Note: Momentum wave damage should be handled by Game.ts when it polls getMomentumRadius()
+
         const newProjectiles: AnyProjectile[] = [];
         this.weapons.forEach(w => {
             const projectiles = w.update(dt, this, enemies, projectilePools);
@@ -296,6 +326,14 @@ export class Player {
 
     takeDamage(amount: number) {
         if (this.isInvincible) return;
+
+        // Shield absorbs damage first
+        if (this.shieldCharges > 0) {
+            this.shieldCharges--;
+            // Visual/sound feedback could be added here
+            return; // Damage fully absorbed
+        }
+
         this.soundManager.playSound('PLAYER_HURT');
         this.hp = Math.max(0, this.hp - amount);
         this.notifyStatsChange();
@@ -347,9 +385,75 @@ export class Player {
     }
 
     gainGold(amount: number) {
-        // Apply Meta Greed Multiplier
-        this.gold += Math.ceil(amount * this.goldMultiplier);
+        // Apply Meta Greed Multiplier + Skill Gold Multiplier
+        this.gold += Math.ceil(amount * this.goldMultiplier * this.skillGoldMultiplier);
         this.notifyStatsChange();
+    }
+
+    // === NEW v2.0 METHODS ===
+
+    /**
+     * Called when player kills an enemy. Handles vampirism healing.
+     */
+    onEnemyKill() {
+        if (this.onKillHealPercent > 0) {
+            const healAmount = this.maxHp * this.onKillHealPercent;
+            this.hp = Math.min(this.maxHp, this.hp + healAmount);
+            // Don't spam notify, integer check
+        }
+    }
+
+    /**
+     * Calculate critical hit. Returns { damage, isCrit }
+     */
+    calculateCritDamage(baseDamage: number): { damage: number, isCrit: boolean } {
+        if (this.critChance > 0 && Math.random() < this.critChance) {
+            return { damage: baseDamage * this.critMultiplier, isCrit: true };
+        }
+        return { damage: baseDamage, isCrit: false };
+    }
+
+    /**
+     * Update shield regeneration timer.
+     */
+    updateShield(dt: number) {
+        if (this.shieldInterval > 0 && this.shieldCharges < this.shieldMaxCharges) {
+            this.shieldTimer -= dt * 1000;
+            if (this.shieldTimer <= 0) {
+                this.shieldCharges = Math.min(this.shieldMaxCharges, this.shieldCharges + 1);
+                this.shieldTimer = this.shieldInterval;
+            }
+        }
+    }
+
+    /**
+     * Update momentum system. Returns damage if released, null otherwise.
+     */
+    updateMomentum(isMoving: boolean, dt: number): number | null {
+        if (this.momentumMaxStacks === 0) return null;
+
+        if (isMoving) {
+            // Accumulate stacks while moving (1 per 100ms)
+            this.momentumStacks = Math.min(this.momentumMaxStacks, this.momentumStacks + dt * 10);
+            this.wasMovingLastFrame = true;
+        } else if (this.wasMovingLastFrame && this.momentumStacks > 0) {
+            // Just stopped moving - release momentum wave
+            const damage = this.momentumStacks * this.momentumDamagePerStack;
+            const radius = this.momentumRadius;
+            this.momentumStacks = 0;
+            this.wasMovingLastFrame = false;
+            return damage; // Caller should deal AOE damage
+        } else {
+            this.wasMovingLastFrame = false;
+        }
+        return null;
+    }
+
+    /**
+     * Get momentum wave radius for AOE.
+     */
+    getMomentumRadius(): number {
+        return this.momentumRadius;
     }
 
     applyPassiveEffect(effects: { [key: string]: UpgradeEffect }) {
@@ -385,6 +489,40 @@ export class Player {
                 case 'hpRegen':
                     if (effect.op === 'multiply') this.hpRegen *= effect.value;
                     if (effect.op === 'add') this.hpRegen += effect.value;
+                    break;
+                // === NEW v2.0 PASSIVE EFFECTS ===
+                case 'critChance':
+                    if (effect.op === 'add') this.critChance += effect.value;
+                    break;
+                case 'critMultiplier':
+                    if (effect.op === 'add') this.critMultiplier += effect.value;
+                    break;
+                case 'shield_interval':
+                    if (effect.op === 'add') {
+                        this.shieldInterval = effect.value;
+                        this.shieldTimer = effect.value; // Start timer
+                    }
+                    break;
+                case 'shield_charges':
+                    if (effect.op === 'add') {
+                        this.shieldMaxCharges += effect.value;
+                        this.shieldCharges = this.shieldMaxCharges;
+                    }
+                    break;
+                case 'momentum_maxStacks':
+                    if (effect.op === 'add') this.momentumMaxStacks += effect.value;
+                    break;
+                case 'momentum_damagePerStack':
+                    if (effect.op === 'add') this.momentumDamagePerStack += effect.value;
+                    break;
+                case 'momentum_radius':
+                    if (effect.op === 'add') this.momentumRadius += effect.value;
+                    break;
+                case 'onKill_healPercent':
+                    if (effect.op === 'add') this.onKillHealPercent += effect.value;
+                    break;
+                case 'goldMultiplier':
+                    if (effect.op === 'multiply') this.skillGoldMultiplier *= effect.value;
                     break;
             }
         }

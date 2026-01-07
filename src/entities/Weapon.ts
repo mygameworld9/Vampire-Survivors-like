@@ -29,7 +29,7 @@ export class Weapon {
     id: string;
     nameKey: string;
     icon: string;
-    type: 'PROJECTILE' | 'BOOMERANG' | 'AURA' | 'LASER' | 'HOMING_PROJECTILE' | 'LIGHTNING' | 'MELEE';
+    type: 'PROJECTILE' | 'BOOMERANG' | 'AURA' | 'LASER' | 'HOMING_PROJECTILE' | 'LIGHTNING' | 'MELEE' | 'ORBITING' | 'CHAIN' | 'TRAP';
     baseDamage: number; // Store base damage separately
     cooldown: number;
     speed: number;
@@ -84,7 +84,7 @@ export class Weapon {
         this.cooldownTimer -= dt * 1000;
         if (this.cooldownTimer <= 0) {
             this.cooldownTimer = this.cooldown;
-            
+
             if (this.fireSound) {
                 // For Aura, if it is max level (persistent), do not play the sound every tick (100ms)
                 // Otherwise it spams "whoosh" sounds constantly.
@@ -97,8 +97,8 @@ export class Weapon {
             if (this.type === 'AURA') {
                 // Aura damage also needs to calculate effective damage
                 const tagMult = player.getTagDamageMultiplier(this.tags);
-                const boostedWeapon = { 
-                    ...this, 
+                const boostedWeapon = {
+                    ...this,
                     damage: this.baseDamage * player.damageMultiplier * tagMult,
                     isMaxLevel: this.isMaxLevel.bind(this)
                 } as any as Weapon;
@@ -112,17 +112,17 @@ export class Weapon {
 
     fire(player: Player, enemies: Enemy[], projectilePools?: ProjectilePools): AnyProjectile[] {
         const projectiles: AnyProjectile[] = [];
-        
+
         // Calculate Effective Damage with Tag Multipliers
         const tagMult = player.getTagDamageMultiplier(this.tags);
         const effectiveDamage = this.baseDamage * player.damageMultiplier * tagMult;
-        
+
         // Calculate Penetration Bonus
         const penBonus = player.getTagPenetrationBonus(this.tags);
         const effectivePenetration = this.penetration + penBonus;
 
-        const firingState = { 
-            ...this, 
+        const firingState = {
+            ...this,
             damage: effectiveDamage,
             penetration: effectivePenetration
         } as any as Weapon;
@@ -154,7 +154,7 @@ export class Weapon {
             const available = [...enemies];
             // Use penetration as target count
             const count = firingState.penetration || 1;
-            for(let i=0; i<count; i++) {
+            for (let i = 0; i < count; i++) {
                 if (available.length === 0) break;
                 const idx = Math.floor(Math.random() * available.length);
                 targets.push(available[idx]);
@@ -223,6 +223,86 @@ export class Weapon {
             } else {
                 projectiles.push(new BoomerangProjectile(player.pos.x, player.pos.y, player, firingState, onReturn));
             }
+
+        } else if (this.type === 'ORBITING') {
+            // ORBITING: Spawn orbiting projectiles around player
+            // TODO: Implement dedicated OrbitingProjectile class
+            // For now, use aura-style damage via onFireAura callback
+            const tagMult = player.getTagDamageMultiplier(this.tags);
+            const boostedWeapon = {
+                ...this,
+                damage: this.baseDamage * player.damageMultiplier * tagMult,
+                isMaxLevel: this.isMaxLevel.bind(this)
+            } as any as Weapon;
+            this.onFireAura?.(boostedWeapon);
+            // Return empty - orbiting weapons use aura system
+            return projectiles;
+
+        } else if (this.type === 'CHAIN') {
+            // CHAIN: Bouncing projectile that chains between enemies
+            // TODO: Implement dedicated ChainProjectile class
+            // For now, fire multiple lightning strikes as approximation
+            const available = [...enemies];
+            const bounceCount = this.penetration || 3;
+            const bounceRange = this.range || 200;
+
+            // Find initial target (nearest enemy)
+            let nearestEnemy: Enemy | null = null;
+            let minDistance = Infinity;
+            for (const enemy of enemies) {
+                const dist = Math.hypot(player.pos.x - enemy.pos.x, player.pos.y - enemy.pos.y);
+                if (dist < minDistance) {
+                    minDistance = dist;
+                    nearestEnemy = enemy;
+                }
+            }
+
+            if (nearestEnemy) {
+                // Chain through nearby enemies
+                let currentTarget = nearestEnemy;
+                const hitTargets: Enemy[] = [currentTarget];
+
+                for (let i = 0; i < bounceCount && currentTarget; i++) {
+                    if (projectilePools) {
+                        const p = projectilePools.lightning.get();
+                        p.reset(currentTarget.pos.x, currentTarget.pos.y, firingState);
+                        projectiles.push(p);
+                    } else {
+                        projectiles.push(new LightningProjectile(currentTarget.pos.x, currentTarget.pos.y, firingState));
+                    }
+
+                    // Find next closest enemy within bounce range
+                    let nextTarget: Enemy | null = null;
+                    let nextMinDist = bounceRange;
+                    for (const enemy of available) {
+                        if (hitTargets.includes(enemy)) continue;
+                        const dist = Math.hypot(currentTarget.pos.x - enemy.pos.x, currentTarget.pos.y - enemy.pos.y);
+                        if (dist < nextMinDist) {
+                            nextMinDist = dist;
+                            nextTarget = enemy;
+                        }
+                    }
+                    if (nextTarget) {
+                        hitTargets.push(nextTarget);
+                        currentTarget = nextTarget;
+                    } else {
+                        break;
+                    }
+                }
+            }
+
+        } else if (this.type === 'TRAP') {
+            // TRAP: Place a trap at player's current position
+            // TODO: Implement dedicated TrapEntity class
+            // For now, use a stationary lightning strike as placeholder
+            if (projectilePools) {
+                const p = projectilePools.lightning.get();
+                p.reset(player.pos.x, player.pos.y, firingState);
+                projectiles.push(p);
+            } else {
+                projectiles.push(new LightningProjectile(player.pos.x, player.pos.y, firingState));
+            }
+
         } else { // PROJECTILE
             if (projectilePools) {
                 const p = projectilePools.projectile.get();
@@ -244,7 +324,7 @@ export class Weapon {
         if (upgradeData) {
             for (const key in upgradeData.effects) {
                 const effect = upgradeData.effects[key] as AnyUpgradeEffect;
-                
+
                 switch (key) {
                     case 'damage':
                         if (effect.op === 'add') this.baseDamage += effect.value;
@@ -257,13 +337,13 @@ export class Weapon {
                     case 'range':
                     case 'width':
                         if (this[key] !== undefined) {
-                             if (effect.op === 'add') (this as any)[key] += effect.value;
-                             if (effect.op === 'multiply') (this as any)[key] *= effect.value;
-                             if (effect.op === 'set') (this as any)[key] = effect.value;
+                            if (effect.op === 'add') (this as any)[key] += effect.value;
+                            if (effect.op === 'multiply') (this as any)[key] *= effect.value;
+                            if (effect.op === 'set') (this as any)[key] = effect.value;
                         }
                         break;
                     case 'firePattern':
-                         if (effect.op === 'set') {
+                        if (effect.op === 'set') {
                             this.firePattern = effect.value as any;
                         }
                         break;
@@ -272,13 +352,13 @@ export class Weapon {
             this.level++;
         }
     }
-    
+
     getCurrentUpgradeDescription(): string {
-       const upgradePath = getUpgradeDataFor(this.id);
-       if (!upgradePath || this.level > upgradePath.length) return i18nManager.t('ui.maxLevel');
-       
-       const descriptionKey = upgradePath[this.level - 1]?.descriptionKey;
-       return descriptionKey ? i18nManager.t(descriptionKey) : i18nManager.t('ui.maxLevel');
+        const upgradePath = getUpgradeDataFor(this.id);
+        if (!upgradePath || this.level > upgradePath.length) return i18nManager.t('ui.maxLevel');
+
+        const descriptionKey = upgradePath[this.level - 1]?.descriptionKey;
+        return descriptionKey ? i18nManager.t(descriptionKey) : i18nManager.t('ui.maxLevel');
     }
 
     isMaxLevel(): boolean {

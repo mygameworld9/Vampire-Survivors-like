@@ -73,5 +73,93 @@ export const SKILL_DATA: { [key: string]: ISkillData } = {
         effects: {
             penetration_PROJECTILE: { op: 'add', value: 1 }
         }
+    },
+
+    // ========== NEW SKILLS v2.0 ==========
+
+    // === New Passive Skills ===
+    VAMPIRISM: {
+        id: 'VAMPIRISM',
+        nameKey: 'skill.vampirism.name',
+        type: 'PASSIVE',
+        descriptionKey: 'skill.vampirism.desc',
+        icon: '🧛',
+        effects: {
+            onKill_healPercent: { op: 'add', value: 0.005 } // 0.5% max HP on kill (adjusted from 1%)
+        }
+    },
+    GOLDEN_TOUCH: {
+        id: 'GOLDEN_TOUCH',
+        nameKey: 'skill.goldentouch.name',
+        type: 'PASSIVE',
+        descriptionKey: 'skill.goldentouch.desc',
+        icon: '💰',
+        effects: {
+            goldMultiplier: { op: 'multiply', value: 1.5 } // +50% gold
+        }
+    },
+    CRITICAL_STRIKE: {
+        id: 'CRITICAL_STRIKE',
+        nameKey: 'skill.criticalstrike.name',
+        type: 'PASSIVE',
+        descriptionKey: 'skill.criticalstrike.desc',
+        icon: '⚔️',
+        effects: {
+            critChance: { op: 'add', value: 0.08 }, // 8% crit (adjusted from 10%)
+            critMultiplier: { op: 'add', value: 1.8 } // 1.8x crit damage (adjusted from 2.0x)
+        }
+    },
+    SHIELD_MASTERY: {
+        id: 'SHIELD_MASTERY',
+        nameKey: 'skill.shieldmastery.name',
+        type: 'PASSIVE',
+        descriptionKey: 'skill.shieldmastery.desc',
+        icon: '🛡️',
+        effects: {
+            shield_interval: { op: 'add', value: 10000 }, // 10 seconds
+            shield_charges: { op: 'add', value: 1 }
+        }
+    },
+    MOMENTUM: {
+        id: 'MOMENTUM',
+        nameKey: 'skill.momentum.name',
+        type: 'PASSIVE',
+        descriptionKey: 'skill.momentum.desc',
+        icon: '🏃',
+        effects: {
+            momentum_maxStacks: { op: 'add', value: 100 },
+            momentum_damagePerStack: { op: 'add', value: 0.5 },
+            momentum_radius: { op: 'add', value: 150 }
+        }
+    },
+
+    // === New Active Skills ===
+    BLINK: {
+        id: 'BLINK',
+        nameKey: 'skill.blink.name',
+        type: 'ACTIVE',
+        descriptionKey: 'skill.blink.desc',
+        icon: '✨',
+        cooldown: 5000,
+        range: 150 // Teleport distance
+    },
+    RAGE_BURST: {
+        id: 'RAGE_BURST',
+        nameKey: 'skill.rageburst.name',
+        type: 'ACTIVE',
+        descriptionKey: 'skill.rageburst.desc',
+        icon: '😡',
+        cooldown: 30000,
+        damage: 0, // No direct damage
+        range: 0 // Self-buff
+    },
+    GUARDIAN_ANGEL: {
+        id: 'GUARDIAN_ANGEL',
+        nameKey: 'skill.guardianangel.name',
+        type: 'ACTIVE',
+        descriptionKey: 'skill.guardianangel.desc',
+        icon: '👼',
+        cooldown: 120000, // 2 minutes
+        range: 0 // Auto-trigger on death
     }
 };
