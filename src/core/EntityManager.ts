@@ -143,13 +143,17 @@ export class EntityManager {
             const p = this.projectiles[j];
             p.update(dt);
 
-            // === NEW: Check OrbitingProjectile expiration (v2.1 Balance) ===
-            let shouldRemove = p.shouldBeRemoved;
-            if (!shouldRemove && p instanceof OrbitingProjectile && p.isExpired()) {
-                shouldRemove = true;
-            }
+            if (p.shouldBeRemoved) {
+                // Decrement weapon's active count for OrbitingProjectile
+                if (p instanceof OrbitingProjectile) {
+                    console.log(`[ORBITING] Removing orb after hit - penetration left: ${p.penetration}`);
+                    const weaponRef = (p as any)._weaponRef;
+                    if (weaponRef && typeof weaponRef.activeProjectileCount === 'number') {
+                        weaponRef.activeProjectileCount = Math.max(0, weaponRef.activeProjectileCount - 1);
+                        console.log(`[ORBITING] Decremented count to: ${weaponRef.activeProjectileCount}`);
+                    }
+                }
 
-            if (shouldRemove) {
                 // Release to correct pool
                 if (p instanceof BoomerangProjectile) this.boomerangPool.release(p);
                 else if (p instanceof LaserProjectile) this.laserPool.release(p);

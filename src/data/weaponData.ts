@@ -265,13 +265,12 @@ export const WEAPON_DATA: { [key: string]: IWeaponData } = {
         nameKey: 'weapon.spiritorb.name',
         icon: '👻',
         type: 'ORBITING',
-        damage: 6,             // NERFED from 10: Lower base damage
-        cooldown: 800,         // NERFED from 600: Slower tick rate
+        damage: 8,
+        cooldown: 600,
         speed: 90,
-        penetration: 999,
+        penetration: 1,            // CHANGED: 1 = disappear on first hit
         range: 80,
-        duration: 8000,        // NEW: Orbs disappear after 8 seconds
-        maxProjectiles: 2,     // NEW: Max 2 orbs at a time
+        maxProjectiles: 10,        // CHANGED: Max 10 orbs at a time
         fireSound: 'WEAPON_AURA',
         tags: ['AREA', 'MAGIC', 'SUMMON']
     },
@@ -280,13 +279,12 @@ export const WEAPON_DATA: { [key: string]: IWeaponData } = {
         nameKey: 'weapon.phantomguard.name',
         icon: '👁️',
         type: 'ORBITING',
-        damage: 18,            // NERFED from 30: Tier 2 = ~2x Tier 1
-        cooldown: 600,         // Nerfed from 400
+        damage: 15,
+        cooldown: 500,
         speed: 120,
-        penetration: 999,
+        penetration: 2,            // Can hit 2 enemies before disappearing
         range: 120,
-        duration: 10000,       // NEW: Orbs disappear after 10 seconds
-        maxProjectiles: 3,     // NEW: Max 3 orbs
+        maxProjectiles: 12,
         fireSound: 'WEAPON_AURA',
         tags: ['AREA', 'MAGIC', 'SUMMON']
     },
@@ -295,13 +293,12 @@ export const WEAPON_DATA: { [key: string]: IWeaponData } = {
         nameKey: 'weapon.soulvortex.name',
         icon: '🌀',
         type: 'ORBITING',
-        damage: 28,            // NERFED from 35: Tier 3 = ~1.6x Tier 2
-        cooldown: 500,         // Nerfed from 400
+        damage: 25,
+        cooldown: 400,
         speed: 180,
-        penetration: 999,
+        penetration: 3,            // Can hit 3 enemies before disappearing
         range: 180,
-        duration: 12000,       // NEW: Orbs disappear after 12 seconds
-        maxProjectiles: 4,     // NEW: Max 4 orbs
+        maxProjectiles: 15,
         fireSound: 'WEAPON_AURA',
         tags: ['AREA', 'MAGIC', 'DARK', 'SUMMON']
     },

@@ -99,9 +99,8 @@ export class Weapon {
             this.cooldownTimer = this.cooldown;
 
             if (this.fireSound) {
-                // For Aura, if it is max level (persistent), do not play the sound every tick (100ms)
-                // Otherwise it spams "whoosh" sounds constantly.
-                const shouldPlaySound = !(this.type === 'AURA' && this.isMaxLevel());
+                // For Aura and Orbiting, don't spam sound every tick
+                const shouldPlaySound = !((this.type === 'AURA' || this.type === 'ORBITING') && this.activeProjectileCount > 0);
                 if (shouldPlaySound) {
                     this.soundManager.playSound(this.fireSound);
                 }
@@ -240,13 +239,32 @@ export class Weapon {
 
         } else if (this.type === 'ORBITING') {
             // ORBITING: Spawn orbiting projectiles around player
-            // === CHANGED: Use maxProjectiles from weapon data ===
-            const orbCount = this.maxProjectiles || 2; // Default to 2 if not specified
-            const spacing = 360 / orbCount;
+            const maxOrbs = this.maxProjectiles || 2;
 
-            for (let i = 0; i < orbCount; i++) {
-                const angle = (this.level * 45) + (i * spacing);
-                projectiles.push(new OrbitingProjectile(player, angle, this));
+            console.log(`[ORBITING] ${this.id} - active: ${this.activeProjectileCount}, max: ${maxOrbs}`);
+
+            // Check if we already have max orbs active
+            if (this.activeProjectileCount >= maxOrbs) {
+                return []; // Don't spawn more if at limit
+            }
+
+            // Calculate how many we can spawn (up to remaining capacity)
+            const canSpawn = maxOrbs - this.activeProjectileCount;
+            const spacing = 360 / canSpawn;
+
+            console.log(`[ORBITING] Spawning ${canSpawn} orbs`);
+
+            for (let i = 0; i < canSpawn; i++) {
+                const angle = (this.level * 45) + (i * spacing) + (Date.now() / 10 % 360);
+                const orb = new OrbitingProjectile(player, angle, this);
+
+                // Track this orb
+                this.activeProjectileCount++;
+
+                // Set up callback for when orb expires
+                (orb as any)._weaponRef = this;
+
+                projectiles.push(orb);
             }
             return projectiles;
 

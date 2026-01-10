@@ -11,14 +11,9 @@ export class OrbitingProjectile extends Projectile {
     currentAngle: number;
     player: Player;
 
-    // === NEW: Lifetime management (v2.1 Balance) ===
-    lifetime: number = 0;           // Current elapsed time in ms
-    maxLifetime: number;            // Maximum lifetime in ms (from weapon.duration)
-
-    // Cooldown management for hitting enemies multiple times
-    // Map<EnemyID, TimeTimestamp>
+    // Hit cooldown to prevent hitting same enemy too fast
     hitTimers: Map<number, number> = new Map();
-    hitInterval = 0.5; // seconds between hits on same enemy (gameTime is in seconds)
+    hitInterval = 0.3; // seconds between hits on same enemy
 
     constructor(player: Player, initialAngle: number, weapon: Weapon) {
         // Position will be overwritten immediately in update
@@ -29,34 +24,19 @@ export class OrbitingProjectile extends Projectile {
         this.orbitSpeed = weapon.speed; // degrees per second, e.g. 90
         this.currentAngle = initialAngle;
 
-        // === CHANGED: Use weapon.duration if available, otherwise infinite ===
-        this.maxLifetime = (weapon as any).duration || 999999;
-        this.lifetime = 0;
-
-        this.penetration = 9999; // Infinite penetration (hits many enemies)
-        this.range = 99999; // Infinite range (lifetime managed by maxLifetime)
+        // CHANGED: Use weapon's penetration for hit count (not hardcoded 9999)
+        // penetration=1 means disappear on first hit
+        this.penetration = weapon.penetration;
+        this.range = 99999; // Infinite flight range (controlled by hits, not distance)
     }
 
     update(dt: number) {
-        // === NEW: Track lifetime ===
-        this.lifetime += dt * 1000;
-
         // 1. Update Angle
         this.currentAngle += this.orbitSpeed * dt * (Math.PI / 180); // Convert deg to rad
 
         // 2. Update Position relative to player
         this.pos.x = this.player.pos.x + Math.cos(this.currentAngle) * this.orbitRadius;
         this.pos.y = this.player.pos.y + Math.sin(this.currentAngle) * this.orbitRadius;
-
-        // 3. Update Hit Timers (cleanup handled elsewhere if needed)
-    }
-
-    /**
-     * NEW: Check if this orbiting projectile has expired
-     * Called by EntityManager to determine if it should be removed
-     */
-    isExpired(): boolean {
-        return this.lifetime >= this.maxLifetime;
     }
 
     canHit(enemyId: number, time: number): boolean {
@@ -69,5 +49,8 @@ export class OrbitingProjectile extends Projectile {
 
     onHit(enemyId: number, time: number) {
         this.hitTimers.set(enemyId, time);
+        // NOTE: penetration is decremented by CollisionSystem, 
+        // and shouldBeRemoved is set when penetration <= 0
     }
 }
+
