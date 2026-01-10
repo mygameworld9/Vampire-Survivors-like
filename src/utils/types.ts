@@ -2,7 +2,23 @@
 import { Weapon } from "../entities/Weapon";
 import { Skill } from "../entities/Skill";
 
+// =========================================================================
+// PERFORMANCE OPTIMIZATION: Projectile Type Identification (replaces instanceof)
+// =========================================================================
+export const enum ProjectileKind {
+    GENERIC = 0,
+    LASER = 1,
+    LIGHTNING = 2,
+    SLASH = 3,
+    CHAIN = 4,
+    ORBITING = 5,
+    TRAP = 6,
+    BOOMERANG = 7,
+    HOMING = 8,
+}
+
 export type UpgradeOperation = 'add' | 'multiply' | 'set';
+
 
 export interface NumericUpgradeEffect {
     op: 'add' | 'multiply' | 'set';

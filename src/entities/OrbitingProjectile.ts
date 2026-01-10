@@ -2,8 +2,10 @@ import { Projectile } from "./Projectile";
 import { Weapon } from "./Weapon";
 import { Vector2D } from "../utils/Vector2D";
 import { Player } from "./Player";
+import { ProjectileKind } from "../utils/types";
 
 export class OrbitingProjectile extends Projectile {
+    override readonly KIND = ProjectileKind.ORBITING;
     orbitRadius: number;
     orbitSpeed: number; // degrees per second
     currentAngle: number;

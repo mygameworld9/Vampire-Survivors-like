@@ -11,6 +11,7 @@ import { ExplorationPoint } from "../../entities/ExplorationPoint";
 import { ISpawnSchedule } from "../../utils/types";
 import { FloatingText } from "../../entities/FloatingText";
 import { i18nManager } from "../i18n";
+import { EnemyRegistry } from "../EnemyRegistry";
 
 const ELITE_SPAWN_START_TIME = 300; // 5 minutes
 const ELITE_SPAWN_CHANCE = 0.1; // 10% chance
@@ -21,15 +22,15 @@ type MapEventType = 'NONE' | 'SIEGE' | 'TREASURE_HUNT' | 'SHRINE_SPAWN';
 export class SpawnSystem {
     private spawnManager: { [type: string]: { rate: number, timer: number } } = {};
     private nextSpawnEventIndex = 0;
-    
+
     // Sub-timers
     private itemSpawnTimer = 0;
     private propSpawnTimer = 0;
-    private explorationSpawnTimer = 45; 
-    
-    private readonly ITEM_SPAWN_INTERVAL = 15; 
-    private readonly PROP_SPAWN_INTERVAL = 2; 
-    private readonly EXPLORATION_SPAWN_INTERVAL = 60; 
+    private explorationSpawnTimer = 45;
+
+    private readonly ITEM_SPAWN_INTERVAL = 15;
+    private readonly PROP_SPAWN_INTERVAL = 2;
+    private readonly EXPLORATION_SPAWN_INTERVAL = 60;
 
     private currentSchedule: ISpawnSchedule;
 
@@ -68,7 +69,7 @@ export class SpawnSystem {
         if (this.currentEvent !== 'NONE') {
             // Event in progress
             this.eventTimer -= dt;
-            
+
             // Event Logic Per Frame
             if (this.currentEvent === 'SIEGE') {
                 this.handleSiegeSpawn(dt);
@@ -88,7 +89,7 @@ export class SpawnSystem {
 
     private triggerRandomEvent() {
         const roll = Math.random();
-        
+
         // 50% Siege, 30% Treasure, 20% Shrine
         if (roll < 0.5) {
             this.startSiege();
@@ -106,7 +107,7 @@ export class SpawnSystem {
     private startSiege() {
         this.currentEvent = 'SIEGE';
         this.eventTimer = 15; // 15 seconds duration
-        
+
         // Determine siege unit type based on game time
         if (this.game.gameTime < 120) this.activeSiegeType = 'BAT';
         else if (this.game.gameTime < 300) this.activeSiegeType = 'SPIDER';
@@ -118,7 +119,7 @@ export class SpawnSystem {
     private handleSiegeSpawn(dt: number) {
         // High spawn rate: 10 per second approx
         // We use a local probability instead of a timer for chaos
-        if (Math.random() < dt * 10 && this.activeSiegeType) { 
+        if (Math.random() < dt * 10 && this.activeSiegeType) {
             this.spawnEnemy(this.activeSiegeType, false);
         }
     }
@@ -129,23 +130,24 @@ export class SpawnSystem {
 
         this.currentEvent = 'TREASURE_HUNT';
         this.eventTimer = 5; // Short duration just to spawn them
-        
+
         this.announceEvent(i18nManager.t('event.treasure'), '#FFD700'); // Gold text
 
         // Spawn 3-5 Goblins
         const count = 3 + Math.floor(Math.random() * 3);
-        for(let i=0; i<count; i++) {
+        for (let i = 0; i < count; i++) {
             // Spawn near player
             const angle = Math.random() * Math.PI * 2;
             const dist = 300 + Math.random() * 200;
             const x = this.game.player.pos.x + Math.cos(angle) * dist;
             const y = this.game.player.pos.y + Math.sin(angle) * dist;
-            
+
             const enemy = this.game.entityManager.enemyPool.get();
             const isElite = Math.random() < 0.1; // Small chance for Mega Goblin
             const data = ENEMY_DATA['TREASURE_GOBLIN'];
-            if(data) {
+            if (data) {
                 enemy.reset(x, y, data, 'TREASURE_GOBLIN', isElite);
+                EnemyRegistry.register(enemy);
                 this.game.entityManager.enemies.push(enemy);
             }
         }
@@ -154,10 +156,10 @@ export class SpawnSystem {
     // --- EVENT: SHRINE SPAWN ---
     private startShrineSpawn() {
         this.currentEvent = 'SHRINE_SPAWN';
-        this.eventTimer = 2; 
-        
+        this.eventTimer = 2;
+
         this.announceEvent(i18nManager.t('event.shrine'), '#00BCD4'); // Cyan text
-        
+
         // Force spawn one nearby
         this.spawnExplorationPoint(true);
     }
@@ -179,22 +181,22 @@ export class SpawnSystem {
     // --- Standard Logic ---
 
     private updateNormalSchedule(dt: number) {
-        while (this.nextSpawnEventIndex < this.currentSchedule.events.length && 
-               this.game.gameTime >= this.currentSchedule.events[this.nextSpawnEventIndex].time) {
+        while (this.nextSpawnEventIndex < this.currentSchedule.events.length &&
+            this.game.gameTime >= this.currentSchedule.events[this.nextSpawnEventIndex].time) {
             const event = this.currentSchedule.events[this.nextSpawnEventIndex];
             this.spawnManager[event.enemyType] = { rate: event.rate, timer: 0 };
             this.nextSpawnEventIndex++;
         }
-        
+
         for (const type in this.spawnManager) {
             const manager = this.spawnManager[type];
             manager.timer += dt * 1000;
             if (manager.timer >= manager.rate) {
                 const amountToSpawn = Math.floor(manager.timer / manager.rate);
                 for (let i = 0; i < amountToSpawn; i++) {
-                     const canBeElite = this.game.gameTime >= ELITE_SPAWN_START_TIME;
-                     const isElite = canBeElite && Math.random() < ELITE_SPAWN_CHANCE;
-                     this.spawnEnemy(type, isElite);
+                    const canBeElite = this.game.gameTime >= ELITE_SPAWN_START_TIME;
+                    const isElite = canBeElite && Math.random() < ELITE_SPAWN_CHANCE;
+                    this.spawnEnemy(type, isElite);
                 }
                 manager.timer %= manager.rate;
             }
@@ -237,10 +239,11 @@ export class SpawnSystem {
         const radius = Math.max(this.game.width, this.game.height) / 2 + 50;
         const x = this.game.player.pos.x + Math.cos(angle) * radius;
         const y = this.game.player.pos.y + Math.sin(angle) * radius;
-        
+
         // Use pool from EntityManager
         const enemy = this.game.entityManager.enemyPool.get();
         enemy.reset(x, y, data, type, isElite);
+        EnemyRegistry.register(enemy);
         this.game.entityManager.enemies.push(enemy);
     }
 
@@ -267,7 +270,7 @@ export class SpawnSystem {
         if (!data) return;
 
         const angle = Math.random() * Math.PI * 2;
-        const radius = (Math.random() * (this.game.width / 3)) + 100; 
+        const radius = (Math.random() * (this.game.width / 3)) + 100;
         const x = this.game.player.pos.x + Math.cos(angle) * radius;
         const y = this.game.player.pos.y + Math.sin(angle) * radius;
         this.game.entityManager.items.push(new Item(x, y, data));
@@ -283,17 +286,17 @@ export class SpawnSystem {
         if (!this.game.player || !this.game.player.pos) return;
         const angle = Math.random() * Math.PI * 2;
         let radius = 0;
-        
+
         if (nearPlayer) {
             // Spawn close (visible on screen usually)
-            radius = 300 + Math.random() * 200; 
+            radius = 300 + Math.random() * 200;
         } else {
             // Spawn far
             const minDist = 800;
             const maxDist = 1500;
             radius = minDist + Math.random() * (maxDist - minDist);
         }
-        
+
         const x = this.game.player.pos.x + Math.cos(angle) * radius;
         const y = this.game.player.pos.y + Math.sin(angle) * radius;
 

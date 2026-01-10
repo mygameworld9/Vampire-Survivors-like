@@ -2,10 +2,12 @@
 import { Vector2D } from "../utils/Vector2D";
 import { Weapon } from "./Weapon";
 import { Enemy } from "./Enemy";
-import { IWeaponStatusEffect, WeaponTag } from "../utils/types";
+import { IWeaponStatusEffect, WeaponTag, ProjectileKind } from "../utils/types";
 
 export class HomingProjectile {
+    readonly KIND = ProjectileKind.HOMING;
     pos: Vector2D;
+
     direction: Vector2D;
     speed: number;
     damage: number;
@@ -20,7 +22,7 @@ export class HomingProjectile {
 
     private target!: Enemy;
     private rotation = 0;
-    
+
     // Scratch object for calculation
     private _tempVector = new Vector2D(0, 0);
 
@@ -45,7 +47,7 @@ export class HomingProjectile {
         this.statusEffect = weapon.statusEffect;
         this.tags = weapon.tags;
         this.target = target;
-        
+
         this.distanceTraveled = 0;
         this.rotation = 0;
         this.shouldBeRemoved = false;
@@ -62,11 +64,11 @@ export class HomingProjectile {
             this._tempVector.set(this.target.pos.x, this.target.pos.y)
                 .sub(this.pos)
                 .normalize();
-            
+
             // Update direction in place
             this.direction.copy(this._tempVector);
         }
-        
+
         const moveDist = this.speed * dt;
         this.pos.x += this.direction.x * moveDist;
         this.pos.y += this.direction.y * moveDist;
@@ -83,17 +85,17 @@ export class HomingProjectile {
 
         // Trail effect (simple back stars)
         ctx.fillStyle = 'rgba(225, 190, 231, 0.5)'; // Faint purple
-        for(let i = 1; i <= 2; i++) {
-             ctx.beginPath();
-             ctx.arc(-this.direction.x * i * 10, -this.direction.y * i * 10, this.size/4, 0, Math.PI*2);
-             ctx.fill();
+        for (let i = 1; i <= 2; i++) {
+            ctx.beginPath();
+            ctx.arc(-this.direction.x * i * 10, -this.direction.y * i * 10, this.size / 4, 0, Math.PI * 2);
+            ctx.fill();
         }
 
         // Rotate the main star
         ctx.rotate(this.rotation);
 
         // Draw Star Shape
-        this.drawStar(ctx, 0, 0, 5, this.size/2, this.size/4, '#E1BEE7', '#8E24AA');
+        this.drawStar(ctx, 0, 0, 5, this.size / 2, this.size / 4, '#E1BEE7', '#8E24AA');
 
         ctx.restore();
     }

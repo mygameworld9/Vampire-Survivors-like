@@ -2,9 +2,10 @@
 import { Vector2D } from "../utils/Vector2D";
 import { Weapon } from "./Weapon";
 import { Enemy } from "./Enemy";
-import { IWeaponStatusEffect, WeaponTag } from "../utils/types";
+import { IWeaponStatusEffect, WeaponTag, ProjectileKind } from "../utils/types";
 
 export class Projectile {
+    readonly KIND: ProjectileKind = ProjectileKind.GENERIC;
     pos: Vector2D;
     direction: Vector2D;
     speed: number;
@@ -17,6 +18,7 @@ export class Projectile {
     hitEnemies: Set<number> = new Set(); // Store Enemy IDs
     statusEffect?: IWeaponStatusEffect;
     tags: WeaponTag[] = [];
+
 
     constructor(x: number, y: number, direction: Vector2D, weapon: Weapon) {
         this.pos = new Vector2D(x, y);
@@ -40,7 +42,7 @@ export class Projectile {
         this.range = weapon.range;
         this.statusEffect = weapon.statusEffect;
         this.tags = weapon.tags;
-        
+
         this.distanceTraveled = 0;
         this.shouldBeRemoved = false;
         this.hitEnemies.clear();
@@ -65,7 +67,7 @@ export class Projectile {
         ctx.shadowBlur = 0;
         ctx.lineWidth = 2;
         ctx.strokeStyle = '#F9A825'; // Darker Yellow/Orange border
-        
+
         // Main Body
         ctx.fillStyle = '#FFF176'; // Light Pastel Yellow
         ctx.beginPath();

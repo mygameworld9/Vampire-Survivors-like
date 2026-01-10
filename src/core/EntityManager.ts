@@ -19,6 +19,7 @@ import { LightningProjectile } from "../entities/LightningProjectile";
 import { SlashProjectile } from "../entities/SlashProjectile";
 import { Particle } from "../entities/Particle";
 import { ProjectilePools } from "../entities/Weapon";
+import { EnemyRegistry } from "./EnemyRegistry";
 
 type AnyProjectile = Projectile | BoomerangProjectile | LaserProjectile | HomingProjectile | LightningProjectile | SlashProjectile;
 type AnyEffect = AuraEffect | PulseEffect;
@@ -40,7 +41,7 @@ export class EntityManager {
     public enemyPool: ObjectPool<Enemy>;
     public propPool: ObjectPool<Prop>;
     public particlePool: ObjectPool<Particle>;
-    
+
     // Specific Projectile Pools
     public projectilePool: ObjectPool<Projectile>;
     public boomerangPool: ObjectPool<BoomerangProjectile>;
@@ -61,10 +62,10 @@ export class EntityManager {
         this.propPool = new ObjectPool(() => new Prop(0, 0, {} as any));
         this.particlePool = new ObjectPool(() => new Particle(0, 0, '#fff'));
 
-        this.projectilePool = new ObjectPool(() => new Projectile(0, 0, new Vector2D(0,0), {} as any));
+        this.projectilePool = new ObjectPool(() => new Projectile(0, 0, new Vector2D(0, 0), {} as any));
         this.boomerangPool = new ObjectPool(() => new BoomerangProjectile(0, 0, {} as any, {} as any));
-        this.laserPool = new ObjectPool(() => new LaserProjectile({} as any, {} as any, new Vector2D(0,0)));
-        this.homingPool = new ObjectPool(() => new HomingProjectile(0, 0, new Vector2D(0,0), {} as any, {} as any));
+        this.laserPool = new ObjectPool(() => new LaserProjectile({} as any, {} as any, new Vector2D(0, 0)));
+        this.homingPool = new ObjectPool(() => new HomingProjectile(0, 0, new Vector2D(0, 0), {} as any, {} as any));
         this.lightningPool = new ObjectPool(() => new LightningProjectile(0, 0, {} as any));
         this.slashPool = new ObjectPool(() => new SlashProjectile({} as any, {} as any, false));
 
@@ -80,34 +81,36 @@ export class EntityManager {
 
     update(dt: number, playerPos: Vector2D, collisionSystem: CollisionSystem, onBossRemoved: (e: Enemy) => void) {
         this.frameCount++;
-        
+
         // Update Enemies
         let i = 0;
-        const flockingRadius = 50; 
+        const flockingRadius = 50;
         const updateStride = 10;
         const frameMod = this.frameCount % updateStride;
 
         while (i < this.enemies.length) {
             const e = this.enemies[i];
             const wasAlive = e.hp > 0;
-            
+
             // Optimization: Staggered Flocking Update
             const shouldUpdateFlocking = (e.id % updateStride) === frameMod;
             let neighbors: Enemy[] | null = null;
             if (shouldUpdateFlocking) {
                 neighbors = collisionSystem.getNeighbors(e.pos, flockingRadius);
             }
-            
+
             e.update(dt, playerPos, neighbors);
-            
+
             if (wasAlive && e.shouldBeRemoved) {
                 collisionSystem.onEnemyDefeated(e);
             }
-            
+
             if (e.shouldBeRemoved) {
                 if (e.isElite) {
                     onBossRemoved(e);
                 }
+                // PERF: Unregister from O(1) lookup table before releasing to pool
+                EnemyRegistry.unregister(e);
                 this.enemyPool.release(e);
                 const last = this.enemies[this.enemies.length - 1];
                 this.enemies[i] = last;
@@ -159,7 +162,7 @@ export class EntityManager {
         this.effects.forEach(e => e.update(dt));
         this.floatingTexts.forEach(t => t.update(dt));
         this.explorationPoints.forEach(p => p.update(dt));
-        
+
         // Cleanup lists
         this.xpOrbs = this.xpOrbs.filter(o => !o.shouldBeRemoved);
         this.effects = this.effects.filter(e => !e.shouldBeRemoved);

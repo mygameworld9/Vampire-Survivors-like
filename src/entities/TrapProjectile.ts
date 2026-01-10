@@ -1,8 +1,10 @@
 import { Projectile } from "./Projectile";
 import { Weapon } from "./Weapon";
 import { Vector2D } from "../utils/Vector2D";
+import { ProjectileKind } from "../utils/types";
 
 export class TrapProjectile extends Projectile {
+    override readonly KIND = ProjectileKind.TRAP;
     duration: number;
     timer: number = 0;
     triggerRadius: number;

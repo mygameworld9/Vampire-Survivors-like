@@ -2,8 +2,10 @@ import { Projectile } from "./Projectile";
 import { Weapon } from "./Weapon";
 import { Vector2D } from "../utils/Vector2D";
 import { Enemy } from "./Enemy";
+import { ProjectileKind } from "../utils/types";
 
 export class ChainProjectile extends Projectile {
+    override readonly KIND = ProjectileKind.CHAIN;
     bounceCount: number;
     maxBounces: number;
     bounceRange: number;

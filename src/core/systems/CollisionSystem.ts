@@ -22,32 +22,52 @@ import { TrapProjectile } from "../../entities/TrapProjectile";
 import { ITEM_DATA } from "../../data/itemData";
 import { FloatingText } from "../../entities/FloatingText";
 import { i18nManager } from "../i18n";
-import { WeaponTag } from "../../utils/types";
+import { WeaponTag, ProjectileKind } from "../../utils/types";
+import { EnemyRegistry } from "../EnemyRegistry";
+import { Projectile } from "../../entities/Projectile";
+import { BoomerangProjectile } from "../../entities/BoomerangProjectile";
+import { HomingProjectile } from "../../entities/HomingProjectile";
+
+// Union type for all projectiles with KIND field
+type AnyProjectile = Projectile | LaserProjectile | LightningProjectile | SlashProjectile |
+    ChainProjectile | OrbitingProjectile | TrapProjectile |
+    BoomerangProjectile | HomingProjectile;
 
 export class CollisionSystem {
-    // --- Local Flat Grid Config ---
+    // --- Int32Array Linked-List Spatial Hash Grid ---
     // 40x40 grid of 100px cells = 4000x4000px active area centered on player
     private readonly CELL_SIZE = 100;
     private readonly GRID_COLS = 40;
     private readonly GRID_ROWS = 40;
     private readonly HALF_COLS = 20;
     private readonly HALF_ROWS = 20;
+    private readonly GRID_SIZE: number;
 
-    // The Flat Grid: 1D array of pre-allocated Enemy arrays
-    // Index = row * GRID_COLS + col
-    private grid: Enemy[][];
+    // PERF: TypedArray linked-list (zero GC allocation)
+    // head[cellIndex] = first enemy ID in cell, -1 if empty
+    // next[entityId & BITMASK] = next enemy ID in same cell, -1 if tail
+    private readonly head: Int32Array;
+    private readonly next: Int32Array;
+    private readonly MAX_ENTITIES = 0x10000; // 65536
+    private readonly BITMASK = 0xFFFF;
+
+    // Query result buffer (fixed capacity, zero alloc)
+    private readonly _resultIds: Int32Array;
+    private _resultLen = 0;
 
     // Shared reuse buffers to reduce GC
-    private _queryResults: Enemy[] = [];
+    private _queryResults: Enemy[] = [];  // Legacy compatibility for getNeighbors
     private _scratchVec = new Vector2D(0, 0);
 
     constructor(private game: Game) {
-        // Initialize Grid (One-time allocation)
-        const size = this.GRID_COLS * this.GRID_ROWS;
-        this.grid = new Array(size);
-        for (let i = 0; i < size; i++) {
-            this.grid[i] = [];
-        }
+        // Initialize Int32Array Grid (One-time allocation)
+        this.GRID_SIZE = this.GRID_COLS * this.GRID_ROWS; // 1600
+        this.head = new Int32Array(this.GRID_SIZE);
+        this.next = new Int32Array(this.MAX_ENTITIES);
+        this._resultIds = new Int32Array(2000); // Max query capacity
+
+        // Initialize head array to -1 (empty)
+        this.head.fill(-1);
     }
 
     update(dt: number) {
@@ -59,18 +79,16 @@ export class CollisionSystem {
     }
 
     /**
-     * Clears and repopulates the grid based on enemies' positions relative to the player.
+     * PERF: Zero-alloc grid rebuild using Int32Array linked-list.
+     * head.fill(-1) is SIMD-optimized, followed by O(N) head insertion.
      */
     private rebuildGrid() {
-        // 1. Fast Reset (Do not deallocate arrays)
-        const size = this.grid.length;
-        for (let i = 0; i < size; i++) {
-            this.grid[i].length = 0;
-        }
+        // 1. Fast Reset: O(GridSize) with optimized fill() - SIMD on modern browsers
+        this.head.fill(-1);
 
-        // 2. Populate
+        // 2. Populate: O(N) Linked-List Head Insertion
         const player = this.game.player;
-        if (!player) return; // Safety check
+        if (!player) return;
 
         const px = player.pos.x;
         const py = player.pos.y;
@@ -79,61 +97,67 @@ export class CollisionSystem {
 
         for (let i = 0; i < count; i++) {
             const e = enemies[i];
-            // Safety check: ensure enemy exists before accessing properties
             if (!e || !e.pos) continue;
 
-            // Calculate grid coordinates relative to player
-            // We offset by HALF_COLS/ROWS so the player is always at [20,20]
             const col = Math.floor((e.pos.x - px) / this.CELL_SIZE) + this.HALF_COLS;
             const row = Math.floor((e.pos.y - py) / this.CELL_SIZE) + this.HALF_ROWS;
 
-            // Only insert if within the active physics window
             if (col >= 0 && col < this.GRID_COLS && row >= 0 && row < this.GRID_ROWS) {
-                this.grid[row * this.GRID_COLS + col].push(e);
+                const cellIdx = row * this.GRID_COLS + col;
+                // Head Insertion: new node points to old head
+                this.next[e.id & this.BITMASK] = this.head[cellIdx];
+                this.head[cellIdx] = e.id;
             }
         }
     }
 
     /**
-     * Populates _queryResults with enemies in the rectangular area covering the circle.
+     * PERF: Query returning enemy IDs to _resultIds buffer.
+     * Returns count of results (stored in _resultLen).
      */
-    private queryGrid(x: number, y: number, radius: number, out: Enemy[]) {
+    private queryGridIds(x: number, y: number, radius: number): number {
         const player = this.game.player;
-        if (!player) return;
+        if (!player) return 0;
 
         const px = player.pos.x;
         const py = player.pos.y;
 
-        // Convert query bounds to grid coordinates
-        const minX = x - radius - px;
-        const maxX = x + radius - px;
-        const minY = y - radius - py;
-        const maxY = y + radius - py;
+        let startCol = Math.floor((x - radius - px) / this.CELL_SIZE) + this.HALF_COLS;
+        let endCol = Math.floor((x + radius - px) / this.CELL_SIZE) + this.HALF_COLS;
+        let startRow = Math.floor((y - radius - py) / this.CELL_SIZE) + this.HALF_ROWS;
+        let endRow = Math.floor((y + radius - py) / this.CELL_SIZE) + this.HALF_ROWS;
 
-        let startCol = Math.floor(minX / this.CELL_SIZE) + this.HALF_COLS;
-        let endCol = Math.floor(maxX / this.CELL_SIZE) + this.HALF_COLS;
-        let startRow = Math.floor(minY / this.CELL_SIZE) + this.HALF_ROWS;
-        let endRow = Math.floor(maxY / this.CELL_SIZE) + this.HALF_ROWS;
-
-        // Clamp to grid bounds
+        // Clamp
         if (startCol < 0) startCol = 0;
         if (endCol >= this.GRID_COLS) endCol = this.GRID_COLS - 1;
         if (startRow < 0) startRow = 0;
         if (endRow >= this.GRID_ROWS) endRow = this.GRID_ROWS - 1;
 
+        let count = 0;
         for (let r = startRow; r <= endRow; r++) {
             const rowOffset = r * this.GRID_COLS;
             for (let c = startCol; c <= endCol; c++) {
-                const cell = this.grid[rowOffset + c];
-                if (!cell) continue;
-                const len = cell.length;
-                // Manual loop is faster than spread/concat
-                for (let k = 0; k < len; k++) {
-                    if (cell[k]) {
-                        out.push(cell[k]);
-                    }
+                let id = this.head[rowOffset + c];
+                // Traverse linked list
+                while (id !== -1) {
+                    this._resultIds[count++] = id;
+                    id = this.next[id & this.BITMASK];
                 }
             }
+        }
+        this._resultLen = count;
+        return count;
+    }
+
+    /**
+     * Legacy queryGrid for backward compatibility with getNeighbors.
+     * Populates Enemy[] array for code that still needs object references.
+     */
+    private queryGrid(x: number, y: number, radius: number, out: Enemy[]) {
+        const count = this.queryGridIds(x, y, radius);
+        for (let i = 0; i < count; i++) {
+            const e = EnemyRegistry.get(this._resultIds[i]);
+            if (e) out.push(e);
         }
     }
 

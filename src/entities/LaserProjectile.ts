@@ -3,20 +3,22 @@ import { Vector2D } from "../utils/Vector2D";
 import { Weapon } from "./Weapon";
 import { Enemy } from "./Enemy";
 import { Player } from "./Player";
-import { IWeaponStatusEffect, WeaponTag } from "../utils/types";
+import { IWeaponStatusEffect, WeaponTag, ProjectileKind } from "../utils/types";
 
 export class LaserProjectile {
+    readonly KIND = ProjectileKind.LASER;
     p1: Vector2D;         // Start point (player pos)
+
     dir: Vector2D;        // Direction (normalized)
     range: number;
     width: number;
     damage: number;
     statusEffect?: IWeaponStatusEffect;
     tags: WeaponTag[] = [];
-    
+
     shouldBeRemoved = false;
     hitEnemies: Set<number> = new Set();
-    
+
     private lifetime = 0.15; // seconds
     private lifeTimer = 0;
 
@@ -38,7 +40,7 @@ export class LaserProjectile {
         this.damage = weapon.damage;
         this.statusEffect = weapon.statusEffect;
         this.tags = weapon.tags;
-        
+
         this.shouldBeRemoved = false;
         this.hitEnemies.clear();
         this.lifeTimer = 0;
@@ -65,9 +67,9 @@ export class LaserProjectile {
         // Instead of a straight line, we draw multiple overlapping circles/diamonds along the path
         const distance = this.range;
         // Step size roughly equals width to ensure overlap
-        const steps = Math.ceil(distance / (this.width * 0.8)); 
+        const steps = Math.ceil(distance / (this.width * 0.8));
 
-        for(let i = 0; i < steps; i++) {
+        for (let i = 0; i < steps; i++) {
             const t = i / steps;
             const x = this.p1.x + (p2.x - this.p1.x) * t;
             const y = this.p1.y + (p2.y - this.p1.y) * t;

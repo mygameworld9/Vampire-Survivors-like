@@ -3,10 +3,12 @@ import { Vector2D } from "../utils/Vector2D";
 import { Weapon } from "./Weapon";
 import { Enemy } from "./Enemy";
 import { Player } from "./Player";
-import { IWeaponStatusEffect, WeaponTag } from "../utils/types";
+import { IWeaponStatusEffect, WeaponTag, ProjectileKind } from "../utils/types";
 
 export class BoomerangProjectile {
+    readonly KIND = ProjectileKind.BOOMERANG;
     pos: Vector2D;
+
     damage: number;
     speed: number;
     penetration: number;
@@ -16,7 +18,7 @@ export class BoomerangProjectile {
     hitEnemies: Set<number> = new Set(); // Stores Enemy IDs
     statusEffect?: IWeaponStatusEffect;
     tags: WeaponTag[] = [];
-    
+
     private owner!: Player; // Definite assignment via reset
     private state: 'outward' | 'returning' = 'outward';
     private distanceTraveled = 0;
@@ -36,7 +38,7 @@ export class BoomerangProjectile {
         this.pos.y = y;
         this.owner = owner;
         this.onReturn = onReturn;
-        
+
         // Ensure valid direction
         if (owner.facingDirection && Math.abs(owner.facingDirection.x) < 0.01 && Math.abs(owner.facingDirection.y) < 0.01) {
             this.direction.x = 1;
@@ -48,14 +50,14 @@ export class BoomerangProjectile {
             this.direction.x = 1;
             this.direction.y = 0;
         }
-        
+
         this.damage = weapon.damage;
         this.speed = weapon.speed;
         this.penetration = weapon.penetration;
         this.range = weapon.range;
         this.statusEffect = weapon.statusEffect;
         this.tags = weapon.tags;
-        
+
         this.state = 'outward';
         this.distanceTraveled = 0;
         this.rotationAngle = 0;
@@ -76,7 +78,7 @@ export class BoomerangProjectile {
 
             if (this.distanceTraveled >= this.range) {
                 this.state = 'returning';
-                this.hitEnemies.clear(); 
+                this.hitEnemies.clear();
                 this.penetration = 999; // Reset penetration for return trip
             }
         } else { // returning
@@ -85,7 +87,7 @@ export class BoomerangProjectile {
                 if (this.onReturn) this.onReturn();
                 return;
             }
-            
+
             const returnDirection = new Vector2D(this.owner.pos.x - this.pos.x, this.owner.pos.y - this.pos.y).normalize();
             const returnSpeed = this.speed * 1.5; // Comes back faster
             this.pos.x += returnDirection.x * returnSpeed * dt;
@@ -102,20 +104,20 @@ export class BoomerangProjectile {
     draw(ctx: CanvasRenderingContext2D) {
         ctx.save();
         ctx.translate(this.pos.x, this.pos.y);
-        
+
         // Shadow (Draw before rotation)
         ctx.fillStyle = 'rgba(0,0,0,0.2)';
         ctx.beginPath();
-        ctx.ellipse(0, this.size/2 + 4, this.size/2, this.size/6, 0, 0, Math.PI * 2);
+        ctx.ellipse(0, this.size / 2 + 4, this.size / 2, this.size / 6, 0, 0, Math.PI * 2);
         ctx.fill();
 
         // Spin the frisbee
         ctx.rotate(this.rotationAngle);
-        
+
         const radius = this.size / 2;
 
         // Main Body (Soft Pastel Pink)
-        ctx.fillStyle = '#F8BBD0'; 
+        ctx.fillStyle = '#F8BBD0';
         ctx.beginPath();
         ctx.arc(0, 0, radius, 0, Math.PI * 2);
         ctx.fill();
