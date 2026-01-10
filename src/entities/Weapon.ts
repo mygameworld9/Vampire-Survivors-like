@@ -186,11 +186,11 @@ export class Weapon {
             const directions: Vector2D[] = [];
             switch (this.firePattern) {
                 case 'forward':
-                    directions.push(player.facingDirection);
+                    directions.push(new Vector2D(player.facingDirection.x, player.facingDirection.y));
                     break;
                 case 'forward_backward':
-                    directions.push(player.facingDirection);
-                    directions.push(new Vector2D(-player.facingDirection.x, -player.facingDirection.y).normalize());
+                    directions.push(new Vector2D(player.facingDirection.x, player.facingDirection.y));
+                    directions.push(new Vector2D(-player.facingDirection.x, -player.facingDirection.y));
                     break;
                 case 'cardinal':
                     const { x, y } = player.facingDirection;

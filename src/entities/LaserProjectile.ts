@@ -26,18 +26,24 @@ export class LaserProjectile {
     private lifeTimer = 0;
 
     constructor(owner: Player, weapon: Weapon, direction: Vector2D) {
-        this.p1 = new Vector2D(owner.pos.x, owner.pos.y);
-        this.dir = new Vector2D(0, 0);
-        this.range = 0;
-        this.width = 0;
-        this.damage = 0;
-        this.reset(owner, weapon, direction);
+        // Initialize with safe defaults for ObjectPool factory (which passes {} as any)
+        const ownerX = owner?.pos?.x ?? 0;
+        const ownerY = owner?.pos?.y ?? 0;
+        this.p1 = new Vector2D(ownerX, ownerY);
+        this.dir = new Vector2D(direction?.x ?? 0, direction?.y ?? 0);
+        this.range = weapon?.range ?? 0;
+        this.width = weapon?.width ?? 10;
+        this.damage = weapon?.damage ?? 0;
+        this.statusEffect = weapon?.statusEffect;
+        this.tags = weapon?.tags ?? [];
     }
 
     reset(owner: Player, weapon: Weapon, direction: Vector2D) {
         this.p1.x = owner.pos.x;
         this.p1.y = owner.pos.y;
-        this.dir = direction; // Usually passed as a new vector or reused ref, but caller passes new usually
+        // Copy direction values instead of reference to prevent mutation issues
+        this.dir.x = direction.x;
+        this.dir.y = direction.y;
         this.range = weapon.range;
         this.width = weapon.width || 10;
         this.damage = weapon.damage;
