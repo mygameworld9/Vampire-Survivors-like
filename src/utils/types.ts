@@ -77,6 +77,10 @@ export interface IWeaponData {
     statusEffect?: IWeaponStatusEffect;
     firePattern?: FirePattern;
     tags?: WeaponTag[];
+    // === NEW BALANCE FIELDS v2.1 ===
+    duration?: number;        // For ORBITING: projectile lifetime in ms
+    maxProjectiles?: number;  // For ORBITING: max concurrent projectiles
+    bounceCount?: number;     // For CHAIN: number of bounces (separate from penetration)
 }
 
 export type SkillType = 'ACTIVE' | 'PASSIVE';

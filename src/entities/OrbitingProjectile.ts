@@ -11,6 +11,10 @@ export class OrbitingProjectile extends Projectile {
     currentAngle: number;
     player: Player;
 
+    // === NEW: Lifetime management (v2.1 Balance) ===
+    lifetime: number = 0;           // Current elapsed time in ms
+    maxLifetime: number;            // Maximum lifetime in ms (from weapon.duration)
+
     // Cooldown management for hitting enemies multiple times
     // Map<EnemyID, TimeTimestamp>
     hitTimers: Map<number, number> = new Map();
@@ -25,11 +29,18 @@ export class OrbitingProjectile extends Projectile {
         this.orbitSpeed = weapon.speed; // degrees per second, e.g. 90
         this.currentAngle = initialAngle;
 
-        this.penetration = 9999; // Infinite penetration
-        this.range = 99999; // Infinite range (lifetime managed by weapon/player)
+        // === CHANGED: Use weapon.duration if available, otherwise infinite ===
+        this.maxLifetime = (weapon as any).duration || 999999;
+        this.lifetime = 0;
+
+        this.penetration = 9999; // Infinite penetration (hits many enemies)
+        this.range = 99999; // Infinite range (lifetime managed by maxLifetime)
     }
 
     update(dt: number) {
+        // === NEW: Track lifetime ===
+        this.lifetime += dt * 1000;
+
         // 1. Update Angle
         this.currentAngle += this.orbitSpeed * dt * (Math.PI / 180); // Convert deg to rad
 
@@ -37,9 +48,15 @@ export class OrbitingProjectile extends Projectile {
         this.pos.x = this.player.pos.x + Math.cos(this.currentAngle) * this.orbitRadius;
         this.pos.y = this.player.pos.y + Math.sin(this.currentAngle) * this.orbitRadius;
 
-        // 3. Update Hit Timers
-        // We iterate map keys to cleanup old entries if needed, or check in collision
-        // Ideally handled in collision system, but we can prune here if map gets huge (unlikely)
+        // 3. Update Hit Timers (cleanup handled elsewhere if needed)
+    }
+
+    /**
+     * NEW: Check if this orbiting projectile has expired
+     * Called by EntityManager to determine if it should be removed
+     */
+    isExpired(): boolean {
+        return this.lifetime >= this.maxLifetime;
     }
 
     canHit(enemyId: number, time: number): boolean {
@@ -53,7 +70,4 @@ export class OrbitingProjectile extends Projectile {
     onHit(enemyId: number, time: number) {
         this.hitTimers.set(enemyId, time);
     }
-
-    // Override draw to possibly rotate sprite based on angle?
-    // Base draw is fine for now (circle)
 }

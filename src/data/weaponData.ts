@@ -20,8 +20,8 @@ export const WEAPON_DATA: { [key: string]: IWeaponData } = {
         nameKey: 'weapon.gatling.name',
         icon: '🦾',
         type: 'PROJECTILE',
-        damage: 40,
-        cooldown: 150, // Balanced: ~267 DPS (was 400 DPS at 100ms)
+        damage: 22,            // Nerfed from 40: Target ~30 DPS (2x Bullet)
+        cooldown: 350,         // Nerfed from 150: Slower than before
         speed: 550,
         penetration: 2,
         range: 900,
@@ -33,8 +33,8 @@ export const WEAPON_DATA: { [key: string]: IWeaponData } = {
         nameKey: 'weapon.doomcannon.name',
         icon: '👹',
         type: 'PROJECTILE',
-        damage: 150,
-        cooldown: 800, // BUGFIX: Was 80ms (design error), now proper Tier 3 (~188 DPS)
+        damage: 80,            // Nerfed from 150: Target ~53 DPS (1.8x Gatling)
+        cooldown: 900,         // Slowed from 800: More deliberate feel
         speed: 700,
         penetration: 5,
         range: 1200,
@@ -93,9 +93,9 @@ export const WEAPON_DATA: { [key: string]: IWeaponData } = {
         fireSound: 'WEAPON_AURA',
         statusEffect: {
             type: 'BURN',
-            chance: 1.0,
-            duration: 3000, // 3 seconds
-            magnitude: 5, // 5 dps
+            chance: 0.8,       // Tier 1: 80% trigger rate
+            duration: 3000,
+            magnitude: 5,
         },
         tags: ['AREA', 'MAGIC', 'FIRE']
     },
@@ -112,7 +112,7 @@ export const WEAPON_DATA: { [key: string]: IWeaponData } = {
         fireSound: 'WEAPON_AURA',
         statusEffect: {
             type: 'BURN',
-            chance: 1.0,
+            chance: 0.9,       // Tier 2: 90% trigger rate
             duration: 4000,
             magnitude: 20,
         },
@@ -152,9 +152,9 @@ export const WEAPON_DATA: { [key: string]: IWeaponData } = {
         fireSound: 'WEAPON_LASER',
         statusEffect: {
             type: 'SLOW',
-            chance: 1.0,
-            duration: 2000, // 2 seconds
-            magnitude: 0.5, // 50% speed
+            chance: 0.8,       // Tier 1: 80% trigger rate
+            duration: 2000,
+            magnitude: 0.5,
         },
         tags: ['LASER', 'MAGIC', 'ICE']
     },
@@ -214,9 +214,9 @@ export const WEAPON_DATA: { [key: string]: IWeaponData } = {
         fireSound: 'WEAPON_SLASH',
         statusEffect: {
             type: 'POISON',
-            chance: 1.0,
+            chance: 0.8,       // Tier 1: 80% trigger rate
             duration: 4000,
-            magnitude: 3, // 3 DPS
+            magnitude: 3,
         },
         tags: ['MELEE', 'PHYSICAL', 'POISON']
     },
@@ -233,9 +233,9 @@ export const WEAPON_DATA: { [key: string]: IWeaponData } = {
         fireSound: 'WEAPON_SLASH',
         statusEffect: {
             type: 'POISON',
-            chance: 1.0,
+            chance: 0.9,       // Tier 2: 90% trigger rate
             duration: 5000,
-            magnitude: 8, // 8 DPS, stacks up to 3
+            magnitude: 8,
         },
         tags: ['MELEE', 'PHYSICAL', 'POISON']
     },
@@ -265,11 +265,13 @@ export const WEAPON_DATA: { [key: string]: IWeaponData } = {
         nameKey: 'weapon.spiritorb.name',
         icon: '👻',
         type: 'ORBITING',
-        damage: 10, // Adjusted from 15 per numerical verification
-        cooldown: 600, // Adjusted from 500 per numerical verification
-        speed: 90, // Rotation speed in degrees/sec
+        damage: 6,             // NERFED from 10: Lower base damage
+        cooldown: 800,         // NERFED from 600: Slower tick rate
+        speed: 90,
         penetration: 999,
-        range: 80, // Orbit radius
+        range: 80,
+        duration: 8000,        // NEW: Orbs disappear after 8 seconds
+        maxProjectiles: 2,     // NEW: Max 2 orbs at a time
         fireSound: 'WEAPON_AURA',
         tags: ['AREA', 'MAGIC', 'SUMMON']
     },
@@ -278,11 +280,13 @@ export const WEAPON_DATA: { [key: string]: IWeaponData } = {
         nameKey: 'weapon.phantomguard.name',
         icon: '👁️',
         type: 'ORBITING',
-        damage: 30,
-        cooldown: 400,
+        damage: 18,            // NERFED from 30: Tier 2 = ~2x Tier 1
+        cooldown: 600,         // Nerfed from 400
         speed: 120,
         penetration: 999,
         range: 120,
+        duration: 10000,       // NEW: Orbs disappear after 10 seconds
+        maxProjectiles: 3,     // NEW: Max 3 orbs
         fireSound: 'WEAPON_AURA',
         tags: ['AREA', 'MAGIC', 'SUMMON']
     },
@@ -291,11 +295,13 @@ export const WEAPON_DATA: { [key: string]: IWeaponData } = {
         nameKey: 'weapon.soulvortex.name',
         icon: '🌀',
         type: 'ORBITING',
-        damage: 35, // Adjusted from 50 per numerical verification
-        cooldown: 400, // Adjusted from 300 per numerical verification
+        damage: 28,            // NERFED from 35: Tier 3 = ~1.6x Tier 2
+        cooldown: 500,         // Nerfed from 400
         speed: 180,
         penetration: 999,
         range: 180,
+        duration: 12000,       // NEW: Orbs disappear after 12 seconds
+        maxProjectiles: 4,     // NEW: Max 4 orbs
         fireSound: 'WEAPON_AURA',
         tags: ['AREA', 'MAGIC', 'DARK', 'SUMMON']
     },
@@ -309,8 +315,9 @@ export const WEAPON_DATA: { [key: string]: IWeaponData } = {
         damage: 20,
         cooldown: 2000,
         speed: 400,
-        penetration: 2, // Bounce count
-        range: 150, // Bounce range
+        bounceCount: 2,        // NEW: Explicit bounce count
+        penetration: 1,        // Enemies hit per bounce
+        range: 150,            // Bounce search range
         fireSound: 'WEAPON_LIGHTNING',
         tags: ['PROJECTILE', 'MAGIC']
     },
@@ -319,15 +326,16 @@ export const WEAPON_DATA: { [key: string]: IWeaponData } = {
         nameKey: 'weapon.shockchain.name',
         icon: '⚡',
         type: 'CHAIN',
-        damage: 55, // Adjusted from 45 per numerical verification
+        damage: 45,            // Nerfed from 55: ~2.25x Tier 1
         cooldown: 1500,
         speed: 500,
-        penetration: 4, // Bounce count
-        range: 200, // Bounce range
+        bounceCount: 4,        // NEW: Explicit bounce count
+        penetration: 1,
+        range: 200,
         fireSound: 'WEAPON_LIGHTNING',
         statusEffect: {
             type: 'STUN',
-            chance: 1.0,
+            chance: 0.9,       // Tier 2: 90% trigger rate
             duration: 300,
             magnitude: 1,
         },
@@ -338,15 +346,16 @@ export const WEAPON_DATA: { [key: string]: IWeaponData } = {
         nameKey: 'weapon.stormweaver.name',
         icon: '🌩️',
         type: 'CHAIN',
-        damage: 60, // Adjusted from 80 per numerical verification
+        damage: 55,            // Nerfed from 60: ~1.2x Tier 2
         cooldown: 1200,
         speed: 600,
-        penetration: 5, // Adjusted from 8 per numerical verification
+        bounceCount: 5,        // NEW: Explicit bounce count
+        penetration: 1,
         range: 250,
         fireSound: 'WEAPON_LIGHTNING',
         statusEffect: {
             type: 'STUN',
-            chance: 1.0,
+            chance: 1.0,       // Tier 3: 100% trigger rate
             duration: 500,
             magnitude: 1,
         },

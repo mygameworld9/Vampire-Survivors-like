@@ -17,6 +17,7 @@ import { LaserProjectile } from "../entities/LaserProjectile";
 import { HomingProjectile } from "../entities/HomingProjectile";
 import { LightningProjectile } from "../entities/LightningProjectile";
 import { SlashProjectile } from "../entities/SlashProjectile";
+import { OrbitingProjectile } from "../entities/OrbitingProjectile";
 import { Particle } from "../entities/Particle";
 import { ProjectilePools } from "../entities/Weapon";
 import { EnemyRegistry } from "./EnemyRegistry";
@@ -141,13 +142,21 @@ export class EntityManager {
         while (j < this.projectiles.length) {
             const p = this.projectiles[j];
             p.update(dt);
-            if (p.shouldBeRemoved) {
+
+            // === NEW: Check OrbitingProjectile expiration (v2.1 Balance) ===
+            let shouldRemove = p.shouldBeRemoved;
+            if (!shouldRemove && p instanceof OrbitingProjectile && p.isExpired()) {
+                shouldRemove = true;
+            }
+
+            if (shouldRemove) {
                 // Release to correct pool
                 if (p instanceof BoomerangProjectile) this.boomerangPool.release(p);
                 else if (p instanceof LaserProjectile) this.laserPool.release(p);
                 else if (p instanceof HomingProjectile) this.homingPool.release(p);
                 else if (p instanceof LightningProjectile) this.lightningPool.release(p);
                 else if (p instanceof SlashProjectile) this.slashPool.release(p);
+                // Note: OrbitingProjectile not pooled, no release needed
                 else if (p instanceof Projectile) this.projectilePool.release(p);
 
                 const last = this.projectiles[this.projectiles.length - 1];

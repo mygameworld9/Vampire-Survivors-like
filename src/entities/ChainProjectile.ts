@@ -12,7 +12,8 @@ export class ChainProjectile extends Projectile {
 
     constructor(x: number, y: number, direction: Vector2D, weapon: Weapon) {
         super(x, y, direction, weapon);
-        this.maxBounces = weapon.penetration; // Use penetration as bounce count
+        // === CHANGED: Prefer bounceCount field, fallback to penetration for backward compat ===
+        this.maxBounces = (weapon as any).bounceCount ?? weapon.penetration;
         this.bounceCount = 0;
         this.bounceRange = weapon.range; // Use range as bounce search radius
 
