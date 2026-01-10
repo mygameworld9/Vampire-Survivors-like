@@ -44,6 +44,11 @@ export class Weapon {
     firePattern: 'forward' | 'forward_backward' | 'cardinal' | 'all_8';
     tags: WeaponTag[];
 
+    // === NEW BALANCE FIELDS (v2.1) ===
+    duration?: number;         // For ORBITING: projectile lifetime in ms
+    maxProjectiles?: number;   // For ORBITING: max concurrent projectiles
+    bounceCount?: number;      // For CHAIN: number of bounces
+
     private cooldownTimer = 0;
     private activeProjectileCount = 0; // Track projectiles for mechanics like Boomerang return
     public onFireAura: ((weapon: Weapon) => void) | null = null;
@@ -67,6 +72,11 @@ export class Weapon {
         this.tags = data.tags || [];
         this.soundManager = soundManager;
         this.cooldownTimer = this.cooldown; // Fire immediately
+
+        // === NEW: Read balance fields ===
+        this.duration = data.duration;
+        this.maxProjectiles = data.maxProjectiles;
+        this.bounceCount = data.bounceCount;
     }
 
     get name(): string {
@@ -182,6 +192,7 @@ export class Weapon {
                 projectiles.push(new SlashProjectile(player, firingState, this.firePattern === 'all_8'));
             }
 
+
         } else if (this.type === 'LASER') {
             const directions: Vector2D[] = [];
             switch (this.firePattern) {
@@ -229,8 +240,8 @@ export class Weapon {
 
         } else if (this.type === 'ORBITING') {
             // ORBITING: Spawn orbiting projectiles around player
-            // Count depends on specific weapon ID for now, or use penetration level or similar data
-            const orbCount = this.id === 'SOUL_VORTEX' ? 6 : (this.id === 'PHANTOM_GUARD' ? 4 : 2);
+            // === CHANGED: Use maxProjectiles from weapon data ===
+            const orbCount = this.maxProjectiles || 2; // Default to 2 if not specified
             const spacing = 360 / orbCount;
 
             for (let i = 0; i < orbCount; i++) {
@@ -291,10 +302,16 @@ export class Weapon {
                     case 'penetration':
                     case 'range':
                     case 'width':
+                    case 'duration':        // NEW: Support duration upgrades
+                    case 'maxProjectiles':  // NEW: Support maxProjectiles upgrades
+                    case 'bounceCount':     // NEW: Support bounceCount upgrades
                         if (this[key] !== undefined) {
                             if (effect.op === 'add') (this as any)[key] += effect.value;
                             if (effect.op === 'multiply') (this as any)[key] *= effect.value;
                             if (effect.op === 'set') (this as any)[key] = effect.value;
+                        } else if (effect.op === 'add') {
+                            // For NEW fields that may not be initialized, treat 'add' as setting initial value
+                            (this as any)[key] = effect.value;
                         }
                         break;
                     case 'firePattern':

@@ -28,7 +28,10 @@ export class SlashProjectile {
         this.range = 0;
         this.isFullCircle = false;
         this.angle = 0;
-        this.reset(owner, weapon, isFullCircle);
+        // Only call reset if owner is valid (not during pool initialization with empty object)
+        if (owner && owner.facingDirection) {
+            this.reset(owner, weapon, isFullCircle);
+        }
     }
 
     reset(owner: Player, weapon: Weapon, isFullCircle: boolean) {
