@@ -1,6 +1,7 @@
 
 import { Player } from '../entities/Player';
 import { Enemy } from '../entities/Enemy';
+import { PulseEffect } from '../entities/PulseEffect';
 import { Camera } from './Camera';
 import { InputHandler } from './InputHandler';
 import { SoundManager } from './SoundManager';
@@ -34,11 +35,11 @@ export class Game {
     public input: InputHandler;
     public particleSystem: ParticleSystem;
     public soundManager: SoundManager;
-    
+
     // Map & Render
     public mapData: IMapData;
     public mapRenderer: MapRenderer;
-    
+
     // Subsystems
     private spawnSystem: SpawnSystem;
     private collisionSystem: CollisionSystem;
@@ -58,8 +59,8 @@ export class Game {
     public activeBosses: Enemy[] = [];
 
     constructor(
-        width: number, 
-        height: number, 
+        width: number,
+        height: number,
         onLevelUp: () => void,
         onChestOpenStart: (chest: Chest) => void,
         onEvolution: (weapon: Weapon) => void,
@@ -77,27 +78,27 @@ export class Game {
 
         // Initialize Manager
         this.entityManager = new EntityManager();
-        
+
         // Initialize Systems
         this.input = new InputHandler();
         this.particleSystem = new ParticleSystem(this.entityManager.particlePool);
         this.collisionSystem = new CollisionSystem(this);
-        
+
         // Load Map Data
         this.mapData = MAP_DATA[mapId] || MAP_DATA['FOREST'];
         this.spawnSystem = new SpawnSystem(this, this.mapData.spawnScheduleId);
         this.mapRenderer = new MapRenderer(this.mapData);
-        
+
         // Initialize Player
         this.player = new Player(
-            width / 2, height / 2, 
-            (w) => this.collisionSystem.applyAuraDamage(w), 
-            this.soundManager, 
+            width / 2, height / 2,
+            (w) => this.collisionSystem.applyAuraDamage(w),
+            this.soundManager,
             characterId,
-            (stats) => this.events.emit('player-update', stats) 
+            (stats) => this.events.emit('player-update', stats)
         );
         this.camera = new Camera(this.player.pos.x, this.player.pos.y);
-        
+
         if (initialLoadout) {
             this.applyCreativeLoadout(initialLoadout);
         }
@@ -130,7 +131,7 @@ export class Game {
     public spawnChestNearPlayer() {
         this.spawnSystem.spawnChestNearPlayer();
     }
-    
+
     update(dt: number) {
         this.gameTime += dt;
 
@@ -140,12 +141,18 @@ export class Game {
         this.spawnSystem.update(dt);
 
         // Pass projectilePools to player update
-        const { projectiles, skillEffects } = this.player.update(dt, this.input, this.entityManager.enemies, this.entityManager.projectilePools);
+        const { projectiles, skillEffects, momentumBlast } = this.player.update(dt, this.input, this.entityManager.enemies, this.entityManager.projectilePools);
         this.entityManager.projectiles.push(...projectiles);
         skillEffects.forEach(effect => this.collisionSystem.handleSkillEffect(effect));
-        
+
+        if (momentumBlast) {
+            const { damage, radius } = momentumBlast;
+            this.collisionSystem.applyAreaDamage(this.player.pos, radius, damage, '#00BCD4', 20);
+            this.entityManager.effects.push(new PulseEffect(this.player.pos, radius));
+        }
+
         this.camera.update(dt, this.player.pos);
-        
+
         this.entityManager.update(dt, this.player.pos, this.collisionSystem, (enemy) => {
             if (enemy.isElite) {
                 this.removeActiveBoss(enemy);
@@ -153,11 +160,11 @@ export class Game {
         });
 
         this.particleSystem.update(dt);
-        
+
         this.collisionSystem.update(dt);
-        
+
         if (this.activeBosses.length > 0) {
-            const closestBoss = this.activeBosses[0]; 
+            const closestBoss = this.activeBosses[0];
             // Safety check for closestBoss before accessing ID
             if (closestBoss && closestBoss.data) {
                 const bossData: BossData = {
@@ -183,19 +190,19 @@ export class Game {
     draw(ctx: CanvasRenderingContext2D) {
         ctx.fillStyle = this.mapData.baseColors[0];
         ctx.fillRect(0, 0, this.width, this.height);
-        
+
         this.mapRenderer.draw(ctx, this.camera, this.width, this.height, this.gameTime);
 
         ctx.save();
         this.camera.applyTransform(ctx);
-        
+
         this.entityManager.draw(ctx);
         this.player.draw(ctx);
         this.particleSystem.draw(ctx);
 
         ctx.restore();
     }
-    
+
     // --- Meta / Build Controls ---
 
     public registerActiveBoss(enemy: Enemy) {
@@ -224,14 +231,14 @@ export class Game {
         if (player.weapons.length < MAX_SLOTS) {
             const ownedWeaponIds = new Set(player.weapons.map(w => w.id));
             availableNewWeapons = Object.values(WEAPON_DATA)
-                .filter(wd => 
-                    !ownedWeaponIds.has(wd.id) && 
+                .filter(wd =>
+                    !ownedWeaponIds.has(wd.id) &&
                     !this.banishedItemIds.has(wd.id) &&
                     !evolvedWeaponIds.has(wd.id) // Exclude evolved weapons from random pool
                 )
                 .map(wd => ({ type: 'new', weaponData: wd } as UpgradeOption));
         }
-        
+
         const availableSkillUpgrades = player.skills
             .filter(s => !s.isMaxLevel() && !this.banishedItemIds.has(s.id))
             .map(s => ({ type: 'upgrade', skill: s } as UpgradeOption));
@@ -242,7 +249,7 @@ export class Game {
             availableNewSkills = Object.values(SKILL_DATA)
                 .filter(sd => !ownedSkillIds.has(sd.id) && !this.banishedItemIds.has(sd.id))
                 .map(sd => ({ type: 'new', skillData: sd } as UpgradeOption));
-            
+
             if (player.level === 2) {
                 availableNewSkills = [];
             }
@@ -266,15 +273,15 @@ export class Game {
         // 1. Calculate Tag Profile
         const currentTags = new Set<string>();
         player.weapons.forEach(w => w.tags.forEach(t => currentTags.add(t)));
-        
+
         // 2. Weight Options
         // Standard weight = 1
         // Match tag = +2 weight
         const weightedPool: UpgradeOption[] = [];
-        
+
         for (const opt of optionsPool) {
             let weight = 1;
-            
+
             // Analyze option tags
             let optTags: string[] = [];
             if (opt.type === 'new' && 'weaponData' in opt) {
@@ -299,7 +306,7 @@ export class Game {
             }
 
             // Add to pool 'weight' times
-            for(let k=0; k<weight; k++) {
+            for (let k = 0; k < weight; k++) {
                 weightedPool.push(opt);
             }
         }
@@ -309,7 +316,7 @@ export class Game {
             const j = Math.floor(Math.random() * (i + 1));
             [weightedPool[i], weightedPool[j]] = [weightedPool[j], weightedPool[i]];
         }
-        
+
         // De-duplicate results while picking top 3
         const results: UpgradeOption[] = [];
         const selectedIds = new Set<string>();
@@ -318,7 +325,7 @@ export class Game {
             let id = '';
             if (opt.type === 'new') id = ('weaponData' in opt) ? opt.weaponData.id : opt.skillData.id;
             else if (opt.type === 'upgrade') id = ('weapon' in opt) ? opt.weapon.id : opt.skill.id;
-            
+
             if (!selectedIds.has(id)) {
                 results.push(opt);
                 selectedIds.add(id);
@@ -362,7 +369,7 @@ export class Game {
     public performSkip() {
         if (this.player.skips > 0) {
             this.player.skips--;
-            this.player.gainXp(XP_LEVELS[this.player.level - 1] * 0.25); 
+            this.player.gainXp(XP_LEVELS[this.player.level - 1] * 0.25);
             this.events.emit('player-update', { skips: this.player.skips });
         }
     }
@@ -377,14 +384,14 @@ export class Game {
     private grantChestRewards(chest: Chest) {
         chest.shouldBeRemoved = true;
         this.soundManager.playSound('CHEST_OPEN');
-        this.particleSystem.emit(chest.pos.x, chest.pos.y, 50, '#ffd700'); 
-        
+        this.particleSystem.emit(chest.pos.x, chest.pos.y, 50, '#ffd700');
+
         const evolutionPerformed = this.checkAndPerformEvolution();
-        
+
         const goldAmount = Math.floor(Math.random() * (CHEST_LOOT_TABLE.gold.max - CHEST_LOOT_TABLE.gold.min + 1)) + CHEST_LOOT_TABLE.gold.min;
         this.player.gainGold(goldAmount);
         this.entityManager.floatingTexts.push(new FloatingText(chest.pos.x, chest.pos.y, `+${Math.ceil(goldAmount * this.player.goldMultiplier)} Gold`, '#ffd700'));
-        
+
         let totalXp = 0;
         for (const orbDrop of CHEST_LOOT_TABLE.xpOrbs) {
             const orbCount = Math.floor(Math.random() * (orbDrop.count[1] - orbDrop.count[0] + 1)) + orbDrop.count[0];
@@ -438,7 +445,7 @@ export class Game {
         const availableSkillUpgrades = player.skills
             .filter(s => !s.isMaxLevel())
             .map(s => ({ type: 'upgrade', skill: s } as UpgradeOption));
-        
+
         const optionsPool = [
             ...availableWeaponUpgrades,
             ...availableSkillUpgrades
@@ -448,10 +455,10 @@ export class Game {
             const limitBreakGold = 100;
             player.gainGold(limitBreakGold);
             this.entityManager.floatingTexts.push(new FloatingText(
-                player.pos.x, 
-                player.pos.y - 40, 
-                i18nManager.t('ui.chest.limitBreak', { amount: Math.ceil(limitBreakGold * player.goldMultiplier) }), 
-                '#e040fb', 
+                player.pos.x,
+                player.pos.y - 40,
+                i18nManager.t('ui.chest.limitBreak', { amount: Math.ceil(limitBreakGold * player.goldMultiplier) }),
+                '#e040fb',
                 2.5
             ));
             return;
@@ -464,12 +471,12 @@ export class Game {
             if ('weapon' in chosenOption) {
                 upgradeText = `${chosenOption.weapon.name} Lvl ${chosenOption.weapon.level + 1}!`;
                 chosenOption.weapon.levelUp();
-            } else { 
+            } else {
                 upgradeText = `${chosenOption.skill.name} Lvl ${chosenOption.skill.level + 1}!`;
                 chosenOption.skill.levelUp(player);
             }
         }
-        
+
         this.entityManager.floatingTexts.push(new FloatingText(player.pos.x, player.pos.y - player.size, upgradeText, '#69f0ae', 2.5));
     }
 }

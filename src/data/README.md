@@ -38,8 +38,12 @@ The files here contain pure data objects with **no executable logic**. This sepa
 ### `gameConfig.ts`
 -   **Purpose:** Stores global gameplay rules and configurations.
 -   **Content:**
-    -   `SPAWN_SCHEDULE`: An array that dictates which enemies spawn and how frequently at different points in the game timer.
     -   `XP_LEVELS`: An array defining the experience points required to advance to each player level.
+
+### `spawnData.ts`
+-   **Purpose:** Defines enemy spawn schedules for each map.
+-   **Content:**
+    -   `SPAWN_SCHEDULES`: A dictionary mapping map schedule IDs (e.g., `FOREST_NORMAL`, `CRYPT_HARD`) to their spawn event arrays.
 
 ### `upgradeLoader.ts`
 -   **Purpose:** A simple utility that provides clean, unified functions for the game engine to retrieve upgrade data for weapons and skills.

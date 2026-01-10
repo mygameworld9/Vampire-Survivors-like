@@ -217,7 +217,7 @@ export class Player {
         return this.skills.some(s => s.id === skillId);
     }
 
-    update(dt: number, input: InputHandler, enemies: Enemy[], projectilePools?: ProjectilePools): { projectiles: AnyProjectile[], skillEffects: SkillEffect[] } {
+    update(dt: number, input: InputHandler, enemies: Enemy[], projectilePools?: ProjectilePools): { projectiles: AnyProjectile[], skillEffects: SkillEffect[], momentumBlast: { damage: number, radius: number } | null } {
         this.globalTime += dt;
         const moveVector = new Vector2D(0, 0);
 
@@ -264,8 +264,12 @@ export class Player {
         // v2.0 Systems Update
         this.updateShield(dt);
         const isMoving = moveVector.x !== 0 || moveVector.y !== 0;
-        this.updateMomentum(isMoving, dt);
-        // Note: Momentum wave damage should be handled by Game.ts when it polls getMomentumRadius()
+        const momentumDamage = this.updateMomentum(isMoving, dt);
+        let momentumBlast: { damage: number, radius: number } | null = null;
+
+        if (momentumDamage !== null) {
+            momentumBlast = { damage: momentumDamage, radius: this.momentumRadius };
+        }
 
         const newProjectiles: AnyProjectile[] = [];
         this.weapons.forEach(w => {
@@ -283,7 +287,7 @@ export class Player {
             }
         });
 
-        return { projectiles: newProjectiles, skillEffects };
+        return { projectiles: newProjectiles, skillEffects, momentumBlast };
     }
 
     updateAnimation(dt: number) {

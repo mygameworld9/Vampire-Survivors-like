@@ -12,6 +12,9 @@ import { Enemy } from "./Enemy";
 import { HomingProjectile } from "./HomingProjectile";
 import { LightningProjectile } from "./LightningProjectile";
 import { SlashProjectile } from "./SlashProjectile";
+import { ChainProjectile } from "./ChainProjectile";
+import { OrbitingProjectile } from "./OrbitingProjectile";
+import { TrapProjectile } from "./TrapProjectile";
 import { ObjectPool } from "../utils/ObjectPool";
 
 type AnyProjectile = Projectile | BoomerangProjectile | LaserProjectile | HomingProjectile | LightningProjectile | SlashProjectile;
@@ -226,83 +229,35 @@ export class Weapon {
 
         } else if (this.type === 'ORBITING') {
             // ORBITING: Spawn orbiting projectiles around player
-            // TODO: Implement dedicated OrbitingProjectile class
-            // For now, use aura-style damage via onFireAura callback
-            const tagMult = player.getTagDamageMultiplier(this.tags);
-            const boostedWeapon = {
-                ...this,
-                damage: this.baseDamage * player.damageMultiplier * tagMult,
-                isMaxLevel: this.isMaxLevel.bind(this)
-            } as any as Weapon;
-            this.onFireAura?.(boostedWeapon);
-            // Return empty - orbiting weapons use aura system
+            // Count depends on specific weapon ID for now, or use penetration level or similar data
+            const orbCount = this.id === 'SOUL_VORTEX' ? 6 : (this.id === 'PHANTOM_GUARD' ? 4 : 2);
+            const spacing = 360 / orbCount;
+
+            for (let i = 0; i < orbCount; i++) {
+                const angle = (this.level * 45) + (i * spacing);
+                projectiles.push(new OrbitingProjectile(player, angle, this));
+            }
             return projectiles;
 
         } else if (this.type === 'CHAIN') {
-            // CHAIN: Bouncing projectile that chains between enemies
-            // TODO: Implement dedicated ChainProjectile class
-            // For now, fire multiple lightning strikes as approximation
-            const available = [...enemies];
-            const bounceCount = this.penetration || 3;
-            const bounceRange = this.range || 200;
-
-            // Find initial target (nearest enemy)
-            let nearestEnemy: Enemy | null = null;
-            let minDistance = Infinity;
-            for (const enemy of enemies) {
-                const dist = Math.hypot(player.pos.x - enemy.pos.x, player.pos.y - enemy.pos.y);
-                if (dist < minDistance) {
-                    minDistance = dist;
-                    nearestEnemy = enemy;
-                }
-            }
-
-            if (nearestEnemy) {
-                // Chain through nearby enemies
-                let currentTarget = nearestEnemy;
-                const hitTargets: Enemy[] = [currentTarget];
-
-                for (let i = 0; i < bounceCount && currentTarget; i++) {
-                    if (projectilePools) {
-                        const p = projectilePools.lightning.get();
-                        p.reset(currentTarget.pos.x, currentTarget.pos.y, firingState);
-                        projectiles.push(p);
-                    } else {
-                        projectiles.push(new LightningProjectile(currentTarget.pos.x, currentTarget.pos.y, firingState));
-                    }
-
-                    // Find next closest enemy within bounce range
-                    let nextTarget: Enemy | null = null;
-                    let nextMinDist = bounceRange;
-                    for (const enemy of available) {
-                        if (hitTargets.includes(enemy)) continue;
-                        const dist = Math.hypot(currentTarget.pos.x - enemy.pos.x, currentTarget.pos.y - enemy.pos.y);
-                        if (dist < nextMinDist) {
-                            nextMinDist = dist;
-                            nextTarget = enemy;
-                        }
-                    }
-                    if (nextTarget) {
-                        hitTargets.push(nextTarget);
-                        currentTarget = nextTarget;
-                    } else {
-                        break;
-                    }
-                }
+            // CHAIN: ChainProjectile
+            const weaponStats = firingState;
+            if (projectilePools) {
+                // TODO: Add pool support later
+                projectiles.push(new ChainProjectile(player.pos.x, player.pos.y, player.facingDirection, weaponStats));
+            } else {
+                projectiles.push(new ChainProjectile(player.pos.x, player.pos.y, player.facingDirection, weaponStats));
             }
 
         } else if (this.type === 'TRAP') {
-            // TRAP: Place a trap at player's current position
-            // TODO: Implement dedicated TrapEntity class
-            // For now, use a stationary lightning strike as placeholder
+            // TRAP: TrapProjectile
+            const weaponStats = firingState;
             if (projectilePools) {
-                const p = projectilePools.lightning.get();
-                p.reset(player.pos.x, player.pos.y, firingState);
-                projectiles.push(p);
+                // TODO: Add pool support later
+                projectiles.push(new TrapProjectile(player.pos.x, player.pos.y, weaponStats));
             } else {
-                projectiles.push(new LightningProjectile(player.pos.x, player.pos.y, firingState));
+                projectiles.push(new TrapProjectile(player.pos.x, player.pos.y, weaponStats));
             }
-
         } else { // PROJECTILE
             if (projectilePools) {
                 const p = projectilePools.projectile.get();

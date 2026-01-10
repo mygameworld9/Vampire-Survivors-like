@@ -16,6 +16,9 @@ import { Enemy } from "../../entities/Enemy";
 import { Prop } from "../../entities/Prop";
 import { LightningProjectile } from "../../entities/LightningProjectile";
 import { SlashProjectile } from "../../entities/SlashProjectile";
+import { ChainProjectile } from "../../entities/ChainProjectile";
+import { OrbitingProjectile } from "../../entities/OrbitingProjectile";
+import { TrapProjectile } from "../../entities/TrapProjectile";
 import { ITEM_DATA } from "../../data/itemData";
 import { FloatingText } from "../../entities/FloatingText";
 import { i18nManager } from "../i18n";
@@ -165,6 +168,22 @@ export class CollisionSystem {
                 qX = p.pos.x;
                 qY = p.pos.y;
                 qRadius = p.range + 50;
+                qX = p.pos.x;
+                qY = p.pos.y;
+                qRadius = p.range + 50;
+            } else if (p instanceof ChainProjectile) {
+                // Chain projectile uses bounceRange for finding next target, but for collision it's just size
+                qX = p.pos.x;
+                qY = p.pos.y;
+                qRadius = p.bounceRange + 50; // Query wider for chaining candidates
+            } else if (p instanceof OrbitingProjectile) {
+                qX = p.pos.x;
+                qY = p.pos.y;
+                qRadius = p.size + 50;
+            } else if (p instanceof TrapProjectile) {
+                qX = p.pos.x;
+                qY = p.pos.y;
+                qRadius = p.triggerRadius + 50;
             } else {
                 qX = p.pos.x;
                 qY = p.pos.y;
@@ -223,6 +242,83 @@ export class CollisionSystem {
                         this.applyDamageToEnemy(e, p.damage, p.statusEffect, p.tags);
                         this.game.particleSystem.emit(e.pos.x, e.pos.y, 4, '#fff');
                         p.hitEnemies.add(e.id);
+                    }
+                }
+            } else if (p instanceof ChainProjectile) {
+                // Chain Logic: Hit -> Damage -> Chain
+                for (let j = 0; j < cLen; j++) {
+                    const e = candidates[j];
+                    if (!e) continue;
+                    // Skip if already hit by this chain
+                    if (p.hitEnemies.has(e.id)) continue;
+
+                    const dx = p.pos.x - e.pos.x;
+                    const dy = p.pos.y - e.pos.y;
+                    const distSq = dx * dx + dy * dy;
+                    const hitDist = p.size / 2 + e.size / 2;
+
+                    if (distSq < hitDist * hitDist) {
+                        this.applyDamageToEnemy(e, p.damage, p.statusEffect, p.tags);
+                        this.game.particleSystem.emit(p.pos.x, p.pos.y, 3, e.color);
+                        p.hitEnemies.add(e.id);
+
+                        // Attempt to chain
+                        const chained = p.chain(e, candidates);
+                        if (!chained) {
+                            p.shouldBeRemoved = true;
+                        }
+                        // If chained, p.pos and p.direction are updated to fly to next target
+                        // We break this loop because the projectile has effectively "moved" or "consumed" this frame's hit
+                        break;
+                    }
+                }
+            } else if (p instanceof OrbitingProjectile) {
+                for (let j = 0; j < cLen; j++) {
+                    const e = candidates[j];
+                    if (!e) continue;
+
+                    const dx = p.pos.x - e.pos.x;
+                    const dy = p.pos.y - e.pos.y;
+                    const distSq = dx * dx + dy * dy;
+                    const hitDist = p.size / 2 + e.size / 2;
+
+                    if (distSq < hitDist * hitDist) {
+                        if (p.canHit(e.id, this.game.gameTime)) {
+                            this.applyDamageToEnemy(e, p.damage, p.statusEffect, p.tags);
+                            this.game.particleSystem.emit(e.pos.x, e.pos.y, 2, '#CFD8DC');
+                            p.onHit(e.id, this.game.gameTime);
+                        }
+                    }
+                }
+            } else if (p instanceof TrapProjectile) {
+                if (p.isTriggered) continue; // Already triggered, waiting to disappear
+
+                for (let j = 0; j < cLen; j++) {
+                    const e = candidates[j];
+                    if (!e) continue;
+
+                    const dx = p.pos.x - e.pos.x;
+                    const dy = p.pos.y - e.pos.y;
+                    const distSq = dx * dx + dy * dy;
+                    // Check against trigger radius
+                    const hitDist = p.triggerRadius + e.size / 2;
+
+                    if (distSq < hitDist * hitDist) {
+                        // Trigger!
+                        p.trigger();
+                        // AOE Damage around trap
+                        this.game.particleSystem.emit(p.pos.x, p.pos.y, 20, '#FF5252');
+                        this.game.entityManager.effects.push(new PulseEffect(p.pos, p.triggerRadius * 1.5));
+
+                        // Damage all enemies in explosion radius (slightly larger than trigger)
+                        const neighbors = this.getNeighbors(p.pos, p.triggerRadius * 1.5);
+                        for (const n of neighbors) {
+                            const d2 = n.pos.distSq(p.pos);
+                            if (d2 < (p.triggerRadius * 1.5) ** 2) {
+                                this.applyDamageToEnemy(n, p.damage, p.statusEffect, p.tags);
+                            }
+                        }
+                        break; // Trigger once
                     }
                 }
             } else {
@@ -584,38 +680,40 @@ export class CollisionSystem {
         switch (effect.type) {
             case 'PULSE':
                 this.game.entityManager.effects.push(new PulseEffect(this.game.player.pos, effect.range));
-
-                // Use Grid
-                this._queryResults.length = 0;
-                this.queryGrid(this.game.player.pos.x, this.game.player.pos.y, effect.range + 50, this._queryResults);
-
-                for (const e of this._queryResults) {
-                    if (!e) continue;
-                    const dx = this.game.player.pos.x - e.pos.x;
-                    const dy = this.game.player.pos.y - e.pos.y;
-                    const distSq = dx * dx + dy * dy;
-                    const hitDist = effect.range + e.size / 2;
-
-                    if (distSq < hitDist * hitDist) {
-                        this.applyDamageToEnemy(e, effect.damage * this.game.player.damageMultiplier);
-                        this.game.particleSystem.emit(e.pos.x, e.pos.y, 5, e.color);
-                    }
-                }
-
-                for (const prop of this.game.entityManager.props) {
-                    if (!prop) continue;
-                    const dx = this.game.player.pos.x - prop.pos.x;
-                    const dy = this.game.player.pos.y - prop.pos.y;
-                    const distSq = dx * dx + dy * dy;
-                    const hitDist = effect.range + prop.size / 2;
-
-                    if (distSq < hitDist * hitDist) {
-                        prop.takeDamage(100);
-                        this.game.particleSystem.emit(prop.pos.x, prop.pos.y, 5, '#8D6E63');
-                    }
-                }
-
+                this.applyAreaDamage(this.game.player.pos, effect.range, effect.damage * this.game.player.damageMultiplier, undefined, 5);
                 break;
+        }
+    }
+
+    public applyAreaDamage(center: Vector2D, radius: number, damage: number, color: string = '#FFFFFF', particleCount: number = 5) {
+        // Use Grid
+        this._queryResults.length = 0;
+        this.queryGrid(center.x, center.y, radius + 50, this._queryResults);
+
+        for (const e of this._queryResults) {
+            if (!e) continue;
+            const dx = center.x - e.pos.x;
+            const dy = center.y - e.pos.y;
+            const distSq = dx * dx + dy * dy;
+            const hitDist = radius + e.size / 2;
+
+            if (distSq < hitDist * hitDist) {
+                this.applyDamageToEnemy(e, damage);
+                this.game.particleSystem.emit(e.pos.x, e.pos.y, particleCount, e.color);
+            }
+        }
+
+        for (const prop of this.game.entityManager.props) {
+            if (!prop) continue;
+            const dx = center.x - prop.pos.x;
+            const dy = center.y - prop.pos.y;
+            const distSq = dx * dx + dy * dy;
+            const hitDist = radius + prop.size / 2;
+
+            if (distSq < hitDist * hitDist) {
+                prop.takeDamage(damage);
+                this.game.particleSystem.emit(prop.pos.x, prop.pos.y, particleCount, '#8D6E63');
+            }
         }
     }
 }
