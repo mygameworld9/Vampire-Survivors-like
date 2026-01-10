@@ -94,6 +94,10 @@ export class Player {
     private frameInterval = 100; // ms per frame
     private globalTime = 0;
 
+    // PERF: Scratch vectors to avoid per-frame allocations
+    private static _scratchMoveVec = new Vector2D(0, 0);
+    private static _scratchFaceVec = new Vector2D(0, 0);
+
     constructor(
         x: number,
         y: number,
@@ -219,7 +223,8 @@ export class Player {
 
     update(dt: number, input: InputHandler, enemies: Enemy[], projectilePools?: ProjectilePools): { projectiles: AnyProjectile[], skillEffects: SkillEffect[], momentumBlast: { damage: number, radius: number } | null } {
         this.globalTime += dt;
-        const moveVector = new Vector2D(0, 0);
+        // PERF: Reuse scratch vector instead of new Vector2D() every frame
+        const moveVector = Player._scratchMoveVec.set(0, 0);
 
         // Keyboard Input
         if (input.keys.ArrowLeft || input.keys.a) moveVector.x -= 1;
@@ -240,7 +245,8 @@ export class Player {
             const lenSq = moveVector.x * moveVector.x + moveVector.y * moveVector.y;
             if (lenSq > 0) {
                 moveVector.normalize();
-                this.facingDirection = new Vector2D(moveVector.x, moveVector.y);
+                // PERF: Reuse scratch vector for facing direction update
+                this.facingDirection.set(moveVector.x, moveVector.y);
             }
 
             // Speed is integer, but position remains float for smooth physics
@@ -272,20 +278,22 @@ export class Player {
         }
 
         const newProjectiles: AnyProjectile[] = [];
-        this.weapons.forEach(w => {
-            const projectiles = w.update(dt, this, enemies, projectilePools);
+        // PERF: for loop instead of forEach (no closure allocation)
+        for (let i = 0; i < this.weapons.length; i++) {
+            const projectiles = this.weapons[i].update(dt, this, enemies, projectilePools);
             if (projectiles) {
                 newProjectiles.push(...projectiles);
             }
-        });
+        }
 
         const skillEffects: SkillEffect[] = [];
-        this.skills.forEach(s => {
-            const effect = s.update(dt);
+        // PERF: for loop instead of forEach
+        for (let i = 0; i < this.skills.length; i++) {
+            const effect = this.skills[i].update(dt);
             if (effect) {
                 skillEffects.push(effect);
             }
-        });
+        }
 
         return { projectiles: newProjectiles, skillEffects, momentumBlast };
     }

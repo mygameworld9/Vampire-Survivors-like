@@ -60,27 +60,26 @@ export class Projectile {
     }
 
     draw(ctx: CanvasRenderingContext2D) {
-        ctx.save();
-        ctx.translate(this.pos.x, this.pos.y);
+        // PERF: Avoid ctx.save()/restore() - use direct transform instead
+        const x = this.pos.x;
+        const y = this.pos.y;
+        const halfSize = this.size / 2;
 
-        // Outer Glow/Outline
-        ctx.shadowBlur = 0;
+        // PERF: Removed shadowBlur (causes software rendering stall)
         ctx.lineWidth = 2;
-        ctx.strokeStyle = '#F9A825'; // Darker Yellow/Orange border
+        ctx.strokeStyle = '#F9A825';
 
         // Main Body
-        ctx.fillStyle = '#FFF176'; // Light Pastel Yellow
+        ctx.fillStyle = '#FFF176';
         ctx.beginPath();
-        ctx.arc(0, 0, this.size / 2, 0, Math.PI * 2);
+        ctx.arc(x, y, halfSize, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
 
         // Shine/Highlight
         ctx.fillStyle = '#FFFFFF';
         ctx.beginPath();
-        ctx.arc(-this.size / 5, -this.size / 5, this.size / 4, 0, Math.PI * 2);
+        ctx.arc(x - this.size / 5, y - this.size / 5, this.size / 4, 0, Math.PI * 2);
         ctx.fill();
-
-        ctx.restore();
     }
 }

@@ -158,36 +158,54 @@ export class EntityManager {
             }
         }
 
-        // Update Others
-        this.effects.forEach(e => e.update(dt));
-        this.floatingTexts.forEach(t => t.update(dt));
-        this.explorationPoints.forEach(p => p.update(dt));
+        // Update Others (for loop for perf)
+        for (let i = 0; i < this.effects.length; i++) this.effects[i].update(dt);
+        for (let i = 0; i < this.floatingTexts.length; i++) this.floatingTexts[i].update(dt);
+        for (let i = 0; i < this.explorationPoints.length; i++) this.explorationPoints[i].update(dt);
 
-        // Cleanup lists
-        this.xpOrbs = this.xpOrbs.filter(o => !o.shouldBeRemoved);
-        this.effects = this.effects.filter(e => !e.shouldBeRemoved);
-        this.items = this.items.filter(i => !i.shouldBeRemoved);
-        this.chests = this.chests.filter(c => !c.shouldBeRemoved);
-        this.explorationPoints = this.explorationPoints.filter(e => !e.shouldBeRemoved);
-        this.floatingTexts = this.floatingTexts.filter(t => !t.shouldBeRemoved);
+        // PERF: Zero-alloc in-place removal (swap-and-pop)
+        this.removeMarked(this.xpOrbs);
+        this.removeMarked(this.effects);
+        this.removeMarked(this.items);
+        this.removeMarked(this.chests);
+        this.removeMarked(this.explorationPoints);
+        this.removeMarked(this.floatingTexts);
     }
 
     updateAnimations(dt: number) {
-        this.animatingEntities.forEach(e => e.update(dt));
-        this.chests.forEach(c => c.update(dt));
+        for (let i = 0; i < this.animatingEntities.length; i++) this.animatingEntities[i].update(dt);
+        for (let i = 0; i < this.chests.length; i++) this.chests[i].update(dt);
+    }
+
+    /**
+     * PERF: Zero-alloc in-place removal. O(N) with no array allocation.
+     * Uses swap-and-pop pattern to avoid filter() GC pressure.
+     */
+    private removeMarked<T extends { shouldBeRemoved: boolean }>(arr: T[]): void {
+        let writeIdx = 0;
+        for (let readIdx = 0; readIdx < arr.length; readIdx++) {
+            if (!arr[readIdx].shouldBeRemoved) {
+                if (writeIdx !== readIdx) {
+                    arr[writeIdx] = arr[readIdx];
+                }
+                writeIdx++;
+            }
+        }
+        arr.length = writeIdx;
     }
 
     draw(ctx: CanvasRenderingContext2D) {
-        this.props.forEach(p => p.draw(ctx));
-        this.explorationPoints.forEach(p => p.draw(ctx));
-        this.xpOrbs.forEach(o => o.draw(ctx));
-        this.items.forEach(i => i.draw(ctx));
-        this.chests.forEach(c => c.draw(ctx));
-        this.effects.forEach(e => e.draw(ctx));
+        // PERF: for loops instead of forEach (no closure allocation)
+        for (let i = 0; i < this.props.length; i++) this.props[i].draw(ctx);
+        for (let i = 0; i < this.explorationPoints.length; i++) this.explorationPoints[i].draw(ctx);
+        for (let i = 0; i < this.xpOrbs.length; i++) this.xpOrbs[i].draw(ctx);
+        for (let i = 0; i < this.items.length; i++) this.items[i].draw(ctx);
+        for (let i = 0; i < this.chests.length; i++) this.chests[i].draw(ctx);
+        for (let i = 0; i < this.effects.length; i++) this.effects[i].draw(ctx);
         // Player is drawn by Game
-        this.enemies.forEach(e => e.draw(ctx));
-        this.projectiles.forEach(p => p.draw(ctx));
+        for (let i = 0; i < this.enemies.length; i++) this.enemies[i].draw(ctx);
+        for (let i = 0; i < this.projectiles.length; i++) this.projectiles[i].draw(ctx);
         // Particles drawn by Game.particleSystem
-        this.floatingTexts.forEach(t => t.draw(ctx));
+        for (let i = 0; i < this.floatingTexts.length; i++) this.floatingTexts[i].draw(ctx);
     }
 }
