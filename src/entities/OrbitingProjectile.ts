@@ -18,7 +18,7 @@ export class OrbitingProjectile extends Projectile {
     // Cooldown management for hitting enemies multiple times
     // Map<EnemyID, TimeTimestamp>
     hitTimers: Map<number, number> = new Map();
-    hitInterval = 500; // ms between hits on same enemy
+    hitInterval = 0.5; // seconds between hits on same enemy (gameTime is in seconds)
 
     constructor(player: Player, initialAngle: number, weapon: Weapon) {
         // Position will be overwritten immediately in update
