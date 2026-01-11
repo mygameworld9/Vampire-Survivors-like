@@ -83,88 +83,145 @@ export class SlashProjectile {
     private drawSlash(ctx: CanvasRenderingContext2D, progress: number, opacity: number) {
         ctx.rotate(this.angle);
 
-        // Visual shift forward to make it look like a projectile leaving the weapon
-        const offset = 20 + (progress * 10);
+        // Visual shift forward
+        const offset = 20 + (progress * 30);
         ctx.translate(offset, 0);
 
-        // Scale up slightly during animation
-        const scale = 0.8 + (progress * 0.4);
+        // Scale up
+        const scale = 0.8 + (progress * 0.5);
         ctx.scale(scale, scale);
 
         ctx.globalAlpha = opacity;
 
         const radius = this.range;
 
-        // 1. Main Crescent Body (Pastel Cyan/White)
-        const gradient = ctx.createRadialGradient(0, 0, radius * 0.2, 0, 0, radius);
-        gradient.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
-        gradient.addColorStop(0.6, '#B2EBF2'); // Cyan 100
-        gradient.addColorStop(1, 'rgba(79, 195, 247, 0)'); // Light Blue fade
+        // Determine Color based on Tags
+        let outerColor = '#4FC3F7'; // Default Cyan
+        let innerColor = '#B2EBF2'; // Default Light Cyan
+        let coreColor = '#FFFFFF';
+        let isPoison = false;
+
+        if (this.tags.includes('POISON')) {
+            isPoison = true;
+            outerColor = '#76FF03'; // Neon Green
+            innerColor = '#B2FF59'; // Light Lime
+            coreColor = '#F4FF81';  // Yellowish Core
+        } else if (this.tags.includes('DARK')) {
+            outerColor = '#9C27B0';
+            innerColor = '#E1BEE7';
+        } else if (this.tags.includes('FIRE')) {
+            outerColor = '#FF5722';
+            innerColor = '#FFCCBC';
+        }
+
+        // 1. Main Fade Gradient
+        const gradient = ctx.createRadialGradient(0, 0, radius * 0.3, 0, 0, radius * 1.2);
+        gradient.addColorStop(0, innerColor);
+        gradient.addColorStop(0.4, outerColor);
+        gradient.addColorStop(1, 'rgba(0,0,0,0)');
 
         ctx.fillStyle = gradient;
 
+        // Draw Tapered "Swoosh" shape
         ctx.beginPath();
-        // Draw a crescent shape using arcs
-        // Outer arc
-        ctx.arc(0, 0, radius, -Math.PI / 2.5, Math.PI / 2.5, false);
-        // Inner curve to close the shape
-        ctx.bezierCurveTo(
-            radius * 0.2, Math.PI / 4,
-            radius * 0.2, -Math.PI / 4,
-            radius * Math.cos(-Math.PI / 2.5), radius * Math.sin(-Math.PI / 2.5)
-        );
+        // Start from inner edge
+        ctx.arc(0, 0, radius * 0.8, -Math.PI / 3, Math.PI / 3, false);
+        // Outer edge (sharper curve)
+        ctx.arc(0, 0, radius * 1.1, Math.PI / 3, -Math.PI / 3, true);
+        ctx.closePath();
         ctx.fill();
 
-        // 2. Sharp Edge Line (Anime style streak)
-        ctx.strokeStyle = '#FFFFFF';
-        ctx.lineWidth = 3;
+        // 2. Sharp Edge Core Line
+        ctx.strokeStyle = coreColor;
+        ctx.lineWidth = 4;
         ctx.lineCap = 'round';
+        ctx.shadowBlur = isPoison ? 15 : 10;
+        ctx.shadowColor = outerColor;
+
         ctx.beginPath();
-        ctx.arc(0, 0, radius * 0.9, -Math.PI / 3, Math.PI / 3, false);
+        ctx.arc(0, 0, radius * 0.95, -Math.PI / 3.5, Math.PI / 3.5, false);
         ctx.stroke();
 
-        // 3. Little sparkly bits at the edge
-        ctx.fillStyle = '#FFFFFF';
-        if (progress < 0.5) {
-            ctx.beginPath();
-            ctx.arc(radius, -10, 3, 0, Math.PI * 2);
-            ctx.arc(radius * 0.9, 15, 2, 0, Math.PI * 2);
-            ctx.fill();
+        ctx.shadowBlur = 0; // Reset
+
+        // 3. Particles / Sparkles
+        // Poison gets "Bubbles"
+        if (progress < 0.6) {
+            if (isPoison) {
+                // Toxic Bubbles
+                ctx.fillStyle = '#CCFF90';
+                for (let i = 0; i < 5; i++) {
+                    const pAngle = (Math.random() - 0.5) * Math.PI / 1.5;
+                    const pDist = radius * (0.5 + Math.random() * 0.6);
+                    const bubbleSize = 2 + Math.random() * 3;
+
+                    ctx.beginPath();
+                    ctx.arc(Math.cos(pAngle) * pDist, Math.sin(pAngle) * pDist, bubbleSize, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            } else {
+                // Standard Sparkles
+                ctx.fillStyle = '#FFFFFF';
+                for (let i = 0; i < 3; i++) {
+                    const pAngle = (Math.random() - 0.5) * Math.PI / 2;
+                    const pDist = radius * (0.8 + Math.random() * 0.3);
+                    ctx.beginPath();
+                    ctx.arc(Math.cos(pAngle) * pDist, Math.sin(pAngle) * pDist, 2 + Math.random() * 2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
         }
     }
 
     private drawSpin(ctx: CanvasRenderingContext2D, progress: number, opacity: number) {
         // Rotate continuously
-        const rotation = progress * Math.PI * 3;
+        const rotation = progress * Math.PI * 4; // Faster spin
         ctx.rotate(rotation);
 
         ctx.globalAlpha = opacity;
-
         const radius = this.range;
+
+        // Determine Color
+        let colorMain = 'rgba(128, 222, 234, 0.6)'; // Cyan
+        let colorStrike = '#E0F7FA';
+
+        if (this.tags.includes('DARK')) {
+            colorMain = 'rgba(156, 39, 176, 0.6)'; // Purple
+            colorStrike = '#E1BEE7';
+        } else if (this.tags.includes('FIRE')) {
+            colorMain = 'rgba(255, 87, 34, 0.6)'; // Orange
+            colorStrike = '#FFCCBC';
+        } else if (this.tags.includes('POISON')) {
+            colorMain = 'rgba(76, 175, 80, 0.6)'; // Green
+            colorStrike = '#C8E6C9';
+        }
 
         // Draw a whirlwind (3 arms)
         for (let i = 0; i < 3; i++) {
             ctx.rotate((Math.PI * 2) / 3);
 
             // Wind swoosh
-            ctx.fillStyle = 'rgba(128, 222, 234, 0.6)'; // Cyan 200
+            ctx.fillStyle = colorMain;
             ctx.beginPath();
             ctx.arc(0, 0, radius, 0, Math.PI * 0.6);
-            ctx.quadraticCurveTo(radius * 0.5, radius * 0.5, radius, 0);
+            ctx.quadraticCurveTo(radius * 0.5, radius * 0.5, radius, 0); // Sharp tail
             ctx.fill();
 
-            // Speed line
-            ctx.strokeStyle = '#E0F7FA';
-            ctx.lineWidth = 2;
+            // Speed line (Core)
+            ctx.strokeStyle = colorStrike;
+            ctx.lineWidth = 3;
+            ctx.shadowColor = colorStrike;
+            ctx.shadowBlur = 5;
             ctx.beginPath();
             ctx.arc(0, 0, radius * 0.9, 0.1, Math.PI * 0.5);
             ctx.stroke();
+            ctx.shadowBlur = 0;
         }
 
         // Center glow
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
         ctx.beginPath();
-        ctx.arc(0, 0, radius * 0.3, 0, Math.PI * 2);
+        ctx.arc(0, 0, radius * 0.2, 0, Math.PI * 2);
         ctx.fill();
     }
 }

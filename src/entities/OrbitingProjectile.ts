@@ -52,5 +52,73 @@ export class OrbitingProjectile extends Projectile {
         // NOTE: penetration is decremented by CollisionSystem, 
         // and shouldBeRemoved is set when penetration <= 0
     }
+
+    override draw(ctx: CanvasRenderingContext2D) {
+        ctx.save();
+
+        // Colors
+        let coreColor = '#B2EBF2'; // Cyan 100
+        let glowColor = '#00BCD4'; // Cyan 500
+        let tailColor = 'rgba(0, 188, 212, 0.5)';
+
+        if (this.tags.includes('DARK')) {
+            coreColor = '#E1BEE7'; // Purple 100
+            glowColor = '#9C27B0'; // Purple 500
+            tailColor = 'rgba(156, 39, 176, 0.5)';
+        } else if (this.tags.includes('FIRE')) {
+            coreColor = '#FFCCBC';
+            glowColor = '#FF5722';
+            tailColor = 'rgba(255, 87, 34, 0.5)';
+        }
+
+        // 1. Draw Tail (Arc) - Simulated Trail without array
+        const tailLength = Math.PI / 2; // Quarter circle tail
+        const tailStart = this.currentAngle - tailLength;
+        const cx = this.player.pos.x;
+        const cy = this.player.pos.y;
+
+        // Gradient for tail
+        // Since we can't easily do angular gradient on path in 2D canvas without tricks,
+        // we'll simulate it by drawing a few segments or just a solid fading line?
+        // Let's do a simple stroke with globalAlpha or just a solid color for now.
+        // Better: Stroke the arc.
+
+        ctx.beginPath();
+        // Arc from tailStart to currentAngle
+        ctx.arc(cx, cy, this.orbitRadius, tailStart, this.currentAngle);
+
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = tailColor;
+        ctx.lineCap = 'round';
+        // Fade effect workaround: strokeStyle gradient only works linearly or radially (not distinct along path)
+        // We will just draw it.
+        ctx.stroke();
+
+        // 2. Draw Orb
+        ctx.translate(this.pos.x, this.pos.y);
+
+        // Glow
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = glowColor;
+
+        // Core
+        const gradient = ctx.createRadialGradient(0, 0, 2, 0, 0, 8);
+        gradient.addColorStop(0, '#FFFFFF');
+        gradient.addColorStop(0.4, coreColor);
+        gradient.addColorStop(1, glowColor);
+
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(0, 0, 8, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Inner Eye / Core Detail (for "Spirit" feel)
+        ctx.fillStyle = '#FFFFFF';
+        ctx.beginPath();
+        ctx.arc(0, 0, 3, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+    }
 }
 

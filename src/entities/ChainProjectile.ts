@@ -57,6 +57,92 @@ export class ChainProjectile extends Projectile {
 
         return false;
     }
+
+    private trail: { x: number, y: number }[] = [];
+    private maxTrailLength = 10;
+
+    override update(dt: number) {
+        // Update trail
+        this.trail.push({ x: this.pos.x, y: this.pos.y });
+        if (this.trail.length > this.maxTrailLength) {
+            this.trail.shift();
+        }
+
+        super.update(dt);
+    }
+
+    override draw(ctx: CanvasRenderingContext2D) {
+        if (this.trail.length < 2) return;
+
+        const isLightning = this.tags.includes('LIGHTNING');
+
+        ctx.save();
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        if (isLightning) {
+            // == LIGHTNING STYLE ==
+            // Core White
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = '#FFEB3B'; // Yellow Glow (or Blue if Storm)
+            ctx.strokeStyle = '#FFFFFF';
+            ctx.lineWidth = 3;
+
+            if (this.tags.includes('AREA')) { // Storm Weaver (removed STORM check)
+                ctx.shadowColor = '#00B0FF';
+            }
+
+            // Draw Jagged Path
+            ctx.beginPath();
+            ctx.moveTo(this.trail[0].x, this.trail[0].y);
+
+            for (let i = 1; i < this.trail.length; i++) {
+                const p1 = this.trail[i - 1];
+                const p2 = this.trail[i];
+                // Add jitter
+                const midX = (p1.x + p2.x) / 2 + (Math.random() - 0.5) * 10;
+                const midY = (p1.y + p2.y) / 2 + (Math.random() - 0.5) * 10;
+                ctx.lineTo(midX, midY);
+                ctx.lineTo(p2.x, p2.y);
+            }
+            ctx.stroke();
+
+            // Draw Head spark
+            ctx.fillStyle = '#FFF';
+            ctx.beginPath();
+            ctx.arc(this.pos.x, this.pos.y, 5, 0, Math.PI * 2);
+            ctx.fill();
+
+        } else {
+            // == PHYSICAL CHAIN STYLE ==
+            ctx.strokeStyle = '#B0BEC5'; // Silver
+            ctx.lineWidth = 4;
+
+            ctx.beginPath();
+            ctx.moveTo(this.trail[0].x, this.trail[0].y);
+            for (let i = 1; i < this.trail.length; i++) {
+                ctx.lineTo(this.trail[i].x, this.trail[i].y);
+            }
+            ctx.stroke();
+
+            // Draw Links
+            ctx.fillStyle = '#607D8B';
+            for (let i = 0; i < this.trail.length; i += 2) { // Every other point
+                ctx.beginPath();
+                ctx.arc(this.trail[i].x, this.trail[i].y, 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Head Hook
+            ctx.strokeStyle = '#CFD8DC';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(this.pos.x, this.pos.y, 6, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+
+        ctx.restore();
+    }
 }
 
 function enzymeIsValid(enemy: Enemy, currentTarget: Enemy, hitEnemies: Set<number>): boolean {

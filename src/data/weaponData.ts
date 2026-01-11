@@ -187,7 +187,7 @@ export const WEAPON_DATA: { [key: string]: IWeaponData } = {
     KATANA: {
         id: 'KATANA',
         nameKey: 'weapon.katana.name',
-        icon: '🗡️',
+        icon: '⚔️', // Was 🗡️
         type: 'MELEE',
         damage: 45,
         cooldown: 1500,
@@ -204,7 +204,7 @@ export const WEAPON_DATA: { [key: string]: IWeaponData } = {
     POISON_DAGGER: {
         id: 'POISON_DAGGER',
         nameKey: 'weapon.poisondagger.name',
-        icon: '🗡️',
+        icon: '🧪', // Was 🗡️
         type: 'MELEE',
         damage: 25,
         cooldown: 1200,
@@ -263,7 +263,7 @@ export const WEAPON_DATA: { [key: string]: IWeaponData } = {
     SPIRIT_ORB: {
         id: 'SPIRIT_ORB',
         nameKey: 'weapon.spiritorb.name',
-        icon: '👻',
+        icon: '🧿', // Was 👻
         type: 'ORBITING',
         damage: 8,
         cooldown: 600,
@@ -307,7 +307,7 @@ export const WEAPON_DATA: { [key: string]: IWeaponData } = {
     CHAIN_BOLT: {
         id: 'CHAIN_BOLT',
         nameKey: 'weapon.chainbolt.name',
-        icon: '⛓️',
+        icon: '🔗', // Was ⛓️
         type: 'CHAIN',
         damage: 20,
         cooldown: 2000,
@@ -363,7 +363,7 @@ export const WEAPON_DATA: { [key: string]: IWeaponData } = {
     SPIKE_TRAP: {
         id: 'SPIKE_TRAP',
         nameKey: 'weapon.spiketrap.name',
-        icon: '📌',
+        icon: '⚙️', // Was 📌
         type: 'TRAP',
         damage: 30,
         cooldown: 3000, // Place interval
