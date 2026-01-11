@@ -509,6 +509,35 @@
     box-shadow: 0 3px 0 rgba(0,0,0,0.1);
 }
 
+/* Weapon Grouping in Codex */
+.codex-weapon-group {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 15px;
+    border: 2px solid #ffcc80;
+}
+.codex-weapon-group.evolved {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 140, 0, 0.15));
+    border-color: #ffa726;
+}
+.codex-group-title {
+    margin: 0 0 1rem 0;
+    font-size: 1.3rem;
+    color: #fb8c00;
+    border-bottom: 2px solid #ffe0b2;
+    padding-bottom: 0.5rem;
+}
+.codex-weapon-group.evolved .codex-group-title {
+    color: #e65100;
+    border-bottom-color: #ffb74d;
+}
+.codex-group-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
 /* Character & Map Select */
 .selection-grid {
     display: flex;
